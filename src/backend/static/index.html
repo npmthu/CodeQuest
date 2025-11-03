@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Backend Dashboard</title>
+</head>
+<body>
+        <h1>Registration</h1>
+        <form id = "reg-form">
+            <input type="text" autocomplete="off" id="username" name="username" placeholder="Username" required><br>
+            <input type="password" autocomplete="off" id="password" name="password" placeholder="Password" required><br>
+            <input type="submit" value="Submit Form">
+        </form>
+
+        <script>
+            const form = document.getElementById('reg-form');
+            form.addEventListener('submit', registerUser);
+
+            async function registerUser(event) {
+                event.preventDefault();
+                
+                const username = document.getElementById('username').value;
+                const password = document.getElementById('password').value;
+
+                const result = await fetch('/api/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+
+                }).then((res) => res.json())
+                
+                if (result.status === 'ok') {
+                    alert('Registration successful!');
+                } else {
+                    alert('Registration failed: ' + (result.error || 'Unknown error'));
+                }
+            }
+
+        </script>
+    </body>
+</html>
