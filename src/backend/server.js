@@ -1,6 +1,7 @@
 const express = require('express');
 const path = require('path');
 const bodyParser = require('body-parser');
+const cors = require('cors');
 const mongoose = require('mongoose');
 const User = require('./model/user');
 const bcrypt = require('bcryptjs');
@@ -9,7 +10,8 @@ const { error } = require('console');
 
 const JWT_SECRET = 'kaj2h19829@#@(*#31o2hjadkjdhaoijdpoawjj1231241j@&#@(!@idja'
 
-mongoose.connect('mongodb://localhost:27017/login-app-database', {
+// *** Edit your MongoDB connection string here ***
+mongoose.connect('mongodb+srv://yay:yaynayyay@cluster0.gkrp1mm.mongodb.net/?appName=Cluster0', {
     useNewUrlParser: true,
     useUnifiedTopology: true,
 })
@@ -17,6 +19,7 @@ mongoose.connect('mongodb://localhost:27017/login-app-database', {
 .catch(err => console.error('❌ MongoDB connection failed:', err))
 
 const app = express();
+app.use(cors());
 app.use('/', express.static(path.join(__dirname, 'static')));
 app.use(bodyParser.json());
 
