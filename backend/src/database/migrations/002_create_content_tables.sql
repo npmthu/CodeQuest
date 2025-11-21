@@ -1,0 +1,1 @@
+-- Create topics and lessons tables
