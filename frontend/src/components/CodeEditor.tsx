@@ -1,83 +1,345 @@
-import { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { useApi } from "../api/ApiProvider";
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Badge } from "./ui/badge";
-import { 
-  ArrowLeft, 
-  Play, 
-  RotateCcw, 
-  Settings, 
+import {
+  Play,
+  RotateCcw,
+  ArrowLeft,
   ChevronDown,
-  CheckCircle2,
-  XCircle,
+  Settings,
   Lightbulb,
-  Sparkles
+  CheckCircle2,
+  Sparkles,
+  AlertTriangle,
+  Loader2,
 } from "lucide-react";
 
-interface CodeEditorProps {
-  onNavigate: (page: string) => void;
+// ---------- Types ----------
+interface ProblemSummary {
+  id: string;
+  title: string;
 }
 
-export default function CodeEditor({ onNavigate }: CodeEditorProps) {
-  const [code, setCode] = useState(`def two_sum(nums, target):
-    # Write your solution here
-    pass
+interface SampleCase {
+  input: string;
+  output: string;
+  explanation?: string;
+}
 
-# Test your code
-nums = [2, 7, 11, 15]
-target = 9
-print(two_sum(nums, target))`);
-  
+interface Hint {
+  level: number;
+  text: string;
+}
+
+interface Problem {
+  id: string;
+  slug?: string;
+  title: string;
+  description_markdown: string;
+  difficulty: 1 | 2 | 3;
+  starter_code: Record<string, string>;
+  tags: string[];
+  time_limit_ms?: number;
+  memory_limit_kb?: number;
+  input_format?: string;
+  output_format?: string;
+  sample_test_cases?: SampleCase[];
+  hints?: Hint[];
+  related_problems?: { id: string; title: string; difficulty: 1 | 2 | 3 }[];
+  user_progress?: { submission_count: number; best_submission_id?: string; solved?: boolean };
+}
+
+type Language = "python" | "java" | "cpp";
+
+// ---------- Component Props ----------
+interface CodeEditorProps {
+  onNavigate?: (page: string) => void;
+  apiBase?: string; // optional override for API base URL
+}
+
+// ---------- Utility helpers ----------
+const difficultyText = (d: number) => (d === 1 ? "Easy" : d === 2 ? "Medium" : "Hard");
+const difficultyColor = (d: number) => (d === 1 ? "green" : d === 2 ? "yellow" : "red");
+
+// ---------- Component ----------
+export default function CodeEditor({ onNavigate, apiBase }: CodeEditorProps) {
+  const [problemList, setProblemList] = useState<ProblemSummary[]>([]);
+  const [problem, setProblem] = useState<Problem | null>(null);
+
+  // derive effective API base: prop override -> Vite env -> default
+  const effectiveApiBase: string =
+    apiBase ?? (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_API_BASE) ?? "http://localhost:3000/api";
+
+  const [language, setLanguage] = useState<Language>("python");
+  const [code, setCode] = useState("");
+
+  const [loadingProblem, setLoadingProblem] = useState(false);
+  const [loadingAction, setLoadingAction] = useState(false); // run/submit
+  const [error, setError] = useState<string | null>(null);
+
   const [output, setOutput] = useState("");
-  const [language, setLanguage] = useState("python");
-  const [hasRun, setHasRun] = useState(false);
+  const [testCaseStates, setTestCaseStates] = useState<Record<number, "not_run" | "running" | "passed" | "failed">>({});
+  const [aiReview, setAiReview] = useState<string | null>(null);
 
-  const handleRun = () => {
-    setOutput("Output:\n[0, 1]\n\nTest case passed! ✓\nExecution time: 0.045s\nMemory: 14.2 MB");
-    setHasRun(true);
-  };
+  // submission polling
+  const pollRef = useRef<number | null>(null);
 
+  // API client
+  const { get, post, apiBase: clientApiBase } = useApi();
+
+  // Fetch problems list and first problem detail on mount
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadProblems() {
+      setLoadingProblem(true);
+      setError(null);
+      try {
+        const json = await get("/problems");
+        const data: ProblemSummary[] = json.data || [];
+        if (!mounted) return;
+        setProblemList(data);
+        if (data.length > 0) {
+          await loadProblemDetail(data[1].id);
+        }
+      } catch (err: any) {
+        console.error(err);
+        if (!mounted) return;
+        setError(err.message || "Unknown error fetching problems");
+      } finally {
+        if (mounted) setLoadingProblem(false);
+      }
+    }
+
+    async function loadProblemDetail(id: string) {
+      setLoadingProblem(true);
+      setError(null);
+      try {
+        const json = await get(`/problems/${id}`);
+        const p: Problem = json.data;
+        setProblem(p);
+        // set starter code for current language
+        setCode(p.starter_code?.[language] ?? "");
+        // initialize test case states
+        const tstates: Record<number, "not_run" | "running" | "passed" | "failed"> = {};
+        (p.sample_test_cases || []).forEach((_, i) => (tstates[i] = "not_run"));
+        setTestCaseStates(tstates);
+      } catch (err: any) {
+        console.error(err);
+        setError(err.message || "Unknown error fetching problem detail");
+      } finally {
+        setLoadingProblem(false);
+      }
+    }
+
+    loadProblems();
+
+    return () => {
+      mounted = false;
+      if (pollRef.current) window.clearInterval(pollRef.current);
+    };
+  }, [effectiveApiBase]);
+
+  // when language changes, update starter code (but only if user hasn't typed anything? we override always per requirement)
+  useEffect(() => {
+    if (problem) {
+      setCode(problem.starter_code?.[language] ?? "");
+    }
+  }, [language, problem]);
+
+  // Reset handler
   const handleReset = () => {
-    setCode(`def two_sum(nums, target):
-    # Write your solution here
-    pass
-
-# Test your code
-nums = [2, 7, 11, 15]
-target = 9
-print(two_sum(nums, target))`);
+    if (!problem) return;
+    setCode(problem.starter_code?.[language] ?? "");
     setOutput("");
-    setHasRun(false);
+    // reset testcase states
+    const tstates: Record<number, "not_run" | "running" | "passed" | "failed"> = {};
+    (problem.sample_test_cases || []).forEach((_, i) => (tstates[i] = "not_run"));
+    setTestCaseStates(tstates);
+    setAiReview(null);
+    setError(null);
   };
+
+  // Run handler (mode = run)
+  const handleRun = async () => {
+    if (!problem) return;
+    setLoadingAction(true);
+    setError(null);
+    setOutput("");
+
+    try {
+      const json = await post(`/submissions`, { problem_id: problem.id, language, code, mode: "run" });
+
+      // assume backend returns immediate result for run mode
+      if (json.success && json.data) {
+        const result = json.data.result;
+        setOutput(result?.stdout ?? result?.output ?? "(no output)");
+
+        // if result contains test case results, map them
+        if (Array.isArray(result?.test_cases)) {
+          const tstates: Record<number, "not_run" | "running" | "passed" | "failed"> = {};
+          result.test_cases.forEach((tc: any, i: number) => (tstates[i] = tc.passed ? "passed" : "failed"));
+          setTestCaseStates(tstates);
+        }
+
+        // optional AI review provided by backend
+        if (result?.ai_review) setAiReview(result.ai_review as string);
+      } else {
+        setOutput(json.message ?? "Run failed");
+      }
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || "Error running code");
+      setOutput("Error running code");
+    } finally {
+      setLoadingAction(false);
+    }
+  };
+
+  // Submit handler (mode = submit) with polling
+  const handleSubmit = async () => {
+    if (!problem) return;
+    setLoadingAction(true);
+    setError(null);
+    setOutput("");
+
+    try {
+      const json = await post(`/submissions`, { problem_id: problem.id, language, code });
+      if (!json.success || !json.data?.submission_id) {
+        setOutput(json.message ?? "Submission failed");
+        return;
+      }
+
+      const submissionId: string = json.data.submission_id;
+      setOutput(`Submission queued: ${submissionId}`);
+
+      // start polling for submission result every 2s
+      let attempts = 0;
+      const maxAttempts = 60; // 2 minutes
+
+      if (pollRef.current) window.clearInterval(pollRef.current);
+
+      pollRef.current = window.setInterval(async () => {
+        attempts += 1;
+        try {
+          const pjson = await get(`/submissions/${submissionId}`);
+
+          // expected structure: { success: true, data: { status: 'pending'|'done', result: {...} } }
+          const pdata = pjson.data;
+          if (pdata?.status === "done" || pdata?.status === "finished") {
+            // show results
+            const r = pdata.result;
+            setOutput(r?.stdout ?? r?.output ?? JSON.stringify(r, null, 2));
+
+            if (Array.isArray(r?.test_cases)) {
+              const tstates: Record<number, "not_run" | "running" | "passed" | "failed"> = {};
+              r.test_cases.forEach((tc: any, i: number) => (tstates[i] = tc.passed ? "passed" : "failed"));
+              setTestCaseStates(tstates);
+            }
+            if (r?.ai_review) setAiReview(r.ai_review);
+
+            if (pollRef.current) {
+              window.clearInterval(pollRef.current);
+              pollRef.current = null;
+            }
+            setLoadingAction(false);
+          } else {
+            // still pending
+            setOutput(`Submission ${submissionId} status: ${pdata?.status ?? "pending"}`);
+            // optionally mark testcase states as running
+            const tstates: Record<number, "not_run" | "running"> = {};
+            (problem.sample_test_cases || []).forEach((_, i) => (tstates[i] = "running"));
+            setTestCaseStates((s) => ({ ...s, ...tstates }));
+          }
+        } catch (err: any) {
+          console.error("Polling error", err);
+          // don't spam the user with errors; stop after max attempts
+          if (attempts >= maxAttempts) {
+            if (pollRef.current) {
+              window.clearInterval(pollRef.current);
+              pollRef.current = null;
+            }
+            setError("Timed out waiting for submission result");
+            setLoadingAction(false);
+          }
+        }
+      }, 2000);
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || "Error submitting code");
+      setLoadingAction(false);
+    }
+  };
+
+  // UI
+  if (loadingProblem && !problem)
+    return (
+      <div className="h-screen flex items-center justify-center">
+        <div className="flex items-center gap-2">
+          <Loader2 className="animate-spin" />
+          <span>Loading problems…</span>
+        </div>
+      </div>
+    );
+
+  if (!problem)
+    return (
+      <div className="h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="mb-2">No problem loaded.</p>
+          {error && (
+            <div className="text-sm text-red-600 mb-2 flex items-center justify-center gap-2">
+              <AlertTriangle className="w-4 h-4" /> {error}
+            </div>
+          )}
+          <Button onClick={() => window.location.reload()}>Reload</Button>
+        </div>
+      </div>
+    );
 
   return (
-    <div className="h-screen flex flex-col bg-background">
+    <div className="h-screen flex flex-col bg-gray-50">
       {/* Header */}
-      <div className="bg-white border-b border-border px-6 py-4">
+      <div className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button
-              onClick={() => onNavigate("home")}
-              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+              onClick={() => onNavigate?.("home")}
+              className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900"
             >
-              <ArrowLeft className="w-4 h-4" />
-              Back
+              <ArrowLeft className="w-4 h-4" /> Back
             </button>
-            <div className="h-6 w-px bg-border"></div>
+
+            <div className="h-6 w-px bg-gray-200" />
+
             <div>
-              <h3>Two Sum</h3>
-              <div className="flex items-center gap-2 mt-1">
-                <Badge className="bg-green-100 text-green-700">Easy</Badge>
-                <span className="text-sm text-muted-foreground">Arrays • Hash Table</span>
+              <h2 className="text-lg font-semibold">{problem.title}</h2>
+              <div className="flex items-center gap-3 mt-1">
+                <Badge className={`px-2 py-1 rounded-md bg-${difficultyColor(problem.difficulty)}-100 text-${difficultyColor(problem.difficulty)}-800`}> 
+                  {difficultyText(problem.difficulty)}
+                </Badge>
+                <div className="text-sm text-gray-500">{problem.tags?.join(" • ")}</div>
               </div>
             </div>
           </div>
+
           <div className="flex items-center gap-3">
-            <button className="flex items-center gap-2 px-3 py-2 text-sm border border-border rounded-lg hover:bg-gray-50">
-              {language.charAt(0).toUpperCase() + language.slice(1)}
-              <ChevronDown className="w-4 h-4" />
-            </button>
+            <div className="relative">
+              <select
+                value={language}
+                onChange={(e) => setLanguage(e.target.value as Language)}
+                className="appearance-none px-3 py-2 border border-gray-200 rounded-md bg-white text-sm pr-8"
+              >
+                <option value="python">Python</option>
+                <option value="java">Java</option>
+                <option value="cpp">C++</option>
+              </select>
+              <ChevronDown className="absolute right-2 top-2 w-4 h-4 text-gray-400 pointer-events-none" />
+            </div>
+
             <Button variant="outline" size="sm">
               <Settings className="w-4 h-4" />
             </Button>
@@ -85,187 +347,178 @@ print(two_sum(nums, target))`);
         </div>
       </div>
 
-      {/* Main Content */}
+      {/* Main */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Left Panel - Problem Description */}
-        <div className="w-2/5 border-r border-border overflow-auto">
+        {/* Left - Problem */}
+        <div className="w-2/5 border-r border-gray-200 overflow-auto bg-white">
           <Tabs defaultValue="description" className="h-full flex flex-col">
-            <TabsList className="w-full justify-start rounded-none border-b border-border bg-white px-6">
+            <TabsList className="w-full justify-start rounded-none border-b border-gray-200 px-6 bg-white">
               <TabsTrigger value="description">Description</TabsTrigger>
-              <TabsTrigger value="solution">Solution</TabsTrigger>
+              <TabsTrigger value="hints">Hints</TabsTrigger>
               <TabsTrigger value="discussion">Discussion</TabsTrigger>
             </TabsList>
-            
-            <TabsContent value="description" className="flex-1 overflow-auto p-6 m-0">
-              <div className="space-y-6">
-                <div>
-                  <h3 className="mb-3">Problem Description</h3>
-                  <p className="text-muted-foreground leading-relaxed">
-                    Given an array of integers <code className="px-2 py-1 bg-gray-100 rounded text-sm">nums</code> and 
-                    an integer <code className="px-2 py-1 bg-gray-100 rounded text-sm">target</code>, return indices 
-                    of the two numbers such that they add up to target.
-                  </p>
-                  <p className="text-muted-foreground leading-relaxed mt-3">
-                    You may assume that each input would have exactly one solution, and you may not use the same element twice.
-                  </p>
+
+            <div className="p-6 space-y-4">
+              <div className="text-sm text-gray-600">
+                <div className="mb-3">
+                  <div className="font-medium">Input format</div>
+                  <div className="text-sm text-gray-500">{problem.input_format ?? "-"}</div>
                 </div>
 
-                <div>
-                  <h4 className="mb-3">Examples</h4>
-                  <Card className="p-4 bg-gray-50">
-                    <p className="text-sm mb-2"><strong>Input:</strong> nums = [2,7,11,15], target = 9</p>
-                    <p className="text-sm mb-2"><strong>Output:</strong> [0,1]</p>
-                    <p className="text-sm text-muted-foreground"><strong>Explanation:</strong> Because nums[0] + nums[1] == 9, we return [0, 1].</p>
-                  </Card>
+                <div className="mb-3">
+                  <div className="font-medium">Output format</div>
+                  <div className="text-sm text-gray-500">{problem.output_format ?? "-"}</div>
                 </div>
 
-                <div>
-                  <Card className="p-4 bg-gray-50">
-                    <p className="text-sm mb-2"><strong>Input:</strong> nums = [3,2,4], target = 6</p>
-                    <p className="text-sm mb-2"><strong>Output:</strong> [1,2]</p>
-                  </Card>
-                </div>
-
-                <div>
-                  <h4 className="mb-3">Constraints</h4>
-                  <ul className="space-y-2 text-sm text-muted-foreground">
-                    <li>• 2 ≤ nums.length ≤ 10⁴</li>
-                    <li>• -10⁹ ≤ nums[i] ≤ 10⁹</li>
-                    <li>• -10⁹ ≤ target ≤ 10⁹</li>
-                    <li>• Only one valid answer exists</li>
-                  </ul>
-                </div>
-
-                <div>
-                  <h4 className="mb-3">Hints</h4>
-                  <Card className="p-4 bg-blue-50 border-blue-200">
-                    <div className="flex items-start gap-3">
-                      <Lightbulb className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                      <p className="text-sm">Try using a hash map to store the numbers you've seen and their indices.</p>
-                    </div>
-                  </Card>
+                <div className="mb-3">
+                  <div className="font-medium">Constraints</div>
+                  <div className="text-sm text-gray-500">{problem.time_limit_ms ? `${problem.time_limit_ms} ms` : "-"} • {problem.memory_limit_kb ? `${problem.memory_limit_kb} KB` : "-"}</div>
                 </div>
               </div>
-            </TabsContent>
 
-            <TabsContent value="solution" className="flex-1 overflow-auto p-6 m-0">
-              <div className="space-y-4">
-                <h3>Optimal Solution</h3>
-                <p className="text-muted-foreground">
-                  Use a hash map to achieve O(n) time complexity
-                </p>
-                <Card className="p-4 bg-gray-900 text-gray-100">
-                  <pre className="text-sm overflow-auto">
-{`def two_sum(nums, target):
-    seen = {}
-    for i, num in enumerate(nums):
-        complement = target - num
-        if complement in seen:
-            return [seen[complement], i]
-        seen[num] = i
-    return []`}
-                  </pre>
-                </Card>
-                <div className="pt-4 border-t border-border">
-                  <h4 className="mb-2">Complexity Analysis</h4>
-                  <ul className="space-y-2 text-sm text-muted-foreground">
-                    <li>• Time Complexity: O(n)</li>
-                    <li>• Space Complexity: O(n)</li>
-                  </ul>
+              <div className="prose max-w-none text-sm whitespace-pre-wrap">
+                {/* show markdown raw (to avoid adding dependencies). In a real app render markdown to HTML. */}
+                <pre className="whitespace-pre-wrap text-sm">{problem.description_markdown}</pre>
+              </div>
+
+              <div>
+                <div className="font-medium mb-2">Sample Test Cases</div>
+                <div className="space-y-3">
+                  {(problem.sample_test_cases || []).map((tc, idx) => (
+                    <Card key={idx} className="p-3 bg-gray-50 border-gray-200">
+                      <div className="text-sm">
+                        <div className="font-medium">Input</div>
+                        <pre className="whitespace-pre-wrap">{tc.input}</pre>
+                        <div className="font-medium">Output</div>
+                        <pre className="whitespace-pre-wrap">{tc.output}</pre>
+                        {tc.explanation && <div className="text-gray-500 text-sm">{tc.explanation}</div>}
+                      </div>
+                    </Card>
+                  ))}
                 </div>
               </div>
-            </TabsContent>
 
-            <TabsContent value="discussion" className="flex-1 overflow-auto p-6 m-0">
-              <p className="text-muted-foreground">Discussion forum coming soon...</p>
-            </TabsContent>
+              <TabsContent value="hints" className="p-0 m-0">
+                <div className="space-y-3">
+                  {(problem.hints || []).map((h, i) => (
+                    <Card key={i} className="p-3 bg-blue-50 border-blue-200 flex items-start gap-3">
+                      <Lightbulb className="w-5 h-5 text-blue-600 mt-0.5" />
+                      <div className="text-sm">{h.text}</div>
+                    </Card>
+                  ))}
+                </div>
+              </TabsContent>
+
+              <TabsContent value="discussion" className="p-0 m-0">
+                <div className="text-sm text-gray-500">Discussion is not implemented in this demo.</div>
+              </TabsContent>
+            </div>
           </Tabs>
         </div>
 
-        {/* Right Panel - Code Editor */}
+        {/* Right - Editor + Output */}
         <div className="flex-1 flex flex-col">
-          {/* Code Area */}
-          <div className="flex-1 overflow-hidden">
+          {/* Editor area */}
+          <div className="flex-1 overflow-hidden bg-gray-900">
             <textarea
               value={code}
               onChange={(e) => setCode(e.target.value)}
-              className="w-full h-full p-6 font-mono text-sm bg-gray-900 text-gray-100 border-0 outline-none resize-none"
               spellCheck={false}
+              className="w-full h-full p-6 font-mono text-sm bg-gray-900 text-gray-50 outline-none border-0 resize-none"
             />
           </div>
 
-          {/* Output Panel */}
-          <div className="h-48 border-t border-border bg-white">
+          {/* Bottom panels */}
+          <div className="h-56 border-t border-gray-200 bg-white flex flex-col">
             <Tabs defaultValue="output" className="h-full flex flex-col">
-              <TabsList className="w-full justify-start rounded-none border-b border-border bg-white px-6">
+              <TabsList className="w-full justify-start rounded-none border-b border-gray-200 px-6 bg-white">
                 <TabsTrigger value="output">Output</TabsTrigger>
                 <TabsTrigger value="testcases">Test Cases</TabsTrigger>
-                <TabsTrigger value="ai-review">
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  AI Review
-                </TabsTrigger>
+                <TabsTrigger value="ai-review">AI Review</TabsTrigger>
               </TabsList>
 
               <TabsContent value="output" className="flex-1 overflow-auto p-6 m-0">
-                {output ? (
-                  <pre className="text-sm font-mono text-foreground whitespace-pre-wrap">{output}</pre>
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    Click "Run Code" to see the output
-                  </p>
+                {error && (
+                  <div className="mb-3 text-sm text-red-600 flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4" /> {error}
+                  </div>
                 )}
+
+                {loadingAction && (
+                  <div className="mb-3 flex items-center gap-2 text-sm text-gray-500">
+                    <Loader2 className="w-4 h-4 animate-spin" /> Running...
+                  </div>
+                )}
+
+                <div className="text-sm font-mono whitespace-pre-wrap">{output || "Click Run to execute code"}</div>
               </TabsContent>
 
               <TabsContent value="testcases" className="flex-1 overflow-auto p-6 m-0">
                 <div className="space-y-3">
-                  <div className="flex items-center gap-3 p-3 bg-green-50 border border-green-200 rounded-lg">
-                    <CheckCircle2 className="w-5 h-5 text-green-600" />
-                    <span className="text-sm">Test case 1: Passed</span>
-                  </div>
-                  <div className="flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg">
-                    <div className="w-5 h-5 rounded-full border-2 border-gray-300"></div>
-                    <span className="text-sm text-muted-foreground">Test case 2: Not run</span>
-                  </div>
-                  <div className="flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg">
-                    <div className="w-5 h-5 rounded-full border-2 border-gray-300"></div>
-                    <span className="text-sm text-muted-foreground">Test case 3: Not run</span>
-                  </div>
+                  {(problem.sample_test_cases || []).map((tc, i) => {
+                    const state = testCaseStates[i] ?? "not_run";
+                    return (
+                      <div
+                        key={i}
+                        className={`flex items-start gap-3 p-3 rounded-lg border ${
+                          state === "passed"
+                            ? "bg-green-50 border-green-200"
+                            : state === "failed"
+                            ? "bg-red-50 border-red-200"
+                            : "bg-gray-50 border-gray-200"
+                        }`}
+                      >
+                        <div className="w-6 flex-shrink-0">
+                          {state === "passed" ? <CheckCircle2 className="w-5 h-5 text-green-600" /> : <div className="w-4 h-4 rounded-full border-2 border-gray-300" />}
+                        </div>
+                        <div className="flex-1 text-sm">
+                          <div className="font-medium">Test case {i + 1} — {state.replace("_", " ")}</div>
+                          <div className="text-xs text-gray-600 mt-1">Input: <pre className="whitespace-pre-wrap">{tc.input}</pre></div>
+                          <div className="text-xs text-gray-600">Expected Output: <pre className="whitespace-pre-wrap">{tc.output}</pre></div>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {(problem.sample_test_cases || []).length === 0 && <div className="text-sm text-gray-500">No sample test cases.</div>}
                 </div>
               </TabsContent>
 
               <TabsContent value="ai-review" className="flex-1 overflow-auto p-6 m-0">
-                <div className="space-y-4">
+                {aiReview ? (
                   <Card className="p-4 bg-blue-50 border-blue-200">
-                    <div className="flex items-start gap-3">
-                      <Sparkles className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                      <div className="text-sm">
-                        <p className="mb-2">Great start! Here are some suggestions:</p>
-                        <ul className="space-y-1 text-muted-foreground">
-                          <li>• Consider edge cases like empty arrays</li>
-                          <li>• Add comments to explain your logic</li>
-                          <li>• Use descriptive variable names</li>
-                        </ul>
-                      </div>
-                    </div>
+                    <div className="text-sm whitespace-pre-wrap">{aiReview}</div>
                   </Card>
-                </div>
+                ) : (
+                  <div className="text-sm text-gray-500">No AI review available.</div>
+                )}
               </TabsContent>
             </Tabs>
           </div>
 
-          {/* Action Buttons */}
-          <div className="bg-white border-t border-border px-6 py-4 flex items-center justify-between">
-            <Button variant="outline" onClick={handleReset}>
-              <RotateCcw className="w-4 h-4 mr-2" />
-              Reset
-            </Button>
+          {/* Action row */}
+          <div className="bg-white border-t border-gray-200 px-6 py-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Button variant="outline" onClick={handleRun}>
-                <Play className="w-4 h-4 mr-2" />
-                Run Code
+              <Button variant="ghost" onClick={handleReset}>
+                <RotateCcw className="w-4 h-4 mr-2" /> Reset
               </Button>
-              <Button className="bg-blue-600 hover:bg-blue-700">
-                Submit Solution
+              <Button variant="outline" onClick={handleRun} disabled={loadingAction}>
+                <Play className="w-4 h-4 mr-2" /> Run
+              </Button>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className="text-sm text-gray-500 mr-2">{problem.time_limit_ms ? `${problem.time_limit_ms} ms` : ""} • {problem.memory_limit_kb ? `${problem.memory_limit_kb} KB` : ""}</div>
+              <Button className="bg-blue-600 hover:bg-blue-700 text-white" onClick={handleSubmit} disabled={loadingAction}>
+                {loadingAction ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Submitting...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4 mr-2" /> Submit
+                  </>
+                )}
               </Button>
             </div>
           </div>

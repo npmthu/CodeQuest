@@ -20,6 +20,7 @@ import BusinessAccountManagement from "./components/BusinessAccountManagement";
 import BusinessInstructorManagement from "./components/BusinessInstructorManagement";
 import BusinessLearnerPerformance from "./components/BusinessLearnerPerformance";
 import BusinessAnalytics from "./components/BusinessAnalytics";
+import { ApiProvider } from "./api/ApiProvider";
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -50,35 +51,29 @@ export default function App() {
     setCurrentPage(userRole === "student" ? "instructor-dashboard" : "dashboard");
   };
 
-  // Login page
-  if (!isLoggedIn) {
-    return (
-      <LoginPage
-        onLogin={handleLogin}
-        onSwitchToRegister={() => {}}
-      />
-    );
-  }
-
-  // Pages that don't use the dashboard layout
-  if (currentPage === "editor") {
-    return <CodeEditor onNavigate={handleNavigate} />;
-  }
-
-  if (currentPage === "pricing") {
-    return <PricingPage onNavigate={handleNavigate} />;
-  }
-
-  if (currentPage === "lesson") {
-    return <LessonPage onNavigate={handleNavigate} />;
-  }
-
-  if (currentPage === "instructor-create-course") {
-    return <InstructorCreateCourse onNavigate={handleNavigate} />;
-  }
-
-  // Pages with dashboard layout
   const renderPage = () => {
+    // Pages that don't use the dashboard layout
+    if (!isLoggedIn) {
+      return <LoginPage onLogin={handleLogin} onSwitchToRegister={() => {}} />;
+    }
+
+    if (currentPage === "editor") {
+      return <CodeEditor onNavigate={handleNavigate} />;
+    }
+
+    if (currentPage === "pricing") {
+      return <PricingPage onNavigate={handleNavigate} />;
+    }
+
+    if (currentPage === "lesson") {
+      return <LessonPage onNavigate={handleNavigate} />;
+    }
+
+    if (currentPage === "instructor-create-course") {
+      return <InstructorCreateCourse onNavigate={handleNavigate} />;
+    }
+
+    // Pages with dashboard layout
     switch (currentPage) {
       case "dashboard":
         return <Dashboard />;
@@ -115,15 +110,24 @@ export default function App() {
     }
   };
 
+  // Wrap entire app in ApiProvider so any component can use useApi safely
+  // Thay đổi bằng Route sau này /login /privcing , ..
   return (
-    <DashboardLayout
-      currentPage={currentPage}
-      onNavigate={handleNavigate}
-      onLogout={handleLogout}
-      userRole={userRole}
-      onRoleToggle={toggleRole}
-    >
-      {renderPage()}
-    </DashboardLayout>
+    <ApiProvider>
+      {isLoggedIn && currentPage !== "editor" ? (
+        <DashboardLayout
+          currentPage={currentPage}
+          onNavigate={handleNavigate}
+          onLogout={handleLogout}
+          userRole={userRole}
+          onRoleToggle={toggleRole}
+        >
+          {renderPage()}
+        </DashboardLayout>
+      ) : (
+        // For login, editor, pricing, lesson or other non-dashboard pages
+        <>{renderPage()}</>
+      )}
+    </ApiProvider>
   );
 }
