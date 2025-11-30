@@ -4,6 +4,13 @@ import * as authService from '../services/authService';
 
 export async function registerHandler(req: Request, res: Response) {
   try {
+    console.log('📝 Registration request:', { 
+      email: req.body.email, 
+      role: req.body.role,
+      hasPassword: !!req.body.password,
+      hasFullName: !!req.body.fullName
+    });
+
     const { email, password, fullName, role } = req.body;
 
     if (!email || !password) {
@@ -15,12 +22,15 @@ export async function registerHandler(req: Request, res: Response) {
 
     const result = await authService.registerUser({ email, password, fullName, role });
     
+    console.log('✅ Registration successful:', result.user.email);
+
     return res.status(201).json({ 
       success: true, 
       data: result,
       message: 'User registered successfully' 
     });
   } catch (error: any) {
+    console.error('❌ Registration failed:', error.message);
     return res.status(400).json({ 
       success: false, 
       error: error.message || 'Registration failed' 

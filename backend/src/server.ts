@@ -1,16 +1,21 @@
 import 'dotenv/config';
 import express from 'express';
+import cors from 'cors';
 import apiRoutes from './routes';
-import corsMiddleware from './middleware/cors';
 import { requestLogger } from './middleware/logger';
 import { errorHandler } from './middleware/errorHandler';
 
 const app = express();
 
+// CORS - allow all in development
+app.use(cors({
+  origin: true, // Allow all origins in dev
+  credentials: true
+}));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(requestLogger);
-app.use(corsMiddleware);
 
 // API routes mounted under /api
 app.use('/api', apiRoutes);

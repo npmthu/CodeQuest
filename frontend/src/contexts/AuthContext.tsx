@@ -44,28 +44,50 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signUp = async (email: string, password: string, fullName?: string) => {
+    // Client-side validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      throw new Error('Invalid email format');
+    }
+    
+    if (password.length < 6) {
+      throw new Error('Password must be at least 6 characters');
+    }
+
     // Call backend API to register user (creates both auth user and profile)
     const API_BASE = (import.meta as any).env?.VITE_API_BASE ?? 'http://localhost:3000/api';
     
-    const response = await fetch(`${API_BASE}/auth/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        email,
-        password,
-        fullName,
-        role: 'learner'
-      })
-    });
+    try {
+      const response = await fetch(`${API_BASE}/auth/register`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          password,
+          fullName,
+          role: 'learner'
+        }),
+        mode: 'cors',
+        credentials: 'include'
+      });
 
-    const data = await response.json();
-    
-    if (!response.ok) {
-      throw new Error(data.error || 'Registration failed');
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Registration failed');
+      }
+
+      // After successful registration, sign in
+      await signIn(email, password);
+    } catch (error: any) {
+      // Provide user-friendly error messages
+      if (error.message.includes('already registered')) {
+        throw new Error('This email is already registered. Please sign in instead.');
+      }
+      throw error;
     }
-
-    // After successful registration, sign in
-    await signIn(email, password);
   };
 
   const signOut = async () => {

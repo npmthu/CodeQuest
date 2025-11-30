@@ -15,24 +15,60 @@ export interface LoginPayload {
 export async function registerUser(payload: RegisterPayload) {
   const { email, password, fullName, role = 'learner' } = payload;
 
-  // Create auth user
-  const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-    email,
-    password,
-    email_confirm: true,
-    user_metadata: {
-      full_name: fullName,
-      role
+  // Validate email format
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    throw new Error('Invalid email format');
+  }
+
+  // Validate password strength
+  if (password.length < 6) {
+    throw new Error('Password must be at least 6 characters');
+  }
+
+  try {
+    // Create auth user
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: {
+        full_name: fullName || email.split('@')[0],
+        role
+      }
+    });
+
+    if (authError) {
+      console.error('Auth creation error:', authError);
+      throw new Error(authError.message || 'Failed to create auth user');
     }
-  });
 
-  if (authError) throw authError;
+    if (!authData?.user) {
+      throw new Error('User creation failed - no user returned');
+    }
 
-  // Create user profile in users table
-  const { data: userData, error: userError } = await supabaseAdmin
-    .from('users')
-    .insert([
-      {
+    // Check if user profile already exists
+    const { data: existingProfile } = await supabaseAdmin
+      .from('users')
+      .select('id')
+      .eq('id', authData.user.id)
+      .single();
+
+    if (existingProfile) {
+      // Profile already exists, just return it
+      const { data: profile } = await supabaseAdmin
+        .from('users')
+        .select('*')
+        .eq('id', authData.user.id)
+        .single();
+      
+      return { user: authData.user, profile };
+    }
+
+    // Create user profile in users table
+    const { data: userData, error: userError } = await supabaseAdmin
+      .from('users')
+      .insert({
         id: authData.user.id,
         email,
         display_name: fullName || email.split('@')[0],
@@ -40,40 +76,63 @@ export async function registerUser(payload: RegisterPayload) {
         level: 'Beginner',
         reputation: 0,
         is_active: true
-      }
-    ])
-    .select()
-    .single();
+      })
+      .select()
+      .single();
 
-  if (userError) throw userError;
+    if (userError) {
+      console.error('User profile creation error:', userError);
+      // Cleanup: delete auth user if profile creation fails
+      await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
+      throw new Error(userError.message || 'Failed to create user profile');
+    }
 
-  return { user: authData.user, profile: userData };
+    return { user: authData.user, profile: userData };
+  } catch (error: any) {
+    console.error('Registration error:', error);
+    throw error;
+  }
 }
 
 export async function loginUser(payload: LoginPayload) {
   const { email, password } = payload;
 
-  const { data, error } = await supabaseAdmin.auth.signInWithPassword({
-    email,
-    password
-  });
+  try {
+    const { data, error } = await supabaseAdmin.auth.signInWithPassword({
+      email,
+      password
+    });
 
-  if (error) throw error;
+    if (error) {
+      console.error('Login error:', error);
+      throw new Error(error.message || 'Login failed');
+    }
 
-  // Fetch user profile
-  const { data: profile, error: profileError } = await supabaseAdmin
-    .from('users')
-    .select('*')
-    .eq('id', data.user.id)
-    .single();
+    if (!data?.user) {
+      throw new Error('Login failed - no user returned');
+    }
 
-  if (profileError) throw profileError;
+    // Fetch user profile
+    const { data: profile, error: profileError } = await supabaseAdmin
+      .from('users')
+      .select('*')
+      .eq('id', data.user.id)
+      .single();
 
-  return {
-    session: data.session,
-    user: data.user,
-    profile
-  };
+    if (profileError) {
+      console.error('Profile fetch error:', profileError);
+      throw new Error('Failed to fetch user profile');
+    }
+
+    return {
+      session: data.session,
+      user: data.user,
+      profile
+    };
+  } catch (error: any) {
+    console.error('Login service error:', error);
+    throw error;
+  }
 }
 
 export async function getUserProfile(userId: string) {
