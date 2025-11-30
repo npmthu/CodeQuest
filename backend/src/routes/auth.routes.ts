@@ -1,11 +1,14 @@
 import express from 'express';
-import { meHandler, logoutHandler } from '../controllers/authController';
+import { registerHandler, loginHandler, meHandler, logoutHandler } from '../controllers/authController';
 import { supabaseAuth } from '../middleware/auth';
 
 const router = express.Router();
 
-// public routes (if you want register/login handled via Supabase client, keep these server-light)
-// server-side we usually expose /auth/me to validate token
+// Public routes
+router.post('/register', registerHandler);
+router.post('/login', loginHandler);
+
+// Protected routes
 router.get('/me', supabaseAuth, meHandler);
 router.post('/logout', supabaseAuth, logoutHandler);
 

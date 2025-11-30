@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import LoginPage from "./components/LoginPage";
 import DashboardLayout from "./components/DashboardLayout";
 import Dashboard from "./components/Dashboard";
@@ -20,27 +21,21 @@ import BusinessAccountManagement from "./components/BusinessAccountManagement";
 import BusinessInstructorManagement from "./components/BusinessInstructorManagement";
 import BusinessLearnerPerformance from "./components/BusinessLearnerPerformance";
 import BusinessAnalytics from "./components/BusinessAnalytics";
-import { ApiProvider } from "./api/ApiProvider";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
 
-export default function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: 1
+    }
+  }
+});
+
+function AppContent() {
+  const { user, loading } = useAuth();
   const [currentPage, setCurrentPage] = useState("dashboard");
   const [userRole, setUserRole] = useState<"student" | "instructor" | "business">("student");
-
-  const handleLogin = (role: "student" | "instructor" | "business") => {
-    setIsLoggedIn(true);
-    setUserRole(role);
-    setCurrentPage(
-      role === "student" ? "dashboard" : 
-      role === "instructor" ? "instructor-dashboard" : 
-      "business-dashboard"
-    );
-  };
-
-  const handleLogout = () => {
-    setIsLoggedIn(false);
-    setCurrentPage("dashboard");
-  };
 
   const handleNavigate = (page: string) => {
     setCurrentPage(page);
@@ -51,10 +46,21 @@ export default function App() {
     setCurrentPage(userRole === "student" ? "instructor-dashboard" : "dashboard");
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   const renderPage = () => {
     // Pages that don't use the dashboard layout
-    if (!isLoggedIn) {
-      return <LoginPage onLogin={handleLogin} onSwitchToRegister={() => {}} />;
+    if (!user) {
+      return <LoginPage />;
     }
 
     if (currentPage === "editor") {
@@ -110,24 +116,30 @@ export default function App() {
     }
   };
 
-  // Wrap entire app in ApiProvider so any component can use useApi safely
-  // Thay đổi bằng Route sau này /login /privcing , ..
   return (
-    <ApiProvider>
-      {isLoggedIn && currentPage !== "editor" ? (
+    <>
+      {user && currentPage !== "editor" ? (
         <DashboardLayout
           currentPage={currentPage}
           onNavigate={handleNavigate}
-          onLogout={handleLogout}
           userRole={userRole}
           onRoleToggle={toggleRole}
         >
           {renderPage()}
         </DashboardLayout>
       ) : (
-        // For login, editor, pricing, lesson or other non-dashboard pages
         <>{renderPage()}</>
       )}
-    </ApiProvider>
+    </>
+  );
+}
+
+export default function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </QueryClientProvider>
   );
 }

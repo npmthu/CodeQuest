@@ -3,18 +3,57 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Code2, Github, GraduationCap, Users, Building } from "lucide-react";
 import { useState } from "react";
+import { useAuth } from "../contexts/AuthContext";
 
-interface LoginPageProps {
-  onLogin: (role: "student" | "instructor" | "business") => void;
-  onSwitchToRegister: () => void;
-}
+export default function LoginPage() {
+  const { signIn, signUp } = useAuth();
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState("");
 
-export default function LoginPage({ onLogin, onSwitchToRegister }: LoginPageProps) {
-  const [selectedRole, setSelectedRole] = useState<"student" | "instructor" | "business">("student");
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onLogin(selectedRole);
+    setError("");
+    setSuccess("");
+    setLoading(true);
+
+    try {
+      if (isSignUp) {
+        // Validation
+        if (password !== confirmPassword) {
+          setError("Passwords do not match");
+          setLoading(false);
+          return;
+        }
+        if (password.length < 6) {
+          setError("Password must be at least 6 characters");
+          setLoading(false);
+          return;
+        }
+
+        await signUp(email, password, fullName);
+        setSuccess("Account created successfully! You can now sign in.");
+        // Reset form and switch to login
+        setTimeout(() => {
+          setIsSignUp(false);
+          setPassword("");
+          setConfirmPassword("");
+          setFullName("");
+          setSuccess("");
+        }, 2000);
+      } else {
+        await signIn(email, password);
+      }
+    } catch (err: any) {
+      setError(err.message || (isSignUp ? "Sign up failed" : "Login failed"));
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -63,74 +102,43 @@ export default function LoginPage({ onLogin, onSwitchToRegister }: LoginPageProp
           </div>
         </div>
 
-        {/* Right side - Login Form */}
+        {/* Right side - Login/Sign Up Form */}
         <div className="bg-white rounded-xl shadow-lg p-8 border border-gray-100">
           <div className="mb-8">
-            <h2 className="mb-2">Welcome Back</h2>
-            <p className="text-muted-foreground">Sign in to continue your learning journey</p>
+            <h2 className="mb-2">{isSignUp ? "Create Account" : "Welcome Back"}</h2>
+            <p className="text-muted-foreground">
+              {isSignUp 
+                ? "Join CodeQuest and start your learning journey" 
+                : "Sign in to continue your learning journey"}
+            </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Role Selection */}
-            <div className="space-y-3">
-              <Label>Login as</Label>
-              <div className="grid grid-cols-3 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setSelectedRole("student")}
-                  className={`p-4 rounded-lg border-2 transition-all ${
-                    selectedRole === "student"
-                      ? "border-blue-600 bg-blue-50"
-                      : "border-gray-200 hover:border-gray-300"
-                  }`}
-                >
-                  <GraduationCap className={`w-8 h-8 mx-auto mb-2 ${
-                    selectedRole === "student" ? "text-blue-600" : "text-gray-400"
-                  }`} />
-                  <div className={`text-sm font-medium ${
-                    selectedRole === "student" ? "text-blue-600" : "text-gray-600"
-                  }`}>
-                    Learner
-                  </div>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSelectedRole("instructor")}
-                  className={`p-4 rounded-lg border-2 transition-all ${
-                    selectedRole === "instructor"
-                      ? "border-blue-600 bg-blue-50"
-                      : "border-gray-200 hover:border-gray-300"
-                  }`}
-                >
-                  <Users className={`w-8 h-8 mx-auto mb-2 ${
-                    selectedRole === "instructor" ? "text-blue-600" : "text-gray-400"
-                  }`} />
-                  <div className={`text-sm font-medium ${
-                    selectedRole === "instructor" ? "text-blue-600" : "text-gray-600"
-                  }`}>
-                    Instructor
-                  </div>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSelectedRole("business")}
-                  className={`p-4 rounded-lg border-2 transition-all ${
-                    selectedRole === "business"
-                      ? "border-blue-600 bg-blue-50"
-                      : "border-gray-200 hover:border-gray-300"
-                  }`}
-                >
-                  <Building className={`w-8 h-8 mx-auto mb-2 ${
-                    selectedRole === "business" ? "text-blue-600" : "text-gray-400"
-                  }`} />
-                  <div className={`text-sm font-medium ${
-                    selectedRole === "business" ? "text-blue-600" : "text-gray-600"
-                  }`}>
-                    Business
-                  </div>
-                </button>
+            {error && (
+              <div className="p-3 rounded-lg bg-red-50 border border-red-200">
+                <p className="text-sm text-red-600">{error}</p>
               </div>
-            </div>
+            )}
+
+            {success && (
+              <div className="p-3 rounded-lg bg-green-50 border border-green-200">
+                <p className="text-sm text-green-600">{success}</p>
+              </div>
+            )}
+
+            {isSignUp && (
+              <div className="space-y-2">
+                <Label htmlFor="fullName">Full Name</Label>
+                <Input
+                  id="fullName"
+                  type="text"
+                  placeholder="John Doe"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  required
+                />
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
@@ -138,6 +146,8 @@ export default function LoginPage({ onLogin, onSwitchToRegister }: LoginPageProp
                 id="email"
                 type="email"
                 placeholder="your.email@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 required
               />
             </div>
@@ -148,47 +158,74 @@ export default function LoginPage({ onLogin, onSwitchToRegister }: LoginPageProp
                 id="password"
                 type="password"
                 placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 required
+                minLength={6}
               />
+              {isSignUp && (
+                <p className="text-xs text-muted-foreground">
+                  At least 6 characters
+                </p>
+              )}
             </div>
 
-            <div className="flex items-center justify-between">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" className="rounded border-gray-300" />
-                <span className="text-sm text-muted-foreground">Remember me</span>
-              </label>
-              <button type="button" className="text-sm text-blue-600 hover:text-blue-700">
-                Forgot password?
-              </button>
-            </div>
+            {isSignUp && (
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirm Password</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  placeholder="••••••••"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                />
+              </div>
+            )}
 
-            <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700">
-              Sign In
+            {!isSignUp && (
+              <div className="flex items-center justify-between">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" className="rounded border-gray-300" />
+                  <span className="text-sm text-muted-foreground">Remember me</span>
+                </label>
+                <button type="button" className="text-sm text-blue-600 hover:text-blue-700">
+                  Forgot password?
+                </button>
+              </div>
+            )}
+
+            <Button 
+              type="submit" 
+              className="w-full bg-blue-600 hover:bg-blue-700"
+              disabled={loading}
+            >
+              {loading 
+                ? (isSignUp ? "Creating account..." : "Signing in...") 
+                : (isSignUp ? "Create Account" : "Sign In")}
             </Button>
 
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-200"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="bg-white px-4 text-muted-foreground">Or continue with</span>
-              </div>
-            </div>
-
-            <Button type="button" variant="outline" className="w-full">
-              <Github className="w-5 h-5 mr-2" />
-              Sign in with GitHub
-            </Button>
-
-            <div className="text-center">
-              <span className="text-sm text-muted-foreground">Don't have an account? </span>
+            <div className="text-center space-y-2">
               <button
                 type="button"
-                onClick={onSwitchToRegister}
+                onClick={() => {
+                  setIsSignUp(!isSignUp);
+                  setError("");
+                  setSuccess("");
+                }}
                 className="text-sm text-blue-600 hover:text-blue-700"
               >
-                Sign up
+                {isSignUp 
+                  ? "Already have an account? Sign in" 
+                  : "Don't have an account? Sign up"}
               </button>
+              
+              {!isSignUp && (
+                <p className="text-xs text-muted-foreground">
+                  Demo: test@example.com / password123
+                </p>
+              )}
             </div>
           </form>
         </div>

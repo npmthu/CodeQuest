@@ -14,6 +14,7 @@ import {
 import LearningPathDetail from "./LearningPathDetail";
 import CourseDetailPlaceholder from "./CourseDetailPlaceholder";
 import ChallengePlaceholder from "./ChallengePlaceholder";
+import { useTopics } from "../hooks/useApi";
 
 interface HomePageProps {
   onNavigate: (page: string, topic?: string) => void;
@@ -24,90 +25,8 @@ export default function HomePage({ onNavigate }: HomePageProps) {
   const [selectedPath, setSelectedPath] = useState<any>(null);
   const [selectedCourse, setSelectedCourse] = useState<string>("");
   const [challengeType, setChallengeType] = useState<"interview" | "daily">("interview");
-
-  const topics = [
-    {
-      id: "cpp",
-      name: "C/C++",
-      icon: Code,
-      level: "Intermediate",
-      lessons: 45,
-      color: "bg-blue-500",
-      progress: 65,
-    },
-    {
-      id: "python",
-      name: "Python",
-      icon: FileCode,
-      level: "Beginner",
-      lessons: 52,
-      color: "bg-green-500",
-      progress: 80,
-    },
-    {
-      id: "java",
-      name: "Java",
-      icon: Braces,
-      level: "Intermediate",
-      lessons: 48,
-      color: "bg-orange-500",
-      progress: 40,
-    },
-    {
-      id: "dsa",
-      name: "Data Structures & Algorithms",
-      icon: Sparkles,
-      level: "Advanced",
-      lessons: 68,
-      color: "bg-purple-500",
-      progress: 55,
-    },
-    {
-      id: "sql",
-      name: "SQL & Databases",
-      icon: Database,
-      level: "Beginner",
-      lessons: 30,
-      color: "bg-cyan-500",
-      progress: 45,
-    },
-    {
-      id: "html",
-      name: "HTML",
-      icon: Layout,
-      level: "Beginner",
-      lessons: 25,
-      color: "bg-red-500",
-      progress: 90,
-    },
-    {
-      id: "css",
-      name: "CSS",
-      icon: Sparkles,
-      level: "Beginner",
-      lessons: 32,
-      color: "bg-pink-500",
-      progress: 70,
-    },
-    {
-      id: "javascript",
-      name: "JavaScript",
-      icon: Globe,
-      level: "Intermediate",
-      lessons: 56,
-      color: "bg-yellow-500",
-      progress: 60,
-    },
-    {
-      id: "r",
-      name: "R Programming",
-      icon: Code,
-      level: "Beginner",
-      lessons: 28,
-      color: "bg-indigo-500",
-      progress: 20,
-    },
-  ];
+  
+  const { data: topicsData, isLoading } = useTopics();
 
   const handlePathClick = (topic: any) => {
     setSelectedPath(topic);
@@ -183,6 +102,26 @@ export default function HomePage({ onNavigate }: HomePageProps) {
     }
   };
 
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="p-8 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  // Map backend topics to UI format
+  const topics = topicsData?.map((topic: any) => ({
+    id: topic.id,
+    name: topic.name,
+    icon: Code, // Default icon, can be customized based on topic
+    level: topic.difficulty || "Beginner",
+    lessons: topic.lesson_count || 0,
+    color: "bg-blue-500", // Default color
+    progress: 0, // Will be calculated from user progress
+  })) || [];
+
   return (
     <div className="p-8 space-y-6">
       {/* Header */}
@@ -193,7 +132,7 @@ export default function HomePage({ onNavigate }: HomePageProps) {
 
       {/* Topics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {topics.map((topic) => {
+        {topics.map((topic: any) => {
           const Icon = topic.icon;
           return (
             <Card

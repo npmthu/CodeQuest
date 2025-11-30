@@ -18,12 +18,12 @@ import {
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
+import { useAuth } from "../contexts/AuthContext";
 
 interface DashboardLayoutProps {
   children: ReactNode;
   currentPage: string;
   onNavigate: (page: string) => void;
-  onLogout: () => void;
   userRole?: "student" | "instructor" | "business";
   onRoleToggle?: () => void;
 }
@@ -32,10 +32,10 @@ export default function DashboardLayout({
   children, 
   currentPage, 
   onNavigate,
-  onLogout,
   userRole = "student",
   onRoleToggle
 }: DashboardLayoutProps) {
+  const { signOut } = useAuth();
   const studentMenuItems = [
     { id: "dashboard", label: "Dashboard", icon: Home },
     { id: "home", label: "Lessons", icon: BookOpen },
@@ -152,7 +152,7 @@ export default function DashboardLayout({
             variant="outline" 
             size="sm" 
             className="w-full"
-            onClick={onLogout}
+            onClick={() => signOut()}
           >
             <LogOut className="w-4 h-4 mr-2" />
             Logout

@@ -20,3 +20,17 @@ export async function getUserHandler(req: Request, res: Response) {
     res.status(500).json({ error: err.message });
   }
 }
+
+export async function getUserStatsHandler(req: Request, res: Response) {
+  try {
+    const reqUser = (req as any).user;
+    if (!reqUser) {
+      return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+
+    const stats = await userService.getUserStats(reqUser.id);
+    return res.json({ success: true, data: stats });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+}

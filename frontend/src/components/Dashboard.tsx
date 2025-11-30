@@ -25,13 +25,26 @@ import {
   YAxis,
   CartesianGrid
 } from "recharts";
+import { useAuth } from "../contexts/AuthContext";
+import { useUserStats, useUserProgress } from "../hooks/useApi";
 
 export default function Dashboard() {
-  const stats = [
-    { label: "Code Snippets", value: 142, icon: Code, color: "bg-blue-500" },
-    { label: "Notes", value: 38, icon: FileText, color: "bg-green-500" },
-    { label: "Tasks Completed", value: 89, icon: CheckSquare, color: "bg-purple-500" },
-    { label: "Projects", value: 12, icon: FolderKanban, color: "bg-orange-500" },
+  const { user } = useAuth();
+  const { data: stats, isLoading: statsLoading } = useUserStats();
+  const { data: progress, isLoading: progressLoading } = useUserProgress();
+
+  if (statsLoading || progressLoading) {
+    return (
+      <div className="p-8 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+  const statsCards = [
+    { label: "Submissions", value: stats?.submissions || 0, icon: Code, color: "bg-blue-500" },
+    { label: "Problems Solved", value: stats?.problemsSolved || 0, icon: CheckSquare, color: "bg-green-500" },
+    { label: "Lessons Completed", value: stats?.lessonsCompleted || 0, icon: FileText, color: "bg-purple-500" },
+    { label: "Current XP", value: stats?.xp || 0, icon: Award, color: "bg-orange-500" },
   ];
 
   const languageData = [
@@ -63,13 +76,13 @@ export default function Dashboard() {
     <div className="p-8 space-y-6">
       {/* Welcome Section */}
       <div>
-        <h2>Welcome back, Bug Quýt! 👋</h2>
+        <h2>Welcome back, {user?.email?.split('@')[0] || 'Learner'}! 👋</h2>
         <p className="text-muted-foreground mt-1">Here's your learning progress</p>
       </div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat) => {
+        {statsCards.map((stat) => {
           const Icon = stat.icon;
           return (
             <Card key={stat.label} className="p-6">
