@@ -10,6 +10,9 @@ import topicRoutes from './topic.routes';
 import courseRoutes from './course.routes';
 import instructorRoutes from './instructor.routes';
 import businessRoutes from './business.routes';
+import forumRoutes from './forum.routes';
+import interviewRoutes from './interview.routes';
+import notesRoutes from './notes.routes';
 
 const router = express.Router();
 
@@ -24,5 +27,8 @@ router.use('/topics', topicRoutes);
 router.use('/courses', courseRoutes);
 router.use('/instructor', instructorRoutes);
 router.use('/business', businessRoutes);
+router.use('/forum', forumRoutes);
+router.use('/interview', interviewRoutes);
+router.use('/notes', notesRoutes);
 
 export default router;

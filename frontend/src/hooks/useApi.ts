@@ -335,3 +335,290 @@ export function useBusinessActivities() {
     }
   });
 }
+
+// Forum Hooks
+export function useForumPosts() {
+  return useQuery({
+    queryKey: ['forumPosts'],
+    queryFn: async () => {
+      const result = await apiFetch('/forum/posts');
+      return result.data;
+    }
+  });
+}
+
+export function useForumPost(id: string) {
+  return useQuery({
+    queryKey: ['forumPost', id],
+    queryFn: async () => {
+      const result = await apiFetch(`/forum/posts/${id}`);
+      return result.data;
+    },
+    enabled: !!id
+  });
+}
+
+export function useCreateForumPost() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (payload: {
+      title: string;
+      content_markdown: string;
+      related_problem_id?: string;
+      tags?: any;
+    }) => {
+      return apiFetch('/forum/posts', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['forumPosts'] });
+    }
+  });
+}
+
+export function useCreateForumReply() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ 
+      postId, 
+      content_markdown, 
+      code_snippet, 
+      parent_reply_id 
+    }: {
+      postId: string;
+      content_markdown: string;
+      code_snippet?: any;
+      parent_reply_id?: string;
+    }) => {
+      return apiFetch(`/forum/posts/${postId}/replies`, {
+        method: 'POST',
+        body: JSON.stringify({ content_markdown, code_snippet, parent_reply_id })
+      });
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['forumPost', variables.postId] });
+      queryClient.invalidateQueries({ queryKey: ['forumPosts'] });
+    }
+  });
+}
+
+export function useVoteForumItem() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({
+      votable_type,
+      votable_id,
+      vote_type
+    }: {
+      votable_type: string;
+      votable_id: string;
+      vote_type: string;
+    }) => {
+      return apiFetch('/forum/vote', {
+        method: 'POST',
+        body: JSON.stringify({ votable_type, votable_id, vote_type })
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['forumPosts'] });
+      queryClient.invalidateQueries({ queryKey: ['forumPost'] });
+    }
+  });
+}
+
+// Interview Hooks
+export function useInterviewSessions() {
+  return useQuery({
+    queryKey: ['interviewSessions'],
+    queryFn: async () => {
+      const result = await apiFetch('/interview/sessions');
+      return result.data;
+    }
+  });
+}
+
+export function useInterviewSession(id: string) {
+  return useQuery({
+    queryKey: ['interviewSession', id],
+    queryFn: async () => {
+      const result = await apiFetch(`/interview/sessions/${id}`);
+      return result.data;
+    },
+    enabled: !!id
+  });
+}
+
+export function useCreateInterviewSession() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (payload: {
+      interviewer_id?: string;
+      interview_type: string;
+      difficulty: string;
+      scheduled_at?: string;
+      duration_min?: number;
+      communication_mode?: string;
+    }) => {
+      return apiFetch('/interview/sessions', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['interviewSessions'] });
+    }
+  });
+}
+
+export function useUpdateInterviewSession() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({
+      id,
+      status,
+      workspace_data
+    }: {
+      id: string;
+      status?: string;
+      workspace_data?: any;
+    }) => {
+      return apiFetch(`/interview/sessions/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status, workspace_data })
+      });
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['interviewSession', variables.id] });
+      queryClient.invalidateQueries({ queryKey: ['interviewSessions'] });
+    }
+  });
+}
+
+export function useSubmitInterviewFeedback() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({
+      sessionId,
+      to_user_id,
+      overall_rating,
+      communication_rating,
+      problem_solving_rating,
+      technical_knowledge_rating,
+      feedback_text,
+      recommended_topics
+    }: {
+      sessionId: string;
+      to_user_id: string;
+      overall_rating: number;
+      communication_rating?: number;
+      problem_solving_rating?: number;
+      technical_knowledge_rating?: number;
+      feedback_text?: string;
+      recommended_topics?: any;
+    }) => {
+      return apiFetch(`/interview/sessions/${sessionId}/feedback`, {
+        method: 'POST',
+        body: JSON.stringify({
+          to_user_id,
+          overall_rating,
+          communication_rating,
+          problem_solving_rating,
+          technical_knowledge_rating,
+          feedback_text,
+          recommended_topics
+        })
+      });
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['interviewSession', variables.sessionId] });
+    }
+  });
+}
+
+export function useAvailableInterviewers() {
+  return useQuery({
+    queryKey: ['availableInterviewers'],
+    queryFn: async () => {
+      const result = await apiFetch('/interview/available-interviewers');
+      return result.data;
+    }
+  });
+}
+
+// Notes Hooks
+export function useNotes() {
+  return useQuery({
+    queryKey: ['notes'],
+    queryFn: async () => {
+      const result = await apiFetch('/notes');
+      return result.data;
+    }
+  });
+}
+
+export function useNote(id: string) {
+  return useQuery({
+    queryKey: ['note', id],
+    queryFn: async () => {
+      const result = await apiFetch(`/notes/${id}`);
+      return result.data;
+    },
+    enabled: !!id
+  });
+}
+
+export function useCreateNote() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (payload: { title?: string; content_markdown?: string; is_private?: boolean; tags?: string[] }) => {
+      return apiFetch('/notes', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notes'] });
+    }
+  });
+}
+
+export function useUpdateNote(id: string) {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (payload: { title?: string; content_markdown?: string; is_private?: boolean; tags?: string[] }) => {
+      return apiFetch(`/notes/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(payload)
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notes'] });
+      queryClient.invalidateQueries({ queryKey: ['note', id] });
+    }
+  });
+}
+
+export function useDeleteNote() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (id: string) => {
+      return apiFetch(`/notes/${id}`, {
+        method: 'DELETE'
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notes'] });
+    }
+  });
+}
