@@ -12,25 +12,53 @@ import {
   FileText,
   Clock
 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { useApi } from "../api/ApiProvider";
 
 interface LessonPageProps {
-  onNavigate: (page: string) => void;
+  onNavigate: (page: string, params?: any) => void;
+  topicId?: string;
+  courseId?: string;
 }
 
-export default function LessonPage({ onNavigate }: LessonPageProps) {
-  const lessons = [
-    { id: 1, title: "Introduction to Variables", duration: "15 min", completed: true, type: "theory" },
-    { id: 2, title: "Data Types", duration: "20 min", completed: true, type: "theory" },
-    { id: 3, title: "Practice: Variable Declaration", duration: "30 min", completed: true, type: "practice" },
-    { id: 4, title: "Operators and Expressions", duration: "25 min", completed: false, type: "theory", current: true },
-    { id: 5, title: "Control Flow: If-Else", duration: "30 min", completed: false, type: "theory" },
-    { id: 6, title: "Practice: Conditional Logic", duration: "45 min", completed: false, type: "practice" },
-    { id: 7, title: "Loops: For and While", duration: "35 min", completed: false, type: "theory" },
-    { id: 8, title: "Quiz: Fundamentals", duration: "20 min", completed: false, type: "quiz" },
-  ];
+export default function LessonPage({ onNavigate, topicId, courseId }: LessonPageProps) {
+  const api = useApi();
 
-  const completedLessons = lessons.filter(l => l.completed).length;
-  const progressPercent = (completedLessons / lessons.length) * 100;
+  // Fetch lessons for this topic
+  const { data: lessonsData, isLoading } = useQuery({
+    queryKey: ['lessons', topicId],
+    queryFn: async () => {
+      const params = topicId ? `?topicId=${topicId}` : '';
+      const response = await api.get(`/lessons${params}`);
+      return response.data;
+    },
+    enabled: !!topicId
+  });
+
+  const lessons = lessonsData || [];
+  const completedLessons = lessons.filter((l: any) => l.is_completed).length;
+  const progressPercent = lessons.length > 0 ? (completedLessons / lessons.length) * 100 : 0;
+
+  if (isLoading) {
+    return (
+      <div className="p-8 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (!topicId) {
+    return (
+      <Card className="p-12 text-center m-8">
+        <BookOpen className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+        <h3 className="text-xl font-semibold mb-2">No topic selected</h3>
+        <p className="text-muted-foreground">Please select a topic to view its lessons</p>
+        <Button onClick={() => onNavigate('topics', { courseId })} className="mt-4">
+          Browse Topics
+        </Button>
+      </Card>
+    );
+  }
 
   return (
     <div className="min-h-full bg-background">
@@ -38,7 +66,7 @@ export default function LessonPage({ onNavigate }: LessonPageProps) {
       <div className="bg-white border-b border-border">
         <div className="max-w-6xl mx-auto px-8 py-6">
           <button
-            onClick={() => onNavigate("home")}
+            onClick={() => onNavigate("topics", { courseId })}
             className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -68,9 +96,15 @@ export default function LessonPage({ onNavigate }: LessonPageProps) {
           {/* Lesson List */}
           <div className="lg:col-span-2 space-y-4">
             <h3 className="mb-4">Course Content</h3>
-            {lessons.map((lesson) => {
-              const isCompleted = lesson.completed;
-              const isCurrent = lesson.current;
+            {lessons.map((lesson: any) => {
+              const isCompleted = lesson.is_completed;
+              const isCurrent = false; // TODO: Track current lesson
+
+              const getLessonIcon = () => {
+                if (lesson.difficulty === 'easy') return <FileText className="w-5 h-5" />;
+                if (lesson.difficulty === 'medium') return <Code className="w-5 h-5" />;
+                return <BookOpen className="w-5 h-5" />;
+              };
 
               return (
                 <Card
@@ -97,16 +131,17 @@ export default function LessonPage({ onNavigate }: LessonPageProps) {
                             {lesson.title}
                           </h4>
                           <div className="flex items-center gap-3 mt-2">
-                            <Badge variant="outline" className="text-xs">
-                              {lesson.type === "theory" && <BookOpen className="w-3 h-3 mr-1" />}
-                              {lesson.type === "practice" && <Code className="w-3 h-3 mr-1" />}
-                              {lesson.type === "quiz" && <FileText className="w-3 h-3 mr-1" />}
-                              {lesson.type.charAt(0).toUpperCase() + lesson.type.slice(1)}
-                            </Badge>
-                            <span className="text-sm text-muted-foreground flex items-center gap-1">
-                              <Clock className="w-3 h-3" />
-                              {lesson.duration}
-                            </span>
+                            {lesson.difficulty && (
+                              <Badge variant="outline" className="text-xs">
+                                {lesson.difficulty}
+                              </Badge>
+                            )}
+                            {lesson.estimated_duration && (
+                              <span className="text-sm text-muted-foreground flex items-center gap-1">
+                                <Clock className="w-3 h-3" />
+                                {lesson.estimated_duration}
+                              </span>
+                            )}
                           </div>
                         </div>
                         {isCurrent && (

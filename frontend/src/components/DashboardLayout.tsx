@@ -38,7 +38,7 @@ export default function DashboardLayout({
   const { signOut } = useAuth();
   const studentMenuItems = [
     { id: "dashboard", label: "Dashboard", icon: Home },
-    { id: "home", label: "Lessons", icon: BookOpen },
+    { id: "courses", label: "Courses", icon: BookOpen },
     { id: "forum", label: "Forum", icon: MessageSquare },
     { id: "notebook", label: "Notebook", icon: NotebookPen },
     { id: "interview", label: "Interview", icon: VideoIcon },

@@ -5,6 +5,8 @@ import LoginPage from "./components/LoginPage";
 import DashboardLayout from "./components/DashboardLayout";
 import Dashboard from "./components/Dashboard";
 import HomePage from "./components/HomePage";
+import CoursesPage from "./components/CoursesPage";
+import TopicsPage from "./components/TopicsPage";
 import LessonPage from "./components/LessonPage";
 import CodeEditor from "./components/CodeEditor";
 import ForumPage from "./components/ForumPage";
@@ -36,6 +38,7 @@ const queryClient = new QueryClient({
 function AppContent() {
   const { user, profile, loading } = useAuth();
   const [currentPage, setCurrentPage] = useState("dashboard");
+  const [pageParams, setPageParams] = useState<any>({});
   
   // Map role from database to UI role type
   const getUserRole = (): "student" | "instructor" | "business" => {
@@ -47,8 +50,9 @@ function AppContent() {
 
   const userRole = getUserRole();
 
-  const handleNavigate = (page: string) => {
+  const handleNavigate = (page: string, params?: any) => {
     setCurrentPage(page);
+    setPageParams(params || {});
   };
 
   if (loading) {
@@ -76,8 +80,8 @@ function AppContent() {
       return <PricingPage onNavigate={handleNavigate} />;
     }
 
-    if (currentPage === "lesson") {
-      return <LessonPage onNavigate={handleNavigate} />;
+    if (currentPage === "lessons") {
+      return <LessonPage onNavigate={handleNavigate} topicId={pageParams.topicId} courseId={pageParams.courseId} />;
     }
 
     if (currentPage === "instructor-create-course") {
@@ -88,8 +92,10 @@ function AppContent() {
     switch (currentPage) {
       case "dashboard":
         return <Dashboard />;
-      case "home":
-        return <HomePage onNavigate={handleNavigate} />;
+      case "courses":
+        return <CoursesPage onNavigate={handleNavigate} />;
+      case "topics":
+        return <TopicsPage onNavigate={handleNavigate} courseId={pageParams.courseId} />;
       case "forum":
         return <ForumPage />;
       case "notebook":

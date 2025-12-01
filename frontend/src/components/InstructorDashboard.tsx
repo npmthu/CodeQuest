@@ -38,148 +38,80 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
+import { 
+  useInstructorStats, 
+  useInstructorCourses, 
+  useInstructorAnalytics, 
+  useInstructorActivities 
+} from "../hooks/useApi";
 
 interface InstructorDashboardProps {
   onNavigate: (page: string) => void;
 }
 
 export default function InstructorDashboard({ onNavigate }: InstructorDashboardProps) {
+  // Fetch real data from API
+  const { data: instructorStats, isLoading: statsLoading } = useInstructorStats();
+  const { data: instructorCourses, isLoading: coursesLoading } = useInstructorCourses();
+  const { data: instructorAnalytics, isLoading: analyticsLoading } = useInstructorAnalytics();
+  const { data: instructorActivities, isLoading: activitiesLoading } = useInstructorActivities();
+
+  // Transform API data to stats format
   const stats = [
     { 
       label: "Total Courses", 
-      value: 12, 
+      value: instructorStats?.coursesCount || 0, 
       change: "+2 this month",
       icon: BookOpen, 
       color: "bg-blue-500" 
     },
     { 
       label: "Total Students", 
-      value: 2847, 
+      value: instructorStats?.totalStudents || 0, 
       change: "+284 this month",
       icon: Users, 
       color: "bg-green-500" 
     },
     { 
       label: "Revenue", 
-      value: "$12,450", 
+      value: `$${instructorStats?.totalRevenue?.toLocaleString() || 0}`, 
       change: "+18% from last month",
       icon: DollarSign, 
       color: "bg-purple-500" 
     },
     { 
       label: "Avg. Rating", 
-      value: "4.8", 
-      change: "From 2,451 reviews",
+      value: instructorStats?.averageRating?.toFixed(1) || "0.0", 
+      change: `From ${instructorStats?.totalReviews || 0} reviews`,
       icon: Star, 
       color: "bg-orange-500" 
     },
   ];
 
-  const courses = [
-    {
-      id: 1,
-      title: "Complete Python Programming Masterclass",
-      students: 1245,
-      revenue: "$4,890",
-      rating: 4.9,
-      reviews: 342,
-      status: "Published",
-      thumbnail: "https://images.unsplash.com/photo-1526379095098-d400fd0bf935?w=400",
-      lessons: 48,
-      duration: "12h 30m",
-      lastUpdated: "2 days ago"
-    },
-    {
-      id: 2,
-      title: "Data Structures & Algorithms in Java",
-      students: 856,
-      revenue: "$3,120",
-      rating: 4.7,
-      reviews: 198,
-      status: "Published",
-      thumbnail: "https://images.unsplash.com/photo-1587620962725-abab7fe55159?w=400",
-      lessons: 62,
-      duration: "18h 45m",
-      lastUpdated: "5 days ago"
-    },
-    {
-      id: 3,
-      title: "Modern Web Development with React",
-      students: 546,
-      revenue: "$2,840",
-      rating: 4.8,
-      reviews: 156,
-      status: "Published",
-      thumbnail: "https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=400",
-      lessons: 38,
-      duration: "10h 15m",
-      lastUpdated: "1 week ago"
-    },
-    {
-      id: 4,
-      title: "Advanced SQL Database Design",
-      students: 200,
-      revenue: "$1,600",
-      rating: 4.6,
-      reviews: 67,
-      status: "Draft",
-      thumbnail: "https://images.unsplash.com/photo-1544383835-bda2bc66a55d?w=400",
-      lessons: 24,
-      duration: "6h 20m",
-      lastUpdated: "3 days ago"
-    },
+  // Use real courses data or empty array
+  const courses = instructorCourses || [];
+
+  // Use real analytics data or fallback to mock
+  const revenueData = instructorAnalytics?.revenueData || [
+    { month: "Jan", revenue: 0 },
+    { month: "Feb", revenue: 0 },
+    { month: "Mar", revenue: 0 },
+    { month: "Apr", revenue: 0 },
+    { month: "May", revenue: 0 },
+    { month: "Jun", revenue: 0 },
   ];
 
-  const revenueData = [
-    { month: "Jan", revenue: 8500 },
-    { month: "Feb", revenue: 9200 },
-    { month: "Mar", revenue: 8800 },
-    { month: "Apr", revenue: 10500 },
-    { month: "May", revenue: 11200 },
-    { month: "Jun", revenue: 12450 },
+  const enrollmentData = instructorAnalytics?.enrollmentData || [
+    { month: "Jan", students: 0 },
+    { month: "Feb", students: 0 },
+    { month: "Mar", students: 0 },
+    { month: "Apr", students: 0 },
+    { month: "May", students: 0 },
+    { month: "Jun", students: 0 },
   ];
 
-  const enrollmentData = [
-    { month: "Jan", students: 180 },
-    { month: "Feb", students: 220 },
-    { month: "Mar", students: 195 },
-    { month: "Apr", students: 280 },
-    { month: "May", students: 310 },
-    { month: "Jun", students: 284 },
-  ];
-
-  const recentActivities = [
-    {
-      type: "review",
-      user: "Alice Johnson",
-      course: "Python Masterclass",
-      content: "Excellent course! Very detailed explanations.",
-      rating: 5,
-      time: "2 hours ago"
-    },
-    {
-      type: "enrollment",
-      user: "Bob Smith",
-      course: "React Web Development",
-      content: "New student enrolled",
-      time: "5 hours ago"
-    },
-    {
-      type: "question",
-      user: "Carol White",
-      course: "Data Structures & Algorithms",
-      content: "Question about binary trees implementation",
-      time: "1 day ago"
-    },
-    {
-      type: "review",
-      user: "David Lee",
-      course: "Python Masterclass",
-      content: "Great instructor, learned a lot!",
-      rating: 5,
-      time: "2 days ago"
-    },
-  ];
+  // Use real activities or empty array
+  const recentActivities = instructorActivities || [];
 
   const getStatusColor = (status: string) => {
     return status === "Published" 
@@ -290,7 +222,7 @@ export default function InstructorDashboard({ onNavigate }: InstructorDashboardP
           </Button>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {courses.map((course) => (
+          {courses.map((course: any) => (
             <Card key={course.id} className="overflow-hidden hover:shadow-lg transition-all">
               <div className="aspect-video relative overflow-hidden bg-gray-100">
                 <img 
@@ -371,7 +303,7 @@ export default function InstructorDashboard({ onNavigate }: InstructorDashboardP
       <Card className="p-6">
         <h3 className="mb-6">Recent Activities</h3>
         <div className="space-y-4">
-          {recentActivities.map((activity, index) => (
+          {recentActivities.map((activity: any, index: number) => (
             <div 
               key={index}
               className="flex items-start gap-4 p-4 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors"

@@ -1,25 +1,43 @@
 import { supabaseAdmin } from '../config/database';
 
 export async function listTopics(publishedOnly = true) {
-  let query = supabaseAdmin
-    .from('topics')
-    .select('*, lessons(id)')
-    .order('order_index', { ascending: true });
+  try {
+    let query = supabaseAdmin
+      .from('topics')
+      .select('*')
+      .order('created_at', { ascending: true });
 
-  if (publishedOnly) {
-    query = query.eq('is_published', true);
+    // Note: topics table doesn't have is_published column, skip filter
+    // if (publishedOnly) {
+    //   query = query.eq('is_published', true);
+    // }
+
+    const { data, error } = await query;
+    if (error) {
+      console.error('Error fetching topics:', error);
+      throw error;
+    }
+
+    // Get lesson count for each topic separately
+    const topics = await Promise.all(
+      (data || []).map(async (topic: any) => {
+        const { count } = await supabaseAdmin
+          .from('lessons')
+          .select('*', { count: 'exact', head: true })
+          .eq('topic_id', topic.id);
+
+        return {
+          ...topic,
+          lesson_count: count || 0
+        };
+      })
+    );
+
+    return topics;
+  } catch (error) {
+    console.error('Error in listTopics:', error);
+    throw error;
   }
-
-  const { data, error } = await query;
-  if (error) throw error;
-
-  // Count lessons for each topic
-  const topics = data?.map(topic => ({
-    ...topic,
-    lesson_count: topic.lessons?.length || 0
-  })) ?? [];
-
-  return topics;
 }
 
 export async function getTopic(id: string) {

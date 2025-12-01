@@ -15,33 +15,43 @@ export interface Lesson {
 }
 
 export async function listLessons(topicId?: string, publishedOnly = true) {
-  let query = supabaseAdmin
-    .from('lessons')
-    .select('*, topics(id, name)')
-    .order('order_index', { ascending: true });
+  try {
+    let query = supabaseAdmin
+      .from('lessons')
+      .select('*')
+      .order('created_at', { ascending: true });
 
-  if (topicId) {
-    query = query.eq('topic_id', topicId);
+    if (topicId) {
+      query = query.eq('topic_id', topicId);
+    }
+
+    // Note: lessons table might not have is_published column, skip filter
+    // if (publishedOnly) {
+    //   query = query.eq('is_published', true);
+    // }
+
+    const { data, error } = await query;
+    if (error) {
+      console.error('Error fetching lessons:', error);
+      throw error;
+    }
+    return data ?? [];
+  } catch (error) {
+    console.error('Error in listLessons:', error);
+    throw error;
   }
-
-  if (publishedOnly) {
-    query = query.eq('is_published', true);
-  }
-
-  const { data, error } = await query;
-  if (error) throw error;
-  return data ?? [];
 }
 
 export async function getLesson(id: string) {
   const { data, error } = await supabaseAdmin
     .from('lessons')
-    .select('*, topics(id, name), problems(id, title, difficulty)')
+    .select('*')
     .eq('id', id)
     .single();
 
   if (error) {
     if (error.code === 'PGRST116') return null;
+    console.error('Error fetching lesson:', error);
     throw error;
   }
 

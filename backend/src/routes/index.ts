@@ -7,6 +7,7 @@ import languageRoutes from './language.routes';
 import authRoutes from './auth.routes';
 import lessonRoutes from './lesson.routes';
 import topicRoutes from './topic.routes';
+import courseRoutes from './course.routes';
 import instructorRoutes from './instructor.routes';
 import businessRoutes from './business.routes';
 
@@ -20,6 +21,7 @@ router.use('/languages', languageRoutes);
 router.use('/auth', authRoutes);
 router.use('/lessons', lessonRoutes);
 router.use('/topics', topicRoutes);
+router.use('/courses', courseRoutes);
 router.use('/instructor', instructorRoutes);
 router.use('/business', businessRoutes);
 
