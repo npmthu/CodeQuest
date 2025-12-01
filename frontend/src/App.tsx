@@ -33,17 +33,21 @@ const queryClient = new QueryClient({
 });
 
 function AppContent() {
-  const { user, loading } = useAuth();
+  const { user, profile, loading } = useAuth();
   const [currentPage, setCurrentPage] = useState("dashboard");
-  const [userRole, setUserRole] = useState<"student" | "instructor" | "business">("student");
+  
+  // Map role from database to UI role type
+  const getUserRole = (): "student" | "instructor" | "business" => {
+    const dbRole = profile?.role;
+    if (dbRole === 'instructor') return 'instructor';
+    if (dbRole === 'business_partner') return 'business';
+    return 'student'; // Default for 'learner' or any other role
+  };
+
+  const userRole = getUserRole();
 
   const handleNavigate = (page: string) => {
     setCurrentPage(page);
-  };
-
-  const toggleRole = () => {
-    setUserRole(prev => prev === "student" ? "instructor" : "student");
-    setCurrentPage(userRole === "student" ? "instructor-dashboard" : "dashboard");
   };
 
   if (loading) {
@@ -123,7 +127,6 @@ function AppContent() {
           currentPage={currentPage}
           onNavigate={handleNavigate}
           userRole={userRole}
-          onRoleToggle={toggleRole}
         >
           {renderPage()}
         </DashboardLayout>

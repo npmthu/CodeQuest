@@ -27,13 +27,24 @@ export async function registerUser(payload: RegisterPayload) {
   }
 
   try {
-    // Create auth user
+    // Check if user already exists
+    const { data: existingUser } = await supabaseAdmin.auth.admin.listUsers();
+    const userExists = existingUser?.users.find(u => u.email === email);
+    
+    if (userExists) {
+      throw new Error('User with this email already exists');
+    }
+
+    // Create auth user with role in metadata
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
       email_confirm: true,
       user_metadata: {
         full_name: fullName || email.split('@')[0],
+        role
+      },
+      app_metadata: {
         role
       }
     });
@@ -47,36 +58,50 @@ export async function registerUser(payload: RegisterPayload) {
       throw new Error('User creation failed - no user returned');
     }
 
-    // Check if user profile already exists
+    // Check if profile already exists (trigger may have created it)
     const { data: existingProfile } = await supabaseAdmin
       .from('users')
-      .select('id')
+      .select('*')
       .eq('id', authData.user.id)
-      .single();
+      .maybeSingle();
 
     if (existingProfile) {
-      // Profile already exists, just return it
-      const { data: profile } = await supabaseAdmin
+      // Profile exists (created by trigger), update it with correct role
+      const { data: userData, error: updateError } = await supabaseAdmin
         .from('users')
-        .select('*')
+        .update({
+          role,
+          display_name: fullName || email.split('@')[0],
+          email
+        })
         .eq('id', authData.user.id)
+        .select()
         .single();
       
-      return { user: authData.user, profile };
+      if (updateError) {
+        console.error('User profile update error:', updateError);
+      }
+      
+      console.log('✅ Updated existing profile with role:', userData?.role);
+      return { user: authData.user, profile: userData || existingProfile };
     }
 
     // Create user profile in users table
+    const profileData = {
+      id: authData.user.id,
+      email,
+      display_name: fullName || email.split('@')[0],
+      role,
+      level: 'Beginner',
+      reputation: 0,
+      is_active: true
+    };
+    
+    console.log('📝 Creating profile with role:', role, 'Full data:', profileData);
+
     const { data: userData, error: userError } = await supabaseAdmin
       .from('users')
-      .insert({
-        id: authData.user.id,
-        email,
-        display_name: fullName || email.split('@')[0],
-        role,
-        level: 'Beginner',
-        reputation: 0,
-        is_active: true
-      })
+      .insert(profileData)
       .select()
       .single();
 

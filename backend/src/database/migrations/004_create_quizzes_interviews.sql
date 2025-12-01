@@ -1,1 +1,0 @@
--- Create quizzes and interviews tables

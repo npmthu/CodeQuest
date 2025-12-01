@@ -1,1 +1,0 @@
--- Create problems and submissions tables

@@ -66,17 +66,6 @@ export async function loginHandler(req: Request, res: Response) {
 
 export async function meHandler(req: Request, res: Response) {
   try {
-    // If middleware attached user, return it
-    const maybeUser = (req as any).user;
-    if (maybeUser) {
-      // Also fetch profile
-      const profile = await authService.getUserProfile(maybeUser.id);
-      return res.json({ 
-        success: true, 
-        data: { user: maybeUser, profile } 
-      });
-    }
-
     const header = String(req.headers.authorization || '');
     const token = header.startsWith('Bearer ') ? header.slice(7) : undefined;
     if (!token) {
@@ -94,7 +83,15 @@ export async function meHandler(req: Request, res: Response) {
       });
     }
 
+    // Always fetch profile from database (source of truth for role)
     const profile = await authService.getUserProfile(data.user.id);
+    if (!profile) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'User profile not found' 
+      });
+    }
+
     return res.json({ 
       success: true, 
       data: { user: data.user, profile } 

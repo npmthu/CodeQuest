@@ -1,2 +1,0 @@
--- Initial database migration
--- Create users table

@@ -132,16 +132,20 @@ ON CONFLICT (name) DO NOTHING;
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO public.users (id, email, full_name, role, xp, level)
+  INSERT INTO public.users (id, email, display_name, role, level, reputation, is_active)
   VALUES (
     NEW.id,
     NEW.email,
     COALESCE(NEW.raw_user_meta_data->>'full_name', split_part(NEW.email, '@', 1)),
-    COALESCE(NEW.raw_user_meta_data->>'role', 'learner'),
+    COALESCE(NEW.raw_app_meta_data->>'role', NEW.raw_user_meta_data->>'role', 'learner'),
+    'Beginner',
     0,
-    1
+    true
   )
-  ON CONFLICT (id) DO NOTHING;
+  ON CONFLICT (id) DO UPDATE SET
+    role = COALESCE(EXCLUDED.role, users.role),
+    display_name = COALESCE(EXCLUDED.display_name, users.display_name),
+    email = EXCLUDED.email;
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

@@ -1,6 +1,14 @@
 import { Request, Response, NextFunction } from 'express';
 import { supabaseAdmin } from '../config/database';
 
+export interface AuthRequest extends Request {
+  user?: {
+    id: string;
+    email?: string;
+    role: string;
+  };
+}
+
 export async function supabaseAuth(req: Request, res: Response, next: NextFunction) {
   try {
     const header = String(req.headers.authorization || '');
@@ -10,11 +18,18 @@ export async function supabaseAuth(req: Request, res: Response, next: NextFuncti
     const { data, error } = await supabaseAdmin.auth.getUser(token);
     if (error || !data?.user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
+    // Fetch user role from database (source of truth)
+    const { data: profile } = await supabaseAdmin
+      .from('users')
+      .select('role')
+      .eq('id', data.user.id)
+      .single();
+
     // Attach minimal user object to request
-    (req as any).user = {
+    (req as AuthRequest).user = {
       id: data.user.id,
       email: data.user.email,
-      role: (data.user.user_metadata as any)?.role || 'learner',
+      role: profile?.role || 'learner',
     };
     next();
   } catch (err: any) {
