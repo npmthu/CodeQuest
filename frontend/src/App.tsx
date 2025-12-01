@@ -1,5 +1,5 @@
-import { useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { ApiProvider } from "./api/ApiProvider";
 import LoginPage from "./components/LoginPage";
 import DashboardLayout from "./components/DashboardLayout";
@@ -35,25 +35,10 @@ const queryClient = new QueryClient({
   }
 });
 
-function AppContent() {
-  const { user, profile, loading } = useAuth();
-  const [currentPage, setCurrentPage] = useState("dashboard");
-  const [pageParams, setPageParams] = useState<any>({});
-  
-  // Map role from database to UI role type
-  const getUserRole = (): "student" | "instructor" | "business" => {
-    const dbRole = profile?.role;
-    if (dbRole === 'instructor') return 'instructor';
-    if (dbRole === 'business_partner') return 'business';
-    return 'student'; // Default for 'learner' or any other role
-  };
-
-  const userRole = getUserRole();
-
-  const handleNavigate = (page: string, params?: any) => {
-    setCurrentPage(page);
-    setPageParams(params || {});
-  };
+// Protected route wrapper
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+  const location = useLocation();
 
   if (loading) {
     return (
@@ -66,92 +51,99 @@ function AppContent() {
     );
   }
 
-  const renderPage = () => {
-    // Pages that don't use the dashboard layout
-    if (!user) {
-      return <LoginPage />;
-    }
+  if (!user) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
 
-    if (currentPage === "editor") {
-      return <CodeEditor onNavigate={handleNavigate} />;
-    }
+  return <>{children}</>;
+}
 
-    if (currentPage === "pricing") {
-      return <PricingPage onNavigate={handleNavigate} />;
-    }
-
-    if (currentPage === "lessons") {
-      return <LessonPage onNavigate={handleNavigate} topicId={pageParams.topicId} courseId={pageParams.courseId} />;
-    }
-
-    if (currentPage === "instructor-create-course") {
-      return <InstructorCreateCourse onNavigate={handleNavigate} />;
-    }
-
-    // Pages with dashboard layout
-    switch (currentPage) {
-      case "dashboard":
-        return <Dashboard />;
-      case "courses":
-        return <CoursesPage onNavigate={handleNavigate} />;
-      case "topics":
-        return <TopicsPage onNavigate={handleNavigate} courseId={pageParams.courseId} />;
-      case "forum":
-        return <ForumPage />;
-      case "notebook":
-        return <NotebookPage />;
-      case "interview":
-        return <InterviewPage onNavigate={handleNavigate} />;
-      case "profile":
-        return <ProfilePage />;
-      case "settings":
-        return <SettingsPage />;
-      case "instructor-dashboard":
-        return <InstructorDashboard onNavigate={handleNavigate} />;
-      case "instructor-courses":
-        return <InstructorCourseManager onNavigate={handleNavigate} />;
-      case "instructor-analytics":
-        return <InstructorAnalytics onNavigate={handleNavigate} />;
-      case "business-dashboard":
-        return <BusinessDashboard onNavigate={handleNavigate} />;
-      case "business-account":
-        return <BusinessAccountManagement onNavigate={handleNavigate} />;
-      case "business-instructors":
-        return <BusinessInstructorManagement onNavigate={handleNavigate} />;
-      case "business-performance":
-        return <BusinessLearnerPerformance onNavigate={handleNavigate} />;
-      case "business-analytics":
-        return <BusinessAnalytics onNavigate={handleNavigate} />;
-      default:
-        return <Dashboard />;
-    }
+// Layout wrapper for pages that use DashboardLayout
+function DashboardRoute({ children }: { children: React.ReactNode }) {
+  const { profile } = useAuth();
+  
+  // Map role from database to UI role type
+  const getUserRole = (): "student" | "instructor" | "business" => {
+    const dbRole = profile?.role;
+    if (dbRole === 'instructor') return 'instructor';
+    if (dbRole === 'business_partner') return 'business';
+    return 'student';
   };
 
   return (
-    <>
-      {user && currentPage !== "editor" ? (
-        <DashboardLayout
-          currentPage={currentPage}
-          onNavigate={handleNavigate}
-          userRole={userRole}
-        >
-          {renderPage()}
-        </DashboardLayout>
-      ) : (
-        <>{renderPage()}</>
-      )}
-    </>
+    <ProtectedRoute>
+      <DashboardLayout userRole={getUserRole()}>
+        {children}
+      </DashboardLayout>
+    </ProtectedRoute>
+  );
+}
+
+function AppContent() {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <Routes>
+      {/* Public routes */}
+      <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <LoginPage />} />
+      
+      {/* Protected routes with dashboard layout */}
+      <Route path="/dashboard" element={<DashboardRoute><Dashboard /></DashboardRoute>} />
+      <Route path="/courses" element={<DashboardRoute><CoursesPage /></DashboardRoute>} />
+      <Route path="/courses/:courseId/topics" element={<DashboardRoute><TopicsPage /></DashboardRoute>} />
+      <Route path="/forum" element={<DashboardRoute><ForumPage /></DashboardRoute>} />
+      <Route path="/notebook" element={<DashboardRoute><NotebookPage /></DashboardRoute>} />
+      <Route path="/interview" element={<DashboardRoute><InterviewPage /></DashboardRoute>} />
+      <Route path="/profile" element={<DashboardRoute><ProfilePage /></DashboardRoute>} />
+      <Route path="/settings" element={<DashboardRoute><SettingsPage /></DashboardRoute>} />
+
+      {/* Instructor routes */}
+      <Route path="/instructor/dashboard" element={<DashboardRoute><InstructorDashboard /></DashboardRoute>} />
+      <Route path="/instructor/courses" element={<DashboardRoute><InstructorCourseManager /></DashboardRoute>} />
+      <Route path="/instructor/analytics" element={<DashboardRoute><InstructorAnalytics /></DashboardRoute>} />
+
+      {/* Business routes */}
+      <Route path="/business/dashboard" element={<DashboardRoute><BusinessDashboard /></DashboardRoute>} />
+      <Route path="/business/account" element={<DashboardRoute><BusinessAccountManagement /></DashboardRoute>} />
+      <Route path="/business/instructors" element={<DashboardRoute><BusinessInstructorManagement /></DashboardRoute>} />
+      <Route path="/business/performance" element={<DashboardRoute><BusinessLearnerPerformance /></DashboardRoute>} />
+      <Route path="/business/analytics" element={<DashboardRoute><BusinessAnalytics /></DashboardRoute>} />
+
+      {/* Protected routes without dashboard layout */}
+      <Route path="/editor" element={<ProtectedRoute><CodeEditor /></ProtectedRoute>} />
+      <Route path="/pricing" element={<ProtectedRoute><PricingPage /></ProtectedRoute>} />
+      <Route path="/lessons/:topicId" element={<ProtectedRoute><LessonPage /></ProtectedRoute>} />
+      <Route path="/courses/:courseId/lessons/:topicId" element={<ProtectedRoute><LessonPage /></ProtectedRoute>} />
+      <Route path="/instructor/courses/create" element={<ProtectedRoute><InstructorCreateCourse /></ProtectedRoute>} />
+
+      {/* Default redirect */}
+      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+    </Routes>
   );
 }
 
 export default function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <ApiProvider>
-        <AuthProvider>
-          <AppContent />
-        </AuthProvider>
-      </ApiProvider>
-    </QueryClientProvider>
+    <BrowserRouter>
+      <QueryClientProvider client={queryClient}>
+        <ApiProvider>
+          <AuthProvider>
+            <AppContent />
+          </AuthProvider>
+        </ApiProvider>
+      </QueryClientProvider>
+    </BrowserRouter>
   );
 }

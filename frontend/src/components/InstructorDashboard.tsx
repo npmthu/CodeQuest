@@ -45,11 +45,12 @@ import {
   useInstructorActivities 
 } from "../hooks/useApi";
 
-interface InstructorDashboardProps {
-  onNavigate: (page: string) => void;
-}
+import { useNavigate } from "react-router-dom";
 
-export default function InstructorDashboard({ onNavigate }: InstructorDashboardProps) {
+interface InstructorDashboardProps {}
+
+export default function InstructorDashboard() {
+  const navigate = useNavigate();
   // Fetch real data from API
   const { data: instructorStats, isLoading: statsLoading } = useInstructorStats();
   const { data: instructorCourses, isLoading: coursesLoading } = useInstructorCourses();
@@ -129,7 +130,7 @@ export default function InstructorDashboard({ onNavigate }: InstructorDashboardP
         </div>
         <Button 
           className="bg-blue-600 hover:bg-blue-700"
-          onClick={() => onNavigate("instructor-create-course")}
+          onClick={() => navigate('/instructor/courses/create')}
         >
           <Plus className="w-4 h-4 mr-2" />
           Create New Course

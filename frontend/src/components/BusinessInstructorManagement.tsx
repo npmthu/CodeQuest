@@ -56,11 +56,12 @@ import {
   CartesianGrid
 } from "recharts";
 
-interface BusinessInstructorManagementProps {
-  onNavigate: (page: string) => void;
-}
+import { useNavigate } from "react-router-dom";
 
-export default function BusinessInstructorManagement({ onNavigate }: BusinessInstructorManagementProps) {
+interface BusinessInstructorManagementProps {}
+
+export default function BusinessInstructorManagement() {
+  const navigate = useNavigate();
   const [isAddInstructorOpen, setIsAddInstructorOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 

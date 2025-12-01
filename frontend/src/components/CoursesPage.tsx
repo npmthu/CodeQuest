@@ -3,12 +3,10 @@ import { Badge } from "./ui/badge";
 import { BookOpen, Clock, Award } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useApi } from "../api/ApiProvider";
+import { useNavigate } from "react-router-dom";
 
-interface CoursesPageProps {
-  onNavigate: (page: string, params?: any) => void;
-}
-
-export default function CoursesPage({ onNavigate }: CoursesPageProps) {
+export default function CoursesPage() {
+  const navigate = useNavigate();
   const api = useApi();
 
   const { data: coursesData, isLoading } = useQuery({
@@ -61,7 +59,7 @@ export default function CoursesPage({ onNavigate }: CoursesPageProps) {
             <Card 
               key={course.id}
               className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
-              onClick={() => onNavigate('topics', { courseId: course.id })}
+              onClick={() => navigate(`/courses/${course.id}/topics`)}
             >
               {/* Course Thumbnail */}
               {course.thumbnail_url ? (

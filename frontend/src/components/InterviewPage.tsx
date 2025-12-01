@@ -20,9 +20,9 @@ import InterviewRoomPage from "./InterviewRoomPage";
 import InterviewSchedulePage from "./InterviewSchedulePage";
 import { useInterviewSessions } from "../hooks/useApi";
 
-interface InterviewPageProps {
-  onNavigate?: (page: string) => void;
-}
+import { useNavigate } from "react-router-dom";
+
+interface InterviewPageProps {}
 
 export default function InterviewPage({ onNavigate }: InterviewPageProps) {
   const [currentView, setCurrentView] = useState<"dashboard" | "room" | "schedule">("dashboard");

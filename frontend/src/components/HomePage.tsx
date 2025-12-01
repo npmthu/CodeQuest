@@ -15,12 +15,10 @@ import LearningPathDetail from "./LearningPathDetail";
 import CourseDetailPlaceholder from "./CourseDetailPlaceholder";
 import ChallengePlaceholder from "./ChallengePlaceholder";
 import { useTopics } from "../hooks/useApi";
+import { useNavigate } from "react-router-dom";
 
-interface HomePageProps {
-  onNavigate: (page: string, topic?: string) => void;
-}
-
-export default function HomePage({ onNavigate }: HomePageProps) {
+export default function HomePage() {
+  const navigate = useNavigate();
   const [currentView, setCurrentView] = useState<"main" | "path-detail" | "course-detail" | "challenge">("main");
   const [selectedPath, setSelectedPath] = useState<any>(null);
   const [selectedCourse, setSelectedCourse] = useState<string>("");
@@ -63,7 +61,7 @@ export default function HomePage({ onNavigate }: HomePageProps) {
             handleCourseClick(courseId);
           } else if (page === "editor") {
             // Navigate to code editor (handled by parent App.tsx)
-            onNavigate("editor");
+            navigate('/editor');
           }
         }}
         onBack={handleBack}

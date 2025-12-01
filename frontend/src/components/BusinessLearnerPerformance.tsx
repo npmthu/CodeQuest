@@ -46,11 +46,12 @@ import {
   ResponsiveContainer
 } from "recharts";
 
-interface BusinessLearnerPerformanceProps {
-  onNavigate: (page: string) => void;
-}
+import { useNavigate } from "react-router-dom";
 
-export default function BusinessLearnerPerformance({ onNavigate }: BusinessLearnerPerformanceProps) {
+interface BusinessLearnerPerformanceProps {}
+
+export default function BusinessLearnerPerformance() {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCohort, setSelectedCohort] = useState("all");
 

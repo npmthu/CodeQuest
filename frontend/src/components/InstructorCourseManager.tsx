@@ -44,11 +44,12 @@ import {
 import { Label } from "./ui/label";
 import { Switch } from "./ui/switch";
 
-interface InstructorCourseManagerProps {
-  onNavigate: (page: string) => void;
-}
+import { useNavigate } from "react-router-dom";
 
-export default function InstructorCourseManager({ onNavigate }: InstructorCourseManagerProps) {
+interface InstructorCourseManagerProps {}
+
+export default function InstructorCourseManager() {
+  const navigate = useNavigate();
   const [selectedCourse, setSelectedCourse] = useState("python-masterclass");
   const [isAddLessonOpen, setIsAddLessonOpen] = useState(false);
 

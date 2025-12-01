@@ -34,11 +34,12 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 
-interface InstructorCreateCourseProps {
-  onNavigate: (page: string) => void;
-}
+import { useNavigate } from "react-router-dom";
 
-export default function InstructorCreateCourse({ onNavigate }: InstructorCreateCourseProps) {
+interface InstructorCreateCourseProps {}
+
+export default function InstructorCreateCourse() {
+  const navigate = useNavigate();
   const [courseData, setCourseData] = useState({
     title: "",
     subtitle: "",
@@ -534,7 +535,7 @@ export default function InstructorCreateCourse({ onNavigate }: InstructorCreateC
           <div className="flex items-center justify-between">
             <Button 
               variant="ghost" 
-              onClick={() => onNavigate("instructor-courses")}
+              onClick={() => navigate('/instructor/courses')}
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Courses

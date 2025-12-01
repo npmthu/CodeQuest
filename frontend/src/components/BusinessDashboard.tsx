@@ -35,11 +35,12 @@ import {
   ResponsiveContainer
 } from "recharts";
 
-interface BusinessDashboardProps {
-  onNavigate: (page: string) => void;
-}
+import { useNavigate } from "react-router-dom";
 
-export default function BusinessDashboard({ onNavigate }: BusinessDashboardProps) {
+interface BusinessDashboardProps {}
+
+export default function BusinessDashboard() {
+  const navigate = useNavigate();
   const stats = [
     { 
       label: "Total Learners", 
@@ -240,13 +241,13 @@ export default function BusinessDashboard({ onNavigate }: BusinessDashboardProps
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="outline" onClick={() => onNavigate("business-analytics")}>
+          <Button variant="outline" onClick={() => navigate('/business/analytics')}>
             <BarChart3 className="w-4 h-4 mr-2" />
             View Reports
           </Button>
           <Button 
             className="bg-blue-600 hover:bg-blue-700"
-            onClick={() => onNavigate("business-account")}
+            onClick={() => navigate('/business/account')}
           >
             <UserPlus className="w-4 h-4 mr-2" />
             Add Learners
@@ -338,7 +339,7 @@ export default function BusinessDashboard({ onNavigate }: BusinessDashboardProps
             <Button 
               variant="outline" 
               size="sm"
-              onClick={() => onNavigate("business-account")}
+              onClick={() => navigate('/business/account')}
             >
               View All
             </Button>

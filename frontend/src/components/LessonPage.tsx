@@ -14,14 +14,11 @@ import {
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useApi } from "../api/ApiProvider";
+import { useNavigate, useParams } from "react-router-dom";
 
-interface LessonPageProps {
-  onNavigate: (page: string, params?: any) => void;
-  topicId?: string;
-  courseId?: string;
-}
-
-export default function LessonPage({ onNavigate, topicId, courseId }: LessonPageProps) {
+export default function LessonPage() {
+  const navigate = useNavigate();
+  const { topicId, courseId } = useParams<{ topicId: string; courseId?: string }>();
   const api = useApi();
 
   // Fetch lessons for this topic
@@ -53,7 +50,7 @@ export default function LessonPage({ onNavigate, topicId, courseId }: LessonPage
         <BookOpen className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
         <h3 className="text-xl font-semibold mb-2">No topic selected</h3>
         <p className="text-muted-foreground">Please select a topic to view its lessons</p>
-        <Button onClick={() => onNavigate('topics', { courseId })} className="mt-4">
+        <Button onClick={() => navigate(courseId ? `/courses/${courseId}/topics` : '/courses')} className="mt-4">
           Browse Topics
         </Button>
       </Card>
@@ -66,7 +63,7 @@ export default function LessonPage({ onNavigate, topicId, courseId }: LessonPage
       <div className="bg-white border-b border-border">
         <div className="max-w-6xl mx-auto px-8 py-6">
           <button
-            onClick={() => onNavigate("topics", { courseId })}
+            onClick={() => navigate(courseId ? `/courses/${courseId}/topics` : '/courses')}
             className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -112,7 +109,7 @@ export default function LessonPage({ onNavigate, topicId, courseId }: LessonPage
                   className={`p-6 cursor-pointer hover:shadow-md transition-all ${
                     isCurrent ? "border-2 border-blue-500" : ""
                   }`}
-                  onClick={() => onNavigate("lesson-detail")}
+                  onClick={() => {/* TODO: implement lesson detail page */}}
                 >
                   <div className="flex items-start gap-4">
                     <div className="flex-shrink-0">
@@ -212,7 +209,7 @@ export default function LessonPage({ onNavigate, topicId, courseId }: LessonPage
             {/* Practice Button */}
             <Button
               className="w-full bg-blue-600 hover:bg-blue-700"
-              onClick={() => onNavigate("editor")}
+              onClick={() => navigate('/editor')}
             >
               <Code className="w-4 h-4 mr-2" />
               Practice Now

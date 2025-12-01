@@ -1,4 +1,5 @@
 import { ReactNode } from "react";
+import { Link, useLocation } from "react-router-dom";
 import { 
   Home, 
   BookOpen, 
@@ -22,46 +23,42 @@ import { useAuth } from "../contexts/AuthContext";
 
 interface DashboardLayoutProps {
   children: ReactNode;
-  currentPage: string;
-  onNavigate: (page: string) => void;
   userRole?: "student" | "instructor" | "business";
-  onRoleToggle?: () => void;
 }
 
 export default function DashboardLayout({ 
   children, 
-  currentPage, 
-  onNavigate,
-  userRole = "student",
-  onRoleToggle
+  userRole = "student"
 }: DashboardLayoutProps) {
   const { signOut } = useAuth();
+  const location = useLocation();
+  
   const studentMenuItems = [
-    { id: "dashboard", label: "Dashboard", icon: Home },
-    { id: "courses", label: "Courses", icon: BookOpen },
-    { id: "forum", label: "Forum", icon: MessageSquare },
-    { id: "notebook", label: "Notebook", icon: NotebookPen },
-    { id: "interview", label: "Interview", icon: VideoIcon },
-    { id: "profile", label: "Profile", icon: User },
-    { id: "settings", label: "Settings", icon: Settings },
+    { path: "/dashboard", label: "Dashboard", icon: Home },
+    { path: "/courses", label: "Courses", icon: BookOpen },
+    { path: "/forum", label: "Forum", icon: MessageSquare },
+    { path: "/notebook", label: "Notebook", icon: NotebookPen },
+    { path: "/interview", label: "Interview", icon: VideoIcon },
+    { path: "/profile", label: "Profile", icon: User },
+    { path: "/settings", label: "Settings", icon: Settings },
   ];
 
   const instructorMenuItems = [
-    { id: "instructor-dashboard", label: "Dashboard", icon: Home },
-    { id: "instructor-courses", label: "My Courses", icon: VideoIcon },
-    { id: "instructor-analytics", label: "Analytics", icon: BarChart3 },
-    { id: "forum", label: "Forum", icon: MessageSquare },
-    { id: "profile", label: "Profile", icon: User },
-    { id: "settings", label: "Settings", icon: Settings },
+    { path: "/instructor/dashboard", label: "Dashboard", icon: Home },
+    { path: "/instructor/courses", label: "My Courses", icon: VideoIcon },
+    { path: "/instructor/analytics", label: "Analytics", icon: BarChart3 },
+    { path: "/forum", label: "Forum", icon: MessageSquare },
+    { path: "/profile", label: "Profile", icon: User },
+    { path: "/settings", label: "Settings", icon: Settings },
   ];
 
   const businessMenuItems = [
-    { id: "business-dashboard", label: "Dashboard", icon: Home },
-    { id: "business-account", label: "Account Mgmt", icon: Building },
-    { id: "business-instructors", label: "Instructors", icon: GraduationCap },
-    { id: "business-performance", label: "Performance", icon: Target },
-    { id: "business-analytics", label: "Analytics", icon: BarChart3 },
-    { id: "settings", label: "Settings", icon: Settings },
+    { path: "/business/dashboard", label: "Dashboard", icon: Home },
+    { path: "/business/account", label: "Account Mgmt", icon: Building },
+    { path: "/business/instructors", label: "Instructors", icon: GraduationCap },
+    { path: "/business/performance", label: "Performance", icon: Target },
+    { path: "/business/analytics", label: "Analytics", icon: BarChart3 },
+    { path: "/settings", label: "Settings", icon: Settings },
   ];
 
   const menuItems = 
@@ -118,11 +115,11 @@ export default function DashboardLayout({
           <div className="space-y-1">
             {menuItems.map((item) => {
               const Icon = item.icon;
-              const isActive = currentPage === item.id;
+              const isActive = location.pathname === item.path;
               return (
-                <button
-                  key={item.id}
-                  onClick={() => onNavigate(item.id)}
+                <Link
+                  key={item.path}
+                  to={item.path}
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                     isActive
                       ? "bg-blue-50 text-blue-600"
@@ -131,7 +128,7 @@ export default function DashboardLayout({
                 >
                   <Icon className="w-5 h-5" />
                   <span>{item.label}</span>
-                </button>
+                </Link>
               );
             })}
           </div>
@@ -165,16 +162,18 @@ export default function DashboardLayout({
         {/* Header */}
         <header className="h-16 bg-white border-b border-border flex items-center justify-between px-8">
           <div>
-            <h3 className="capitalize">{currentPage}</h3>
+            <h3 className="capitalize">{location.pathname.split('/').pop() || 'Dashboard'}</h3>
           </div>
           <div className="flex items-center gap-4">
             <button className="relative p-2 hover:bg-gray-100 rounded-lg">
               <Bell className="w-5 h-5 text-gray-600" />
               <span className="absolute top-1 right-1 w-2 h-2 bg-blue-600 rounded-full"></span>
             </button>
-            <Button onClick={() => onNavigate("pricing")} variant="outline" size="sm">
-              Upgrade to Pro
-            </Button>
+            <Link to="/pricing">
+              <Button variant="outline" size="sm">
+                Upgrade to Pro
+              </Button>
+            </Link>
           </div>
         </header>
 

@@ -45,11 +45,12 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 
-interface BusinessAccountManagementProps {
-  onNavigate: (page: string) => void;
-}
+import { useNavigate } from "react-router-dom";
 
-export default function BusinessAccountManagement({ onNavigate }: BusinessAccountManagementProps) {
+interface BusinessAccountManagementProps {}
+
+export default function BusinessAccountManagement() {
+  const navigate = useNavigate();
   const [isAddLearnerOpen, setIsAddLearnerOpen] = useState(false);
   const [isAddCohortOpen, setIsAddCohortOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -419,7 +420,7 @@ export default function BusinessAccountManagement({ onNavigate }: BusinessAccoun
                             </DropdownMenuItem>
                             <DropdownMenuItem 
                               className="text-red-600"
-                              onClick={() => onNavigate("business-performance")}
+                              onClick={() => navigate('/business/performance')}
                             >
                               <GraduationCap className="w-4 h-4 mr-2" />
                               View Performance
@@ -515,7 +516,7 @@ export default function BusinessAccountManagement({ onNavigate }: BusinessAccoun
                         <Edit className="w-4 h-4 mr-2" />
                         Edit Cohort
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => onNavigate("business-instructors")}>
+                      <DropdownMenuItem onClick={() => navigate('/business/instructors')}>
                         <GraduationCap className="w-4 h-4 mr-2" />
                         Manage Instructors
                       </DropdownMenuItem>
@@ -581,7 +582,7 @@ export default function BusinessAccountManagement({ onNavigate }: BusinessAccoun
                   <Button 
                     variant="outline" 
                     className="w-full mt-4"
-                    onClick={() => onNavigate("business-performance")}
+                    onClick={() => navigate('/business/performance')}
                   >
                     View Details
                   </Button>

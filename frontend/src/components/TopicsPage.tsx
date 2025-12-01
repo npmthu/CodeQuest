@@ -3,13 +3,11 @@ import { Badge } from "./ui/badge";
 import { ArrowLeft, BookOpen, FileText, Clock } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useApi } from "../api/ApiProvider";
+import { useNavigate, useParams } from "react-router-dom";
 
-interface TopicsPageProps {
-  onNavigate: (page: string, params?: any) => void;
-  courseId?: string;
-}
-
-export default function TopicsPage({ onNavigate, courseId }: TopicsPageProps) {
+export default function TopicsPage() {
+  const navigate = useNavigate();
+  const { courseId } = useParams<{ courseId: string }>();
   const api = useApi();
 
   const { data: topicsData, isLoading } = useQuery({
@@ -39,7 +37,7 @@ export default function TopicsPage({ onNavigate, courseId }: TopicsPageProps) {
       <div>
         {courseId && (
           <button
-            onClick={() => onNavigate("courses")}
+            onClick={() => navigate('/courses')}
             className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -69,7 +67,7 @@ export default function TopicsPage({ onNavigate, courseId }: TopicsPageProps) {
             <Card 
               key={topic.id}
               className="p-6 hover:shadow-lg transition-shadow cursor-pointer"
-              onClick={() => onNavigate('lessons', { topicId: topic.id })}
+              onClick={() => navigate(courseId ? `/courses/${courseId}/lessons/${topic.id}` : `/lessons/${topic.id}`)}
             >
               {/* Topic Icon */}
               <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">

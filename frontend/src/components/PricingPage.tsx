@@ -2,12 +2,10 @@ import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { CheckCircle2, X, ArrowLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
-interface PricingPageProps {
-  onNavigate: (page: string) => void;
-}
-
-export default function PricingPage({ onNavigate }: PricingPageProps) {
+export default function PricingPage() {
+  const navigate = useNavigate();
   const plans = [
     {
       name: "Student",
@@ -81,7 +79,7 @@ export default function PricingPage({ onNavigate }: PricingPageProps) {
       <div className="max-w-7xl mx-auto px-8 py-12">
         {/* Header */}
         <button
-          onClick={() => onNavigate("dashboard")}
+          onClick={() => navigate('/dashboard')}
           className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-8"
         >
           <ArrowLeft className="w-4 h-4" />

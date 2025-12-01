@@ -54,9 +54,10 @@ interface Problem {
 
 type Language = "python" | "java" | "cpp";
 
+import { useNavigate } from "react-router-dom";
+
 // ---------- Component Props ----------
 interface CodeEditorProps {
-  onNavigate?: (page: string) => void;
   apiBase?: string; // optional override for API base URL
 }
 
@@ -65,7 +66,8 @@ const difficultyText = (d: number) => (d === 1 ? "Easy" : d === 2 ? "Medium" : "
 const difficultyColor = (d: number) => (d === 1 ? "green" : d === 2 ? "yellow" : "red");
 
 // ---------- Component ----------
-export default function CodeEditor({ onNavigate, apiBase }: CodeEditorProps) {
+export default function CodeEditor({ apiBase }: CodeEditorProps) {
+  const navigate = useNavigate();
   const [problemList, setProblemList] = useState<ProblemSummary[]>([]);
   const [problem, setProblem] = useState<Problem | null>(null);
 
@@ -307,7 +309,7 @@ export default function CodeEditor({ onNavigate, apiBase }: CodeEditorProps) {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button
-              onClick={() => onNavigate?.("home")}
+              onClick={() => navigate('/dashboard')}
               className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900"
             >
               <ArrowLeft className="w-4 h-4" /> Back

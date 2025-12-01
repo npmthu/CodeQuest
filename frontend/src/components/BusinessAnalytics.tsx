@@ -48,11 +48,12 @@ import {
   Radar
 } from "recharts";
 
-interface BusinessAnalyticsProps {
-  onNavigate: (page: string) => void;
-}
+import { useNavigate } from "react-router-dom";
 
-export default function BusinessAnalytics({ onNavigate }: BusinessAnalyticsProps) {
+interface BusinessAnalyticsProps {}
+
+export default function BusinessAnalytics() {
+  const navigate = useNavigate();
   const overviewStats = [
     {
       label: "Total Investment",

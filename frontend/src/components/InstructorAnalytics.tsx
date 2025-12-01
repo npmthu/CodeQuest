@@ -45,11 +45,12 @@ import {
   Area
 } from "recharts";
 
-interface InstructorAnalyticsProps {
-  onNavigate: (page: string) => void;
-}
+import { useNavigate } from "react-router-dom";
 
-export default function InstructorAnalytics({ onNavigate }: InstructorAnalyticsProps) {
+interface InstructorAnalyticsProps {}
+
+export default function InstructorAnalytics() {
+  const navigate = useNavigate();
   const overviewStats = [
     {
       label: "Total Views",

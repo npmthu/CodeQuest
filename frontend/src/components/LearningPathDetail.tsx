@@ -12,11 +12,12 @@ import {
   Trophy
 } from "lucide-react";
 
+import { useNavigate } from "react-router-dom";
+
 interface LearningPathDetailProps {
   pathId: string;
   pathName: string;
   level: string;
-  onNavigate: (page: string, courseId?: string) => void;
   onBack: () => void;
 }
 
@@ -24,9 +25,9 @@ export default function LearningPathDetail({
   pathId, 
   pathName, 
   level,
-  onNavigate,
   onBack 
 }: LearningPathDetailProps) {
+  const navigate = useNavigate();
   const getLevelColor = (level: string) => {
     switch (level) {
       case "Beginner":
@@ -186,7 +187,7 @@ export default function LearningPathDetail({
                     ? "opacity-60 cursor-not-allowed" 
                     : "hover:shadow-lg cursor-pointer"
                 }`}
-                onClick={() => !course.locked && onNavigate("course-detail", course.id)}
+                onClick={() => !course.locked && navigate(`/courses/${course.id}/topics`)}
               >
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0">
@@ -239,7 +240,7 @@ export default function LearningPathDetail({
           <div className="space-y-4">
             <Card
               className="p-6 transition-all hover:shadow-lg cursor-pointer"
-              onClick={() => onNavigate("editor")}
+              onClick={() => navigate('/editor')}
             >
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
