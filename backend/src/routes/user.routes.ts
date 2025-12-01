@@ -4,7 +4,8 @@ import {
   getUserHandler, 
   updateUserHandler,
   getUserStatsHandler,
-  getLearningProfileHandler
+  getLearningProfileHandler,
+  getLeaderboardHandler
 } from '../controllers/userController';
 import { supabaseAuth } from '../middleware/auth';
 
@@ -12,6 +13,7 @@ const router = express.Router();
 
 // Public routes
 router.get('/', listUsers);
+router.get('/leaderboard', getLeaderboardHandler);
 router.get('/:id', getUserHandler);
 
 // Protected routes

@@ -15,8 +15,25 @@ import {
   Linkedin,
   Globe
 } from "lucide-react";
+import { useAuth } from "../contexts/AuthContext";
+import { useUserStats } from "../hooks/useApi";
 
 export default function ProfilePage() {
+  const { user, profile } = useAuth();
+  const { data: stats, isLoading } = useUserStats();
+
+  if (isLoading) {
+    return (
+      <div className="p-8 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  const displayName = profile?.display_name || user?.email?.split('@')[0] || 'User';
+  const email = profile?.email || user?.email || '';
+  const avatarInitials = displayName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
+
   const badges = [
     { id: 1, name: "First Steps", icon: "🎯", earned: true, date: "Oct 1, 2025" },
     { id: 2, name: "Week Warrior", icon: "🔥", earned: true, date: "Oct 8, 2025" },
@@ -26,21 +43,23 @@ export default function ProfilePage() {
     { id: 6, name: "Speed Demon", icon: "⚡", earned: false },
   ];
 
-  const activities = [
-    { date: "Oct 22", action: "Completed lesson", title: "Binary Search Trees", xp: 50 },
-    { date: "Oct 22", action: "Solved problem", title: "Two Sum", xp: 30 },
-    { date: "Oct 21", action: "Posted in forum", title: "Best DP resources?", xp: 10 },
-    { date: "Oct 21", action: "Completed lesson", title: "Hash Tables", xp: 50 },
-    { date: "Oct 20", action: "Earned badge", title: "Problem Solver", xp: 100 },
-  ];
+  // Recent activity from API
+  const activities = (stats?.recentActivity || []).map((activity: any) => ({
+    date: new Date(activity.submitted_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+    action: activity.passed ? "Solved problem" : "Attempted problem",
+    title: activity.problems?.title || 'Unknown Problem',
+    xp: activity.points || 0,
+    status: activity.status
+  }));
 
-  const skills = [
-    { name: "Python", level: 85, problems: 142 },
-    { name: "JavaScript", level: 70, problems: 98 },
-    { name: "Data Structures", level: 75, problems: 124 },
-    { name: "Algorithms", level: 65, problems: 87 },
-    { name: "SQL", level: 60, problems: 45 },
-  ];
+  // Language skills from stats
+  const languageStats = stats?.languageStats || {};
+  const totalLanguageSubmissions = Object.values(languageStats).reduce((a: number, b: any) => a + (b as number), 0) as number;
+  const skills = Object.entries(languageStats).map(([name, count]: [string, any]) => ({
+    name,
+    level: totalLanguageSubmissions > 0 ? Math.round((count / totalLanguageSubmissions) * 100) : 0,
+    problems: count
+  }));
 
   return (
     <div className="p-8 space-y-6">
@@ -49,9 +68,17 @@ export default function ProfilePage() {
         <div className="flex items-start gap-8">
           {/* Avatar */}
           <div className="flex-shrink-0">
-            <div className="w-32 h-32 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center">
-              <span className="text-5xl text-white">BQ</span>
-            </div>
+            {profile?.avatar_url ? (
+              <img 
+                src={profile.avatar_url} 
+                alt={displayName}
+                className="w-32 h-32 rounded-full object-cover"
+              />
+            ) : (
+              <div className="w-32 h-32 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center">
+                <span className="text-5xl text-white">{avatarInitials}</span>
+              </div>
+            )}
             <Button className="w-full mt-4" variant="outline" size="sm">
               <Edit className="w-4 h-4 mr-2" />
               Edit Profile
@@ -62,17 +89,17 @@ export default function ProfilePage() {
           <div className="flex-1">
             <div className="flex items-start justify-between">
               <div>
-                <h2 className="mb-2">Bug Quýt</h2>
-                <p className="text-muted-foreground mb-4">Aspiring Software Engineer</p>
+                <h2 className="mb-2">{displayName}</h2>
+                <p className="text-muted-foreground mb-4">{email}</p>
                 <div className="flex items-center gap-4 mb-4">
-                  <Badge className="bg-blue-600">Level 5</Badge>
+                  <Badge className="bg-blue-600">{stats?.level || 'Beginner'}</Badge>
                   <div className="flex items-center gap-2 text-sm">
                     <Trophy className="w-4 h-4 text-yellow-500" />
-                    <span>2,580 XP</span>
+                    <span>{stats?.reputation || 0} XP</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <Award className="w-4 h-4 text-purple-500" />
-                    <span>4 Badges</span>
+                    <span>{badges.filter(b => b.earned).length} Badges</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -89,9 +116,15 @@ export default function ProfilePage() {
               </div>
               <div className="text-right">
                 <div className="text-sm text-muted-foreground mb-1">Member since</div>
-                <div className="text-sm">September 15, 2025</div>
+                <div className="text-sm">
+                  {stats?.createdAt ? new Date(stats.createdAt).toLocaleDateString('en-US', { 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                  }) : 'Recently'}
+                </div>
                 <div className="text-sm text-muted-foreground mt-3 mb-1">Current Streak</div>
-                <div className="text-2xl text-blue-600">14 days 🔥</div>
+                <div className="text-2xl text-blue-600">{stats?.currentStreak || 0} days 🔥</div>
               </div>
             </div>
           </div>
@@ -104,29 +137,29 @@ export default function ProfilePage() {
           <div className="flex items-center justify-between mb-2">
             <Code className="w-8 h-8 text-blue-600" />
           </div>
-          <h3>142</h3>
+          <h3>{stats?.problemsSolved || 0}</h3>
           <p className="text-sm text-muted-foreground">Problems Solved</p>
         </Card>
         <Card className="p-6">
           <div className="flex items-center justify-between mb-2">
             <BookOpen className="w-8 h-8 text-green-600" />
           </div>
-          <h3>28</h3>
+          <h3>{stats?.lessonsCompleted || 0}</h3>
           <p className="text-sm text-muted-foreground">Lessons Completed</p>
         </Card>
         <Card className="p-6">
           <div className="flex items-center justify-between mb-2">
             <Target className="w-8 h-8 text-purple-600" />
           </div>
-          <h3>67%</h3>
-          <p className="text-sm text-muted-foreground">Overall Progress</p>
+          <h3>{stats?.acceptanceRate || 0}%</h3>
+          <p className="text-sm text-muted-foreground">Acceptance Rate</p>
         </Card>
         <Card className="p-6">
           <div className="flex items-center justify-between mb-2">
             <Calendar className="w-8 h-8 text-orange-600" />
           </div>
-          <h3>38</h3>
-          <p className="text-sm text-muted-foreground">Days Active</p>
+          <h3>{stats?.totalStudyTimeHours || 0}h</h3>
+          <p className="text-sm text-muted-foreground">Study Time</p>
         </Card>
       </div>
 
@@ -166,7 +199,7 @@ export default function ProfilePage() {
           <Card className="p-6">
             <h3 className="mb-6">Recent Activity</h3>
             <div className="space-y-4">
-              {activities.map((activity, index) => (
+              {activities.map((activity: any, index: number) => (
                 <div key={index} className="flex items-start gap-4 pb-4 border-b border-border last:border-0">
                   <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
                     <CheckCircle2 className="w-5 h-5 text-blue-600" />

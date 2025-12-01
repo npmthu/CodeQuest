@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ApiProvider } from "./api/ApiProvider";
 import LoginPage from "./components/LoginPage";
 import DashboardLayout from "./components/DashboardLayout";
 import Dashboard from "./components/Dashboard";
@@ -140,9 +141,11 @@ function AppContent() {
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
+      <ApiProvider>
+        <AuthProvider>
+          <AppContent />
+        </AuthProvider>
+      </ApiProvider>
     </QueryClientProvider>
   );
 }

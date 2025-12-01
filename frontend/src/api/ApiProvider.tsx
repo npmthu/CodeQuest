@@ -2,11 +2,12 @@ import React, { createContext, useContext, useMemo } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { supabase } from "../../lib/supabaseClient";
 
-// Api Client  + get + post: hỗ trợ gọi api eg api.get("/users")
+// Api Client  + get + post + patch: hỗ trợ gọi api eg api.get("/users")
 interface ApiClient {
   apiBase: string;
   get: (path: string) => Promise<any>;
   post: (path: string, body?: any) => Promise<any>;
+  patch: (path: string, body?: any) => Promise<any>;
 }
 
 // Context chứa api client
@@ -88,6 +89,14 @@ export function ApiProvider({ apiBase, children }: { apiBase?: string; children:
       post: async (path: string, body?: any) => {
         const res = await fetchNoCache(makeUrl(path), {
           method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: body !== undefined ? JSON.stringify(body) : undefined,
+        });
+        return handleRes(res);
+      },
+      patch: async (path: string, body?: any) => {
+        const res = await fetchNoCache(makeUrl(path), {
+          method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: body !== undefined ? JSON.stringify(body) : undefined,
         });

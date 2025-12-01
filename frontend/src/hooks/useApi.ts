@@ -97,6 +97,28 @@ export function useUserStats() {
   });
 }
 
+// User Learning Profile Hook
+export function useUserProgress() {
+  return useQuery({
+    queryKey: ['userProgress'],
+    queryFn: async () => {
+      const result = await apiFetch('/users/me/learning-profile');
+      return result.data;
+    }
+  });
+}
+
+// Leaderboard Hook
+export function useLeaderboard(limit: number = 100) {
+  return useQuery({
+    queryKey: ['leaderboard', limit],
+    queryFn: async () => {
+      const result = await apiFetch(`/users/leaderboard?limit=${limit}`);
+      return result.data;
+    }
+  });
+}
+
 // Topics Hooks
 export function useTopics() {
   return useQuery({
@@ -167,16 +189,6 @@ export function useUpdateLessonProgress() {
   });
 }
 
-export function useUserProgress() {
-  return useQuery({
-    queryKey: ['userProgress'],
-    queryFn: async () => {
-      const result = await apiFetch('/lessons/user/progress');
-      return result.data;
-    }
-  });
-}
-
 // Problems Hooks
 export function useProblems() {
   return useQuery({
@@ -227,6 +239,98 @@ export function useSubmissions(problemId?: string) {
     queryFn: async () => {
       const endpoint = problemId ? `/submissions?problemId=${problemId}` : '/submissions';
       const result = await apiFetch(endpoint);
+      return result.data;
+    }
+  });
+}
+
+// Instructor Hooks
+export function useInstructorStats() {
+  return useQuery({
+    queryKey: ['instructorStats'],
+    queryFn: async () => {
+      const result = await apiFetch('/instructor/stats');
+      return result.data;
+    }
+  });
+}
+
+export function useInstructorCourses() {
+  return useQuery({
+    queryKey: ['instructorCourses'],
+    queryFn: async () => {
+      const result = await apiFetch('/instructor/courses');
+      return result.data;
+    }
+  });
+}
+
+export function useInstructorAnalytics() {
+  return useQuery({
+    queryKey: ['instructorAnalytics'],
+    queryFn: async () => {
+      const result = await apiFetch('/instructor/analytics');
+      return result.data;
+    }
+  });
+}
+
+export function useInstructorActivities() {
+  return useQuery({
+    queryKey: ['instructorActivities'],
+    queryFn: async () => {
+      const result = await apiFetch('/instructor/activities');
+      return result.data;
+    }
+  });
+}
+
+// Business Hooks
+export function useBusinessStats() {
+  return useQuery({
+    queryKey: ['businessStats'],
+    queryFn: async () => {
+      const result = await apiFetch('/business/stats');
+      return result.data;
+    }
+  });
+}
+
+export function useBusinessLeaderboard(limit: number = 10) {
+  return useQuery({
+    queryKey: ['businessLeaderboard', limit],
+    queryFn: async () => {
+      const result = await apiFetch(`/business/leaderboard?limit=${limit}`);
+      return result.data;
+    }
+  });
+}
+
+export function useBusinessAnalytics() {
+  return useQuery({
+    queryKey: ['businessAnalytics'],
+    queryFn: async () => {
+      const result = await apiFetch('/business/analytics');
+      return result.data;
+    }
+  });
+}
+
+export function useBusinessCohorts() {
+  return useQuery({
+    queryKey: ['businessCohorts'],
+    queryFn: async () => {
+      const result = await apiFetch('/business/cohorts');
+      return result.data;
+    }
+  });
+}
+
+export function useBusinessActivities() {
+  return useQuery({
+    queryKey: ['businessActivities'],
+    queryFn: async () => {
+      const result = await apiFetch('/business/activities');
       return result.data;
     }
   });

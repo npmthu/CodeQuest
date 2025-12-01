@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -5,6 +6,8 @@ import { Label } from "./ui/label";
 import { Switch } from "./ui/switch";
 import { Badge } from "./ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
+import { useAuth } from "../contexts/AuthContext";
+import { useApi } from "../api/ApiProvider";
 import { 
   User, 
   Bell, 
@@ -15,6 +18,43 @@ import {
 } from "lucide-react";
 
 export default function SettingsPage() {
+  const { user, profile, loading } = useAuth();
+  const api = useApi();
+  const [displayName, setDisplayName] = useState(profile?.display_name || '');
+  const [bio, setBio] = useState(profile?.bio || '');
+  const [location, setLocation] = useState('');
+  const [githubUrl, setGithubUrl] = useState('');
+  const [linkedinUrl, setLinkedinUrl] = useState('');
+  const [websiteUrl, setWebsiteUrl] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+
+  if (loading) {
+    return (
+      <div className="p-8 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  const handleSaveProfile = async () => {
+    try {
+      setIsSaving(true);
+      await api.patch('/users/me', {
+        display_name: displayName,
+        bio: bio,
+        // Add other fields as needed
+      });
+      alert('Profile updated successfully!');
+    } catch (error) {
+      console.error('Error saving profile:', error);
+      alert('Failed to save profile');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const email = profile?.email || user?.email || '';
+
   return (
     <div className="p-8 space-y-6">
       <div>
@@ -46,19 +86,24 @@ export default function SettingsPage() {
           <Card className="p-6">
             <h3 className="mb-6">Personal Information</h3>
             <div className="space-y-4 max-w-2xl">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="firstName">First Name</Label>
-                  <Input id="firstName" defaultValue="John" className="mt-2" />
-                </div>
-                <div>
-                  <Label htmlFor="lastName">Last Name</Label>
-                  <Input id="lastName" defaultValue="Doe" className="mt-2" />
-                </div>
+              <div>
+                <Label htmlFor="displayName">Display Name</Label>
+                <Input 
+                  id="displayName" 
+                  value={displayName} 
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  className="mt-2" 
+                />
               </div>
               <div>
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" defaultValue="john.doe@example.com" className="mt-2" />
+                <Input 
+                  id="email" 
+                  type="email" 
+                  value={email} 
+                  disabled
+                  className="mt-2 bg-gray-100" 
+                />
               </div>
               <div>
                 <Label htmlFor="bio">Bio</Label>
@@ -66,14 +111,26 @@ export default function SettingsPage() {
                   id="bio"
                   className="w-full mt-2 p-3 border border-input rounded-lg resize-none"
                   rows={4}
-                  defaultValue="Aspiring Software Engineer passionate about algorithms and web development."
+                  value={bio}
+                  onChange={(e) => setBio(e.target.value)}
                 />
               </div>
               <div>
                 <Label htmlFor="location">Location</Label>
-                <Input id="location" defaultValue="San Francisco, CA" className="mt-2" />
+                <Input 
+                  id="location" 
+                  value={location} 
+                  onChange={(e) => setLocation(e.target.value)}
+                  className="mt-2" 
+                />
               </div>
-              <Button className="bg-blue-600 hover:bg-blue-700">Save Changes</Button>
+              <Button 
+                className="bg-blue-600 hover:bg-blue-700" 
+                onClick={handleSaveProfile}
+                disabled={isSaving}
+              >
+                {isSaving ? 'Saving...' : 'Save Changes'}
+              </Button>
             </div>
           </Card>
 
@@ -82,17 +139,41 @@ export default function SettingsPage() {
             <div className="space-y-4 max-w-2xl">
               <div>
                 <Label htmlFor="github">GitHub</Label>
-                <Input id="github" placeholder="https://github.com/username" className="mt-2" />
+                <Input 
+                  id="github" 
+                  placeholder="https://github.com/username" 
+                  value={githubUrl}
+                  onChange={(e) => setGithubUrl(e.target.value)}
+                  className="mt-2" 
+                />
               </div>
               <div>
                 <Label htmlFor="linkedin">LinkedIn</Label>
-                <Input id="linkedin" placeholder="https://linkedin.com/in/username" className="mt-2" />
+                <Input 
+                  id="linkedin" 
+                  placeholder="https://linkedin.com/in/username" 
+                  value={linkedinUrl}
+                  onChange={(e) => setLinkedinUrl(e.target.value)}
+                  className="mt-2" 
+                />
               </div>
               <div>
                 <Label htmlFor="website">Website</Label>
-                <Input id="website" placeholder="https://yourwebsite.com" className="mt-2" />
+                <Input 
+                  id="website" 
+                  placeholder="https://yourwebsite.com" 
+                  value={websiteUrl}
+                  onChange={(e) => setWebsiteUrl(e.target.value)}
+                  className="mt-2" 
+                />
               </div>
-              <Button className="bg-blue-600 hover:bg-blue-700">Save Links</Button>
+              <Button 
+                className="bg-blue-600 hover:bg-blue-700"
+                onClick={handleSaveProfile}
+                disabled={isSaving}
+              >
+                {isSaving ? 'Saving...' : 'Save Links'}
+              </Button>
             </div>
           </Card>
         </TabsContent>

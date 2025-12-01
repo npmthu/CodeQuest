@@ -57,36 +57,73 @@ export async function getUserStats(userId: string) {
   const user = await getUser(userId);
   if (!user) throw new Error('User not found');
 
-  // Get submission stats
+  // Get submission stats with language breakdown
   const { data: submissions } = await supabaseAdmin
     .from('submissions')
-    .select('id, status, passed')
+    .select(`
+      id, 
+      status, 
+      passed,
+      points,
+      submitted_at,
+      languages (name)
+    `)
     .eq('user_id', userId);
 
   const totalSubmissions = submissions?.length || 0;
   const acceptedSubmissions = submissions?.filter(s => s.passed).length || 0;
+  const totalPoints = submissions?.reduce((sum, s) => sum + (s.points || 0), 0) || 0;
 
-  // Get unique problems solved
+  // Language stats
+  const languageStats: Record<string, number> = {};
+  submissions?.forEach(s => {
+    const lang = (s.languages as any)?.name || 'Unknown';
+    languageStats[lang] = (languageStats[lang] || 0) + 1;
+  });
+
+  // Get unique problems solved with difficulty breakdown
   const { data: solvedProblems } = await supabaseAdmin
     .from('submissions')
-    .select('problem_id')
+    .select(`
+      problem_id,
+      problems (difficulty)
+    `)
     .eq('user_id', userId)
     .eq('passed', true);
 
-  const uniqueProblemsSolved = new Set(solvedProblems?.map(s => s.problem_id) || []).size;
+  const uniqueProblemIds = new Set(solvedProblems?.map(s => s.problem_id) || []);
+  const uniqueProblemsSolved = uniqueProblemIds.size;
 
-  // Get lessons completed
-  const { count: lessonsCompleted } = await supabaseAdmin
+  // Difficulty breakdown
+  const difficultyStats = { easy: 0, medium: 0, hard: 0 };
+  const uniqueProblems = Array.from(uniqueProblemIds).map(id => 
+    solvedProblems?.find(p => p.problem_id === id)
+  );
+  uniqueProblems.forEach(p => {
+    const difficulty = (p?.problems as any)?.difficulty || 1;
+    if (difficulty === 1) difficultyStats.easy++;
+    else if (difficulty === 2) difficultyStats.medium++;
+    else if (difficulty === 3) difficultyStats.hard++;
+  });
+
+  // Get lessons completed with time
+  const { data: lessonsData, count: lessonsCompleted } = await supabaseAdmin
     .from('lesson_completions')
-    .select('*', { count: 'exact', head: true })
+    .select('time_spent_sec', { count: 'exact' })
     .eq('user_id', userId);
+
+  const totalStudyTime = lessonsData?.reduce((sum, l) => sum + (l.time_spent_sec || 0), 0) || 0;
 
   // Get quiz attempts
   const { data: quizzes } = await supabaseAdmin
     .from('quiz_attempts')
-    .select('id, passed')
+    .select('id, passed, score, total_points')
     .eq('user_id', userId)
     .eq('passed', true);
+
+  const avgQuizScore = quizzes?.length 
+    ? quizzes.reduce((sum, q) => sum + (q.score || 0), 0) / quizzes.length 
+    : 0;
 
   // Get learning profile for streaks
   const profile = await getUserLearningProfile(userId);
@@ -97,26 +134,105 @@ export async function getUserStats(userId: string) {
     .select(`
       id, 
       status, 
+      passed,
+      points,
       submitted_at,
       problems (
         title,
-        slug
-      )
+        slug,
+        difficulty
+      ),
+      languages (name)
     `)
     .eq('user_id', userId)
     .order('submitted_at', { ascending: false })
     .limit(10);
 
+  // Calculate acceptance rate
+  const acceptanceRate = totalSubmissions > 0 
+    ? Math.round((acceptedSubmissions / totalSubmissions) * 100) 
+    : 0;
+
   return {
-    totalSubmissions,
-    acceptedSubmissions,
-    problemsSolved: uniqueProblemsSolved,
-    lessonsCompleted: lessonsCompleted || 0,
-    quizzesPassed: quizzes?.length || 0,
-    currentStreak: profile?.current_streak_days || 0,
-    longestStreak: profile?.longest_streak_days || 0,
+    // User info
+    userId: user.id,
+    displayName: user.display_name,
+    email: user.email,
+    avatarUrl: user.avatar_url,
+    role: user.role,
     level: user.level || 'Beginner',
     reputation: user.reputation || 0,
-    recentActivity: recentActivity || []
+    
+    // Submission stats
+    totalSubmissions,
+    acceptedSubmissions,
+    acceptanceRate,
+    totalPoints,
+    
+    // Problems stats
+    problemsSolved: uniqueProblemsSolved,
+    problemsByDifficulty: difficultyStats,
+    
+    // Learning stats
+    lessonsCompleted: lessonsCompleted || 0,
+    totalStudyTimeSeconds: totalStudyTime,
+    totalStudyTimeHours: Math.round(totalStudyTime / 3600 * 10) / 10,
+    
+    // Quiz stats
+    quizzesPassed: quizzes?.length || 0,
+    avgQuizScore: Math.round(avgQuizScore),
+    
+    // Streak stats
+    currentStreak: profile?.current_streak_days || 0,
+    longestStreak: profile?.longest_streak_days || 0,
+    lastActivityDate: profile?.last_activity_date,
+    
+    // Language breakdown
+    languageStats,
+    
+    // Recent activity
+    recentActivity: recentActivity || [],
+    
+    // Profile metadata
+    createdAt: user.created_at,
+    lastLoginAt: user.last_login_at
   };
+}
+
+// Get global leaderboard
+export async function getLeaderboard(limit = 100) {
+  const { data, error } = await supabaseAdmin
+    .from('users')
+    .select('id, display_name, email, avatar_url, reputation, level, role')
+    .eq('is_active', true)
+    .order('reputation', { ascending: false })
+    .limit(limit);
+
+  if (error) throw error;
+
+  // Get problem counts for each user
+  const leaderboard = await Promise.all(
+    (data || []).map(async (user, index) => {
+      const { data: solvedProblems } = await supabaseAdmin
+        .from('submissions')
+        .select('problem_id')
+        .eq('user_id', user.id)
+        .eq('passed', true);
+
+      const problemsSolved = new Set(solvedProblems?.map(s => s.problem_id) || []).size;
+
+      return {
+        rank: index + 1,
+        userId: user.id,
+        displayName: user.display_name || user.email?.split('@')[0] || 'Anonymous',
+        avatarUrl: user.avatar_url,
+        level: user.level,
+        reputation: user.reputation || 0,
+        problemsSolved,
+        role: user.role
+      };
+    })
+  );
+
+  return leaderboard;
 }
