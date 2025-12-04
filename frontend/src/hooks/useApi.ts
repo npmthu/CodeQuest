@@ -358,6 +358,17 @@ export function useForumPost(id: string) {
   });
 }
 
+export function useUserVotes(postId: string) {
+  return useQuery({
+    queryKey: ['userVotes', postId],
+    queryFn: async () => {
+      const result = await apiFetch(`/forum/posts/${postId}/votes`);
+      return result.data as { postVote: string | null; replyVotes: Record<string, string> };
+    },
+    enabled: !!postId
+  });
+}
+
 export function useCreateForumPost() {
   const queryClient = useQueryClient();
   
@@ -399,7 +410,78 @@ export function useCreateForumReply() {
         body: JSON.stringify({ content_markdown, code_snippet, parent_reply_id })
       });
     },
-    onSuccess: (_, variables) => {
+    onMutate: async (variables) => {
+      await queryClient.cancelQueries({ queryKey: ['forumPost', variables.postId] });
+      await queryClient.cancelQueries({ queryKey: ['forumPosts'] });
+
+      const previousPost = queryClient.getQueryData<any>(['forumPost', variables.postId]);
+      const previousList = queryClient.getQueryData<any>(['forumPosts']);
+
+      // create optimistic reply (temp id)
+      const optimisticReply = {
+        id: `temp-${Date.now()}`,
+        post_id: variables.postId,
+        author_id: (await supabase.auth.getSession()).data.session?.user?.id ?? 'anon',
+        author: {
+          id: (await supabase.auth.getSession()).data.session?.user?.id ?? 'anon',
+          display_name: 'You',
+          avatar_url: null
+        },
+        parent_reply_id: variables.parent_reply_id ?? null,
+        content_markdown: variables.content_markdown,
+        code_snippet: variables.code_snippet ?? null,
+        upvotes: 0,
+        is_accepted_answer: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      if (previousPost) {
+        queryClient.setQueryData(['forumPost', variables.postId], (old: any) => ({
+          ...old,
+          reply_count: (old?.reply_count ?? 0) + 1,
+          replies: [optimisticReply, ...(old?.replies ?? [])]
+        }));
+      }
+
+      // update posts list cache (if present)
+      if (previousList) {
+        queryClient.setQueryData(['forumPosts'], (old: any[]) =>
+          old?.map(p => p.id === variables.postId ? { ...p, reply_count: (p.reply_count ?? 0) + 1 } : p) ?? old
+        );
+      }
+
+      return { previousPost, previousList, optimisticReply };
+    },
+
+    onError: (_err, variables, context: any) => {
+      // rollback
+      if (context?.previousPost) {
+        queryClient.setQueryData(['forumPost', variables.postId], context.previousPost);
+      }
+      if (context?.previousList) {
+        queryClient.setQueryData(['forumPosts'], context.previousList);
+      }
+    },
+    onSuccess: (data, variables, context: any) => {
+      // if server returns the created reply, replace temp id in forumPost.replies
+      const createdReply = data?.data ?? null;
+      if (createdReply) {
+        queryClient.setQueryData(['forumPost', variables.postId], (old: any) => {
+          if (!old) return old;
+          const replies = (old.replies ?? []).map((r: any) =>
+            r.id && r.id.toString().startsWith('temp-') && context?.optimisticReply && r.id === context.optimisticReply.id
+              ? createdReply
+              : r
+          );
+          return { ...old, replies };
+        });
+      }
+      // finally ensure fresh data
+      queryClient.invalidateQueries({ queryKey: ['forumPost', variables.postId] });
+      queryClient.invalidateQueries({ queryKey: ['forumPosts'] });
+    },
+
+    onSettled: (_data, _err, variables) => {
       queryClient.invalidateQueries({ queryKey: ['forumPost', variables.postId] });
       queryClient.invalidateQueries({ queryKey: ['forumPosts'] });
     }
@@ -413,20 +495,147 @@ export function useVoteForumItem() {
     mutationFn: async ({
       votable_type,
       votable_id,
-      vote_type
+      vote_type,
+      postId
     }: {
-      votable_type: string;
+      votable_type: 'post' | 'reply';
       votable_id: string;
-      vote_type: string;
+      vote_type: 'upvote' | 'downvote';
+      postId: string; // needed to update userVotes cache
     }) => {
       return apiFetch('/forum/vote', {
         method: 'POST',
         body: JSON.stringify({ votable_type, votable_id, vote_type })
       });
     },
+    
+    onMutate: async (variables) => {
+      const { votable_type, votable_id, vote_type, postId } = variables;
+      
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['forumPost', postId] });
+      await queryClient.cancelQueries({ queryKey: ['forumPosts'] });
+      await queryClient.cancelQueries({ queryKey: ['userVotes', postId] });
+
+      // Snapshot previous values
+      const previousPost = queryClient.getQueryData(['forumPost', postId]);
+      const previousList = queryClient.getQueryData(['forumPosts']);
+      const previousVotes = queryClient.getQueryData(['userVotes', postId]) as any;
+
+      // Determine if this is toggling off or changing vote
+      const currentVote = votable_type === 'post' 
+        ? previousVotes?.postVote 
+        : previousVotes?.replyVotes?.[votable_id];
+      
+      const isToggleOff = currentVote === vote_type;
+      const delta = isToggleOff ? -1 : (currentVote ? 0 : 1);
+
+      // Optimistically update post/reply upvotes
+      if (votable_type === 'post') {
+        queryClient.setQueryData(['forumPost', postId], (old: any) => {
+          if (!old) return old;
+          return {
+            ...old,
+            upvotes: Math.max(0, (old.upvotes ?? 0) + delta)
+          };
+        });
+
+        queryClient.setQueryData(['forumPosts'], (old: any[]) => {
+          if (!old) return old;
+          return old.map(p => 
+            p.id === votable_id 
+              ? { ...p, upvotes: Math.max(0, (p.upvotes ?? 0) + delta) }
+              : p
+          );
+        });
+      } else {
+        // Update reply upvotes
+        queryClient.setQueryData(['forumPost', postId], (old: any) => {
+          if (!old) return old;
+          return {
+            ...old,
+            replies: old.replies?.map((r: any) =>
+              r.id === votable_id
+                ? { ...r, upvotes: Math.max(0, (r.upvotes ?? 0) + delta) }
+                : r
+            ) || []
+          };
+        });
+      }
+
+      // Update user votes cache
+      queryClient.setQueryData(['userVotes', postId], (old: any) => {
+        if (!old) return old;
+        if (votable_type === 'post') {
+          return {
+            ...old,
+            postVote: isToggleOff ? null : vote_type
+          };
+        } else {
+          return {
+            ...old,
+            replyVotes: {
+              ...old.replyVotes,
+              [votable_id]: isToggleOff ? undefined : vote_type
+            }
+          };
+        }
+      });
+
+      return { previousPost, previousList, previousVotes };
+    },
+
+    onError: (_err, variables, context: any) => {
+      // Rollback on error
+      if (context?.previousPost) {
+        queryClient.setQueryData(['forumPost', variables.postId], context.previousPost);
+      }
+      if (context?.previousList) {
+        queryClient.setQueryData(['forumPosts'], context.previousList);
+      }
+      if (context?.previousVotes) {
+        queryClient.setQueryData(['userVotes', variables.postId], context.previousVotes);
+      }
+    },
+
+    onSuccess: (_data, variables) => {
+      // Refetch to ensure consistency
+      queryClient.invalidateQueries({ queryKey: ['forumPost', variables.postId] });
+      queryClient.invalidateQueries({ queryKey: ['forumPosts'] });
+      queryClient.invalidateQueries({ queryKey: ['userVotes', variables.postId] });
+    }
+  });
+}
+
+// Delete Forum Post Hook
+export function useDeleteForumPost() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (postId: string) => {
+      return apiFetch(`/forum/posts/${postId}`, {
+        method: 'DELETE'
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['forumPosts'] });
-      queryClient.invalidateQueries({ queryKey: ['forumPost'] });
+    }
+  });
+}
+
+// Delete Reply Hook
+export function useDeleteReply() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ replyId, postId }: { replyId: string; postId: string }) => {
+      return apiFetch(`/forum/replies/${replyId}`, {
+        method: 'DELETE'
+      });
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['forumPost', variables.postId] });
+      queryClient.invalidateQueries({ queryKey: ['forumPosts'] });
     }
   });
 }

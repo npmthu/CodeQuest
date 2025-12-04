@@ -154,7 +154,7 @@ export default function LoginPage() {
                   <select
                     id="role"
                     value={role}
-                    onChange={(e) => setRole(e.target.value as any)}
+                    onChange={(e) => setRole(e.target.value as 'learner' | 'instructor' | 'business_partner')}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="learner">🎓 Learner - I want to learn coding</option>

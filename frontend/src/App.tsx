@@ -126,6 +126,7 @@ function AppContent() {
       <Route path="/lessons/:topicId" element={<ProtectedRoute><LessonPage /></ProtectedRoute>} />
       <Route path="/courses/:courseId/lessons/:topicId" element={<ProtectedRoute><LessonPage /></ProtectedRoute>} />
       <Route path="/instructor/courses/create" element={<ProtectedRoute><InstructorCreateCourse /></ProtectedRoute>} />
+      <Route path="/forum/:postId" element={<ProtectedRoute><ForumPage/></ProtectedRoute>} />
 
       {/* Default redirect */}
       <Route path="/" element={<Navigate to="/dashboard" replace />} />

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -11,7 +11,8 @@ import {
   Eye,
   TrendingUp,
   Clock,
-  X
+  X,
+  Trash2
 } from "lucide-react";
 import {
   Dialog,
@@ -30,24 +31,51 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
+import { 
+  useForumPosts, 
+  useCreateForumPost, 
+  useForumPost, 
+  useDeleteForumPost
+} from "../hooks/useApi";
+import { useAuth } from "../contexts/AuthContext";
+import type { ForumPostWithAuthor } from "../types";
 import ForumPostDetail from "./ForumPostDetail";
-import { useForumPosts, useCreateForumPost } from "../hooks/useApi";
 
 export default function ForumPage() {
+  const { user } = useAuth();
   const [currentView, setCurrentView] = useState<"list" | "detail">("list");
-  const [selectedPost, setSelectedPost] = useState<any>(null);
+  const [selectedPost, setSelectedPost] = useState<ForumPostWithAuthor | null>(null);
   const [isNewPostOpen, setIsNewPostOpen] = useState(false);
   const [newPostTitle, setNewPostTitle] = useState("");
   const [newPostContent, setNewPostContent] = useState("");
   const [newPostTags, setNewPostTags] = useState<string[]>([]);
+  const [sortBy, setSortBy] = useState<"recent" | "popular" | "mostReplies">("recent");
 
   // Fetch posts from API
   const { data: postsData, isLoading } = useForumPosts();
   const createPostMutation = useCreateForumPost();
+  const deletePostMutation = useDeleteForumPost();
+  
+  // Fetch single post detail when viewing detail
+  const { data: postDetailData, refetch: refetchPostDetail } = useForumPost(
+    selectedPost?.id || ''
+  );
 
-  const posts = postsData || [];
+  // Sort posts based on selected option
+  const sortedPosts = useMemo(() => {
+    const postsList = postsData || [];
+    switch (sortBy) {
+      case "popular":
+        return [...postsList].sort((a, b) => (b.upvotes || 0) - (a.upvotes || 0));
+      case "mostReplies":
+        return [...postsList].sort((a, b) => (b.reply_count || 0) - (a.reply_count || 0));
+      case "recent":
+      default:
+        return postsList; // Already sorted by created_at from backend
+    }
+  }, [postsData, sortBy]);
 
-  const handleViewPost = (post: any) => {
+  const handleViewPost = (post: ForumPostWithAuthor) => {
     setSelectedPost(post);
     setCurrentView("detail");
   };
@@ -76,6 +104,20 @@ export default function ForumPage() {
     }
   };
 
+  const handleDeletePost = async (postId: string, e: React.MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation(); // Prevent opening post detail
+    
+    if (!window.confirm('Are you sure you want to delete this post? This will also delete all replies.')) {
+      return;
+    }
+
+    try {
+      await deletePostMutation.mutateAsync(postId);
+    } catch (error) {
+      console.error('Error deleting post:', error);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="p-8 flex items-center justify-center">
@@ -88,7 +130,16 @@ export default function ForumPage() {
 
   // If viewing post detail
   if (currentView === "detail" && selectedPost) {
-    return <ForumPostDetail post={selectedPost} onBack={handleBackToList} />;
+    // Use fetched detail data if available, otherwise use cached selected post
+    const postToShow = postDetailData || selectedPost;
+    
+    return (
+      <ForumPostDetail 
+        post={postToShow} 
+        onBack={handleBackToList}
+        onUpdate={() => refetchPostDetail()}
+      />
+    );
   }
 
   return (
@@ -99,7 +150,7 @@ export default function ForumPage() {
           <h2>Community Forum</h2>
           <p className="text-muted-foreground mt-1">Ask questions, share knowledge, and help others</p>
         </div>
-        <Dialog open={isNewPostOpen} onOpenChange={setIsNewPostOpen}>
+        <div className="flex items-center gap-2">
           <Button 
             className="bg-blue-600 hover:bg-blue-700"
             onClick={() => setIsNewPostOpen(true)}
@@ -107,54 +158,58 @@ export default function ForumPage() {
             <Plus className="w-4 h-4 mr-2" />
             New Post
           </Button>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Create New Post</DialogTitle>
-              <DialogDescription>
-                Share your question or knowledge with the community
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label>Title *</Label>
-                <Input 
-                  placeholder="What's your question or topic?"
-                  value={newPostTitle}
-                  onChange={(e) => setNewPostTitle(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Content *</Label>
-                <Textarea 
-                  placeholder="Describe your question or share your thoughts..." 
-                  className="min-h-[200px]"
-                  value={newPostContent}
-                  onChange={(e) => setNewPostContent(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Tags (optional)</Label>
-                <Input 
-                  placeholder="e.g., python, algorithms, help (comma separated)"
-                  onChange={(e) => setNewPostTags(e.target.value.split(',').map(t => t.trim()).filter(t => t))}
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsNewPostOpen(false)}>
-                Cancel
-              </Button>
-              <Button 
-                className="bg-blue-600 hover:bg-blue-700"
-                onClick={handleCreatePost}
-                disabled={!newPostTitle || !newPostContent || createPostMutation.isPending}
-              >
-                {createPostMutation.isPending ? 'Posting...' : 'Post Question'}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        </div>
       </div>
+
+      {/* New Post Dialog */}
+      <Dialog open={isNewPostOpen} onOpenChange={setIsNewPostOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Create New Post</DialogTitle>
+            <DialogDescription>
+              Share your question or knowledge with the community
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Title *</Label>
+              <Input 
+                placeholder="What's your question or topic?"
+                value={newPostTitle}
+                onChange={(e) => setNewPostTitle(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Content *</Label>
+              <Textarea 
+                placeholder="Describe your question or share your thoughts..." 
+                className="min-h-[200px]"
+                value={newPostContent}
+                onChange={(e) => setNewPostContent(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Tags (optional)</Label>
+              <Input 
+                placeholder="e.g., python, algorithms, help (comma separated)"
+                onChange={(e) => setNewPostTags(e.target.value.split(',').map(t => t.trim()).filter(t => t))}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsNewPostOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              className="bg-blue-600 hover:bg-blue-700"
+              onClick={handleCreatePost}
+              disabled={!newPostTitle || !newPostContent || createPostMutation.isPending}
+            >
+              {createPostMutation.isPending ? 'Posting...' : 'Post Question'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Search and Filter */}
       <div className="flex gap-4">
@@ -165,6 +220,16 @@ export default function ForumPage() {
             className="pl-10"
           />
         </div>
+        <Select value={sortBy} onValueChange={(value: "recent" | "popular" | "mostReplies") => setSortBy(value)}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="recent">📅 Most Recent</SelectItem>
+            <SelectItem value="popular">🔥 Most Popular</SelectItem>
+            <SelectItem value="mostReplies">💬 Most Replies</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Tags */}
@@ -184,14 +249,14 @@ export default function ForumPage() {
 
       {/* Posts */}
       <div className="space-y-4">
-        {posts.length === 0 ? (
+        {sortedPosts.length === 0 ? (
           <Card className="p-12 text-center">
             <MessageSquare className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
             <h3 className="text-xl font-semibold mb-2">No posts yet</h3>
             <p className="text-muted-foreground">Be the first to start a discussion!</p>
           </Card>
         ) : (
-          posts.map((post: any) => (
+          sortedPosts.map((post: ForumPostWithAuthor) => (
             <Card 
               key={post.id} 
               className="p-6 hover:shadow-md transition-shadow cursor-pointer"
@@ -200,9 +265,15 @@ export default function ForumPage() {
               <div className="flex gap-4">
                 {/* Avatar */}
                 <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                  <span className="text-blue-600">
-                    {post.author?.display_name?.substring(0, 2).toUpperCase() || 'U'}
-                  </span>
+                  {typeof post.author === 'object' && post.author?.avatar_url ? (
+                    <img src={post.author.avatar_url} alt="" className="w-12 h-12 rounded-full object-cover" />
+                  ) : (
+                    <span className="text-blue-600 font-bold">
+                      {typeof post.author === 'object' 
+                        ? post.author?.display_name?.substring(0, 2).toUpperCase() || 'U'
+                        : 'U'}
+                    </span>
+                  )}
                 </div>
 
                 {/* Content */}
@@ -219,7 +290,11 @@ export default function ForumPage() {
                         )}
                       </div>
                       <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                        <span>{post.author?.display_name || 'Anonymous'}</span>
+                        <span>
+                          {typeof post.author === 'object' 
+                            ? post.author?.display_name || 'Anonymous'
+                            : 'Anonymous'}
+                        </span>
                         <span>•</span>
                         <span className="flex items-center gap-1">
                           <Clock className="w-3 h-3" />
@@ -231,7 +306,7 @@ export default function ForumPage() {
 
                   {/* Tags */}
                   <div className="flex items-center gap-2 mt-3">
-                    {(post.tags || []).map((tag: string, index: number) => (
+                    {Array.isArray(post.tags) && post.tags.map((tag, index) => (
                       <Badge key={index} variant="outline" className="text-xs">
                         {tag}
                       </Badge>
@@ -253,6 +328,18 @@ export default function ForumPage() {
                         ✓ Answered
                       </Badge>
                     )}
+                    {user?.id === post.author_id && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="ml-auto text-red-600 hover:text-red-700 hover:bg-red-50"
+                        onClick={(e: React.MouseEvent<HTMLButtonElement>) => handleDeletePost(post.id, e)}
+                        disabled={deletePostMutation.isPending}
+                      >
+                        <Trash2 className="w-4 h-4 mr-1" />
+                        Delete
+                      </Button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -260,6 +347,56 @@ export default function ForumPage() {
           ))
         )}
       </div>
+
+      {/* New Post Dialog */}
+      <Dialog open={isNewPostOpen} onOpenChange={setIsNewPostOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Create New Post</DialogTitle>
+            <DialogDescription>
+              Share your question or knowledge with the community
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Title *</Label>
+              <Input 
+                placeholder="What's your question or topic?"
+                value={newPostTitle}
+                onChange={(e) => setNewPostTitle(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Content *</Label>
+              <Textarea 
+                placeholder="Describe your question or share your thoughts..." 
+                className="min-h-[200px]"
+                value={newPostContent}
+                onChange={(e) => setNewPostContent(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Tags (optional)</Label>
+              <Input 
+                placeholder="e.g., python, algorithms, help (comma separated)"
+                onChange={(e) => setNewPostTags(e.target.value.split(',').map(t => t.trim()).filter(t => t))}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsNewPostOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              className="bg-blue-600 hover:bg-blue-700"
+              onClick={handleCreatePost}
+              disabled={!newPostTitle || !newPostContent || createPostMutation.isPending}
+            >
+              {createPostMutation.isPending ? 'Posting...' : 'Post Question'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

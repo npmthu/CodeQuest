@@ -17,44 +17,16 @@ import {
   Loader2,
 } from "lucide-react";
 
-// ---------- Types ----------
-interface ProblemSummary {
-  id: string;
-  title: string;
-}
-
-interface SampleCase {
-  input: string;
-  output: string;
-  explanation?: string;
-}
-
-interface Hint {
-  level: number;
-  text: string;
-}
-
-interface Problem {
-  id: string;
-  slug?: string;
-  title: string;
-  description_markdown: string;
-  difficulty: 1 | 2 | 3;
-  starter_code: Record<string, string>;
-  tags: string[];
-  time_limit_ms?: number;
-  memory_limit_kb?: number;
-  input_format?: string;
-  output_format?: string;
-  sample_test_cases?: SampleCase[];
-  hints?: Hint[];
-  related_problems?: { id: string; title: string; difficulty: 1 | 2 | 3 }[];
-  user_progress?: { submission_count: number; best_submission_id?: string; solved?: boolean };
-}
-
-type Language = "python" | "java" | "cpp";
-
 import { useNavigate } from "react-router-dom";
+import type { 
+  Problem, 
+  TestCaseResult, 
+  Hint, 
+  ExecutionResult, 
+  ProblemSummary, 
+  Language, 
+  TestCase 
+} from "../types";
 
 // ---------- Component Props ----------
 interface CodeEditorProps {
@@ -75,7 +47,12 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
   const effectiveApiBase: string =
     apiBase ?? (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_API_BASE) ?? "http://localhost:3000/api";
 
-  const [language, setLanguage] = useState<Language>("python");
+  const [language, setLanguage] = useState<Language>({
+    id: 'python',
+    name: 'python',
+    file_extension: '.py',
+    run_command: 'python3'
+  });
   const [code, setCode] = useState("");
 
   const [loadingProblem, setLoadingProblem] = useState(false);
@@ -124,7 +101,7 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
         const p: Problem = json.data;
         setProblem(p);
         // set starter code for current language
-        setCode(p.starter_code?.[language] ?? "");
+        setCode(p.starter_code?.[language.name] ?? "");
         // initialize test case states
         const tstates: Record<number, "not_run" | "running" | "passed" | "failed"> = {};
         (p.sample_test_cases || []).forEach((_, i) => (tstates[i] = "not_run"));
@@ -148,14 +125,14 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
   // when language changes, update starter code (but only if user hasn't typed anything? we override always per requirement)
   useEffect(() => {
     if (problem) {
-      setCode(problem.starter_code?.[language] ?? "");
+      setCode(problem.starter_code?.[language.name] ?? "");
     }
   }, [language, problem]);
 
   // Reset handler
   const handleReset = () => {
     if (!problem) return;
-    setCode(problem.starter_code?.[language] ?? "");
+    setCode(problem.starter_code?.[language.name] ?? "");
     setOutput("");
     // reset testcase states
     const tstates: Record<number, "not_run" | "running" | "passed" | "failed"> = {};
@@ -183,7 +160,7 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
         // if result contains test case results, map them
         if (Array.isArray(result?.test_cases)) {
           const tstates: Record<number, "not_run" | "running" | "passed" | "failed"> = {};
-          result.test_cases.forEach((tc: any, i: number) => (tstates[i] = tc.passed ? "passed" : "failed"));
+          result.test_cases.forEach((tc: TestCaseResult, i: number) => (tstates[i] = tc.passed ? "passed" : "failed"));
           setTestCaseStates(tstates);
         }
 
@@ -238,7 +215,7 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
 
             if (Array.isArray(r?.test_cases)) {
               const tstates: Record<number, "not_run" | "running" | "passed" | "failed"> = {};
-              r.test_cases.forEach((tc: any, i: number) => (tstates[i] = tc.passed ? "passed" : "failed"));
+              r.test_cases.forEach((tc:TestCaseResult, i:any) => (tstates[i] = tc.passed ? "passed" : "failed"));
               setTestCaseStates(tstates);
             }
             if (r?.ai_review) setAiReview(r.ai_review);
@@ -331,8 +308,16 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
           <div className="flex items-center gap-3">
             <div className="relative">
               <select
-                value={language}
-                onChange={(e) => setLanguage(e.target.value as Language)}
+                value={language.name}
+                onChange={(e) => {
+                  const langName = e.target.value;
+                  setLanguage({
+                    id: langName,
+                    name: langName,
+                    file_extension: langName === 'python' ? '.py' : langName === 'java' ? '.java' : '.cpp',
+                    run_command: langName === 'python' ? 'python3' : langName === 'java' ? 'java' : 'g++'
+                  });
+                }}
                 className="appearance-none px-3 py-2 border border-gray-200 rounded-md bg-white text-sm pr-8"
               >
                 <option value="python">Python</option>
@@ -386,14 +371,13 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
               <div>
                 <div className="font-medium mb-2">Sample Test Cases</div>
                 <div className="space-y-3">
-                  {(problem.sample_test_cases || []).map((tc, idx) => (
+                  {(problem.sample_test_cases || []).map((tc:TestCase, idx) => (
                     <Card key={idx} className="p-3 bg-gray-50 border-gray-200">
                       <div className="text-sm">
                         <div className="font-medium">Input</div>
-                        <pre className="whitespace-pre-wrap">{tc.input}</pre>
+                        <pre className="whitespace-pre-wrap">{tc.input_encrypted}</pre>
                         <div className="font-medium">Output</div>
-                        <pre className="whitespace-pre-wrap">{tc.output}</pre>
-                        {tc.explanation && <div className="text-gray-500 text-sm">{tc.explanation}</div>}
+                        <pre className="whitespace-pre-wrap">{tc.expected_output_encrypted}</pre>
                       </div>
                     </Card>
                   ))}
@@ -457,7 +441,7 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
 
               <TabsContent value="testcases" className="flex-1 overflow-auto p-6 m-0">
                 <div className="space-y-3">
-                  {(problem.sample_test_cases || []).map((tc, i) => {
+                  {(problem.sample_test_cases || []).map((tc:TestCase, i) => {
                     const state = testCaseStates[i] ?? "not_run";
                     return (
                       <div
@@ -475,8 +459,8 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
                         </div>
                         <div className="flex-1 text-sm">
                           <div className="font-medium">Test case {i + 1} — {state.replace("_", " ")}</div>
-                          <div className="text-xs text-gray-600 mt-1">Input: <pre className="whitespace-pre-wrap">{tc.input}</pre></div>
-                          <div className="text-xs text-gray-600">Expected Output: <pre className="whitespace-pre-wrap">{tc.output}</pre></div>
+                          <div className="text-xs text-gray-600 mt-1">Input: <pre className="whitespace-pre-wrap">{tc.input_encrypted}</pre></div>
+                          <div className="text-xs text-gray-600">Expected Output: <pre className="whitespace-pre-wrap">{tc.expected_output_encrypted}</pre></div>
                         </div>
                       </div>
                     );

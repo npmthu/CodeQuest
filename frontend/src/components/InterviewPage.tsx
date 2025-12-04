@@ -19,12 +19,9 @@ import {
 import InterviewRoomPage from "./InterviewRoomPage";
 import InterviewSchedulePage from "./InterviewSchedulePage";
 import { useInterviewSessions } from "../hooks/useApi";
+import type { InterviewSessionWithUsers } from "../types";
 
-import { useNavigate } from "react-router-dom";
-
-interface InterviewPageProps {}
-
-export default function InterviewPage({ onNavigate }: InterviewPageProps) {
+export default function InterviewPage() {
   const [currentView, setCurrentView] = useState<"dashboard" | "room" | "schedule">("dashboard");
   
   // Fetch interview sessions from API
@@ -32,11 +29,11 @@ export default function InterviewPage({ onNavigate }: InterviewPageProps) {
   const sessions = sessionsData || [];
 
   // Separate upcoming and past interviews
-  const upcomingInterviews = sessions.filter((s: any) => 
+  const upcomingInterviews = sessions.filter((s: InterviewSessionWithUsers) => 
     s.status === 'scheduled' || s.status === 'in_progress'
   );
   
-  const pastInterviews = sessions.filter((s: any) => 
+  const pastInterviews = sessions.filter((s: InterviewSessionWithUsers) => 
     s.status === 'completed'
   );
 
@@ -156,7 +153,7 @@ export default function InterviewPage({ onNavigate }: InterviewPageProps) {
                 </Button>
               </Card>
             ) : (
-              upcomingInterviews.map((interview: any) => {
+              upcomingInterviews.map((interview: InterviewSessionWithUsers) => {
                 const interviewee = Array.isArray(interview.interviewee) ? interview.interviewee[0] : interview.interviewee;
                 const interviewer = Array.isArray(interview.interviewer) ? interview.interviewer[0] : interview.interviewer;
                 
@@ -261,7 +258,7 @@ export default function InterviewPage({ onNavigate }: InterviewPageProps) {
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {pastInterviews.map((interview: any) => {
+            {pastInterviews.map((interview: InterviewSessionWithUsers) => {
               const interviewer = Array.isArray(interview.interviewer) ? interview.interviewer[0] : interview.interviewer;
               const interviewee = Array.isArray(interview.interviewee) ? interview.interviewee[0] : interview.interviewee;
               

@@ -36,11 +36,23 @@ import { ImageWithFallback } from "./figma/ImageWithFallback";
 
 import { useNavigate } from "react-router-dom";
 
-interface InstructorCreateCourseProps {}
+interface CourseData {
+  title: string;
+  subtitle: string;
+  description: string;
+  category: string;
+  level: string;
+  language: string;
+  price: string;
+  thumbnail: string;
+  whatYouWillLearn: string[];
+  prerequisites: string[];
+  targetAudience: string[];
+}
 
 export default function InstructorCreateCourse() {
   const navigate = useNavigate();
-  const [courseData, setCourseData] = useState({
+  const [courseData, setCourseData] = useState<CourseData>({
     title: "",
     subtitle: "",
     description: "",
@@ -163,7 +175,7 @@ export default function InstructorCreateCourse() {
                   <Label>Category *</Label>
                   <Select 
                     value={courseData.category}
-                    onValueChange={(value) => setCourseData(prev => ({ ...prev, category: value }))}
+                    onValueChange={(value: string) => setCourseData(prev => ({ ...prev, category: value }))}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select category" />
@@ -182,7 +194,7 @@ export default function InstructorCreateCourse() {
                   <Label>Level *</Label>
                   <Select
                     value={courseData.level}
-                    onValueChange={(value) => setCourseData(prev => ({ ...prev, level: value }))}
+                    onValueChange={(value: string) => setCourseData(prev => ({ ...prev, level: value }))}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select level" />
@@ -201,7 +213,7 @@ export default function InstructorCreateCourse() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Language</Label>
-                  <Select defaultValue="english">
+                  <Select value={courseData.language} onValueChange={(value: string) => setCourseData(prev => ({ ...prev, language: value }))}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>

@@ -15,6 +15,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { useApi } from "../api/ApiProvider";
 import { useNavigate, useParams } from "react-router-dom";
+import type { Lesson, LessonWithProgress } from "../types";
 
 export default function LessonPage() {
   const navigate = useNavigate();
@@ -32,8 +33,8 @@ export default function LessonPage() {
     enabled: !!topicId
   });
 
-  const lessons = lessonsData || [];
-  const completedLessons = lessons.filter((l: any) => l.is_completed).length;
+  const lessons: LessonWithProgress[] = lessonsData || [];
+  const completedLessons = lessons.filter((l) => l.is_completed).length;
   const progressPercent = lessons.length > 0 ? (completedLessons / lessons.length) * 100 : 0;
 
   if (isLoading) {
@@ -93,7 +94,7 @@ export default function LessonPage() {
           {/* Lesson List */}
           <div className="lg:col-span-2 space-y-4">
             <h3 className="mb-4">Course Content</h3>
-            {lessons.map((lesson: any) => {
+            {lessons.map((lesson) => {
               const isCompleted = lesson.is_completed;
               const isCurrent = false; // TODO: Track current lesson
 
@@ -133,10 +134,10 @@ export default function LessonPage() {
                                 {lesson.difficulty}
                               </Badge>
                             )}
-                            {lesson.estimated_duration && (
+                            {lesson.estimated_time && (
                               <span className="text-sm text-muted-foreground flex items-center gap-1">
                                 <Clock className="w-3 h-3" />
-                                {lesson.estimated_duration}
+                                {lesson.estimated_time}
                               </span>
                             )}
                           </div>

@@ -5,21 +5,43 @@ export interface Problem {
   slug?: string;
   title: string;
   description_markdown: string;
-  difficulty: number;
+  difficulty: 1 | 2 | 3;
+  starter_code: Record<string, string>;
+  tags: string[];
   time_limit_ms?: number;
   memory_limit_kb?: number;
   input_format?: string;
   output_format?: string;
-  constraints?: string;
-  created_by?: string;  // user_id
-  is_published?: boolean;
-  is_premium?: boolean;
-  acceptance_rate?: number;
-  total_submissions?: number;
-  total_accepted?: number;
-  metadata?: Record<string, any>;
-  editorial_markdown?: string;
-  test_cases?: TestCase[];
-  created_at?: string;
-  updated_at?: string;
+  sample_test_cases?: TestCase[];
+  hints?: Hint[];
+  related_problems?: { id: string; title: string; difficulty: 1 | 2 | 3 }[];
+  user_progress?: { submission_count: number; best_submission_id?: string; solved?: boolean };
 }
+
+export interface ProblemSummary {
+  id: string;
+  title: string;
+}
+
+
+export interface Hint {
+  level: number;
+  text: string;
+}
+
+export interface TestCaseResult {
+  passed: boolean;
+  input?: string;
+  expected_output?: string;
+  actual_output?: string;
+  error?: string;
+}
+
+export interface ExecutionResult {
+  stdout?: string;
+  output?: string;
+  test_cases?: TestCaseResult[];
+  ai_review?: string;
+}
+
+

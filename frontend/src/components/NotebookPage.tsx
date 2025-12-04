@@ -28,6 +28,7 @@ import {
 import { Label } from "./ui/label";
 import NotebookDetailPlaceholder from "./NotebookDetailPlaceholder";
 import { useNotes, useCreateNote } from "../hooks/useApi";
+import type { Note } from "../types";
 
 export default function NotebookPage() {
   const [selectedNote, setSelectedNote] = useState<string | null>(null);
@@ -68,7 +69,7 @@ export default function NotebookPage() {
     setCurrentView("list");
   };
 
-  const selectedNoteData = notes.find((note: any) => note.id === selectedNote);
+  const selectedNoteData = notes.find((note: Note) => note.id === selectedNote);
 
   if (isLoading) {
     return (
@@ -152,7 +153,7 @@ export default function NotebookPage() {
               <p className="text-xs">Create your first note to get started</p>
             </div>
           ) : (
-            notes.map((note: any) => (
+            notes.map((note: Note) => (
               <button
                 key={note.id}
                 onClick={() => handleNotebookClick(note.id)}

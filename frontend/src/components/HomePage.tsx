@@ -56,7 +56,7 @@ export default function HomePage() {
         pathId={selectedPath.id}
         pathName={selectedPath.name}
         level={selectedPath.level}
-        onNavigate={(page, courseId) => {
+        onNavigate={(page:any, courseId:any) => {
           if (page === "course-detail" && courseId) {
             handleCourseClick(courseId);
           } else if (page === "editor") {
