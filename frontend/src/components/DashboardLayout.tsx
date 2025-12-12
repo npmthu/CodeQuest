@@ -1,11 +1,11 @@
 import { ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { 
-  Home, 
-  BookOpen, 
-  MessageSquare, 
-  NotebookPen, 
-  User, 
+import {
+  Home,
+  BookOpen,
+  MessageSquare,
+  NotebookPen,
+  User,
   Settings,
   Code2,
   LogOut,
@@ -15,7 +15,8 @@ import {
   BarChart3,
   Building,
   Users,
-  Target
+  Target,
+  ClipboardList,
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
@@ -26,16 +27,17 @@ interface DashboardLayoutProps {
   userRole?: "student" | "instructor" | "business";
 }
 
-export default function DashboardLayout({ 
-  children, 
-  userRole = "student"
+export default function DashboardLayout({
+  children,
+  userRole = "student",
 }: DashboardLayoutProps) {
   const { signOut } = useAuth();
   const location = useLocation();
-  
+
   const studentMenuItems = [
     { path: "/dashboard", label: "Dashboard", icon: Home },
     { path: "/courses", label: "Courses", icon: BookOpen },
+    { path: "/quizzes", label: "Quizzes", icon: ClipboardList },
     { path: "/forum", label: "Forum", icon: MessageSquare },
     { path: "/notebook", label: "Notebook", icon: NotebookPen },
     { path: "/interview", label: "Interview", icon: VideoIcon },
@@ -46,6 +48,7 @@ export default function DashboardLayout({
   const instructorMenuItems = [
     { path: "/instructor/dashboard", label: "Dashboard", icon: Home },
     { path: "/instructor/courses", label: "My Courses", icon: VideoIcon },
+    { path: "/quizzes", label: "Quizzes", icon: ClipboardList },
     { path: "/instructor/analytics", label: "Analytics", icon: BarChart3 },
     { path: "/forum", label: "Forum", icon: MessageSquare },
     { path: "/profile", label: "Profile", icon: User },
@@ -55,16 +58,22 @@ export default function DashboardLayout({
   const businessMenuItems = [
     { path: "/business/dashboard", label: "Dashboard", icon: Home },
     { path: "/business/account", label: "Account Mgmt", icon: Building },
-    { path: "/business/instructors", label: "Instructors", icon: GraduationCap },
+    {
+      path: "/business/instructors",
+      label: "Instructors",
+      icon: GraduationCap,
+    },
     { path: "/business/performance", label: "Performance", icon: Target },
     { path: "/business/analytics", label: "Analytics", icon: BarChart3 },
     { path: "/settings", label: "Settings", icon: Settings },
   ];
 
-  const menuItems = 
-    userRole === "instructor" ? instructorMenuItems :
-    userRole === "business" ? businessMenuItems :
-    studentMenuItems;
+  const menuItems =
+    userRole === "instructor"
+      ? instructorMenuItems
+      : userRole === "business"
+      ? businessMenuItems
+      : studentMenuItems;
 
   const getRoleBadgeStyle = () => {
     switch (userRole) {
@@ -104,7 +113,7 @@ export default function DashboardLayout({
         <nav className="flex-1 p-4">
           {/* Role Badge */}
           <div className="mb-4 px-2">
-            <Badge 
+            <Badge
               className={`${getRoleBadgeStyle()} w-full justify-center py-2`}
             >
               <GraduationCap className="w-4 h-4 mr-2" />
@@ -145,9 +154,9 @@ export default function DashboardLayout({
               <p className="text-xs text-muted-foreground">Level 5</p>
             </div>
           </div>
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             className="w-full"
             onClick={() => signOut()}
           >
@@ -162,7 +171,9 @@ export default function DashboardLayout({
         {/* Header */}
         <header className="h-16 bg-white border-b border-border flex items-center justify-between px-8">
           <div>
-            <h3 className="capitalize">{location.pathname.split('/').pop() || 'Dashboard'}</h3>
+            <h3 className="capitalize">
+              {location.pathname.split("/").pop() || "Dashboard"}
+            </h3>
           </div>
           <div className="flex items-center gap-4">
             <button className="relative p-2 hover:bg-gray-100 rounded-lg">
@@ -178,9 +189,7 @@ export default function DashboardLayout({
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 overflow-auto">
-          {children}
-        </main>
+        <main className="flex-1 overflow-auto">{children}</main>
       </div>
     </div>
   );
