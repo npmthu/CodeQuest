@@ -63,7 +63,6 @@ export default function QuizResultPage() {
           }`}
         >
           <div className="text-center">
-            <div className="text-6xl mb-4">{passed ? "🎉" : "😔"}</div>
             <h1
               className={`text-4xl font-bold mb-4 ${
                 passed ? "text-green-800" : "text-red-800"
@@ -133,7 +132,7 @@ export default function QuizResultPage() {
                             : "bg-red-200 text-red-800"
                         }`}
                       >
-                        {question.isCorrect ? "✓ Correct" : "✗ Incorrect"}
+                        {question.isCorrect ? "Correct" : "Incorrect"}
                       </span>
                       <span className="text-gray-700 font-semibold">
                         {question.points} pts

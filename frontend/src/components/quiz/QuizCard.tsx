@@ -7,11 +7,20 @@ interface QuizCardProps {
 }
 
 export function QuizCard({ quiz }: QuizCardProps) {
-  const questionCount = Array.isArray(quiz.questions)
-    ? quiz.questions.length
-    : 0;
+  // Backend now returns count as number, not array
+  const questionCount =
+    typeof quiz.questions === "number"
+      ? quiz.questions
+      : Array.isArray(quiz.questions)
+      ? quiz.questions.length
+      : 0;
 
-  const attemptCount = Array.isArray(quiz.attempts) ? quiz.attempts.length : 0;
+  const attemptCount =
+    typeof quiz.attempts === "number"
+      ? quiz.attempts
+      : Array.isArray(quiz.attempts)
+      ? quiz.attempts.length
+      : 0;
 
   const getDifficultyColor = (difficulty?: string) => {
     switch (difficulty?.toLowerCase()) {
@@ -54,27 +63,27 @@ export function QuizCard({ quiz }: QuizCardProps) {
       {quiz.topic && (
         <div className="mb-3">
           <span className="inline-flex items-center px-2 py-1 bg-blue-50 text-blue-700 text-sm rounded">
-            📚 {quiz.topic.name}
+            Topic: {quiz.topic.name}
           </span>
         </div>
       )}
 
       <div className="flex items-center gap-4 text-sm text-gray-500">
-        <span>⏱️ {quiz.time_limit_min} min</span>
-        <span>📝 {questionCount} questions</span>
-        <span>✅ {quiz.passing_score}% to pass</span>
+        <span>Duration: {quiz.time_limit_min} min</span>
+        <span>{questionCount} questions</span>
+        <span>Pass: {quiz.passing_score}%</span>
       </div>
 
       {attemptCount > 0 && (
         <div className="mt-3 text-sm text-gray-500">
-          👥 {attemptCount} attempt{attemptCount !== 1 ? "s" : ""}
+          {attemptCount} attempt{attemptCount !== 1 ? "s" : ""}
         </div>
       )}
 
       {quiz.hasTaken && (
         <div className="mt-3">
           <span className="inline-flex items-center px-2 py-1 bg-green-50 text-green-700 text-sm rounded font-medium">
-            ✓ Completed
+            Completed
           </span>
         </div>
       )}

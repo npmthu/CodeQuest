@@ -54,7 +54,10 @@ export default function QuizDetailPage() {
     );
   }
 
-  const questionCount = Array.isArray(quiz.questions)
+  // Handle both number (from list) and array (from detail) formats
+  const questionCount = typeof quiz.questions === 'number'
+    ? quiz.questions
+    : Array.isArray(quiz.questions)
     ? quiz.questions.length
     : 0;
 
@@ -96,7 +99,7 @@ export default function QuizDetailPage() {
           {quiz.topic && (
             <div className="mb-6">
               <span className="inline-flex items-center px-3 py-1 bg-blue-50 text-blue-700 text-sm rounded">
-                📚 {quiz.topic.name}
+                Topic: {quiz.topic.name}
               </span>
             </div>
           )}
@@ -134,7 +137,7 @@ export default function QuizDetailPage() {
               <div className="flex-grow">
                 <div className="p-4 bg-green-50 border border-green-200 rounded-lg text-center">
                   <p className="text-green-800 font-semibold">
-                    ✓ You've completed this quiz
+                    Completed - You've completed this quiz
                   </p>
                   <Link
                     to={`/quizzes/${quiz.id}/results`}

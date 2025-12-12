@@ -40,7 +40,6 @@ export function QuizList({
   if (!quizzes || quizzes.length === 0) {
     return (
       <div className="p-12 text-center bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-        <div className="text-6xl mb-4">📝</div>
         <p className="text-gray-600 text-lg">{emptyMessage}</p>
       </div>
     );

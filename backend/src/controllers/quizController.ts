@@ -32,7 +32,14 @@ export class QuizController {
 
       if (error) throw error;
 
-      res.json({ success: true, data: quizzes });
+      // Process count aggregates - Supabase returns [{count: n}] instead of n
+      const processedQuizzes = quizzes?.map((quiz: any) => ({
+        ...quiz,
+        questions: quiz.questions?.[0]?.count || 0,
+        attempts: quiz.attempts?.[0]?.count || 0,
+      }));
+
+      res.json({ success: true, data: processedQuizzes });
     } catch (error) {
       console.error("Error fetching quizzes:", error);
       res.status(500).json({ error: "Failed to fetch quizzes" });

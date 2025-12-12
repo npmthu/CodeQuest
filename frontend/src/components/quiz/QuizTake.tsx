@@ -92,7 +92,7 @@ export function QuizTake({ quiz }: QuizTakeProps) {
               timeLeft < 60 ? "text-red-600" : "text-gray-700"
             }`}
           >
-            ⏱️ {formatTime(timeLeft)}
+            Time: {formatTime(timeLeft)}
           </div>
         </div>
 

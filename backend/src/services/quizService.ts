@@ -18,7 +18,13 @@ export class QuizService {
       .order("created_at", { ascending: false });
 
     if (error) throw error;
-    return quizzes;
+
+    // Process count aggregates - Supabase returns [{count: n}] instead of n
+    return quizzes?.map((quiz: any) => ({
+      ...quiz,
+      questions: quiz.questions?.[0]?.count || 0,
+      attempts: quiz.attempts?.[0]?.count || 0,
+    }));
   }
 
   /**
