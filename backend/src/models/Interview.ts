@@ -25,7 +25,7 @@ export interface InterviewSession {
   recording_url?: string;
   workspace_data?: any;
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
 }
 
 // API response with joined data

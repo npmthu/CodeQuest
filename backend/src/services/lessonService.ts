@@ -47,7 +47,7 @@ export async function getLesson(id: string) {
 
 export async function getUserLessonProgress(userId: string, lessonId: string) {
   const { data, error } = await supabaseAdmin
-    .from('user_lesson_progress')
+    .from('lesson_completions')
     .select('*')
     .eq('user_id', userId)
     .eq('lesson_id', lessonId)
@@ -64,14 +64,14 @@ export async function getUserLessonProgress(userId: string, lessonId: string) {
 export async function updateLessonProgress(
   userId: string,
   lessonId: string,
-  updates: { is_completed?: boolean; progress_percentage?: number; last_accessed_at?: string }
+  updates: { time_spent_sec?: number; completed_at?: string }
 ) {
   const existing = await getUserLessonProgress(userId, lessonId);
 
   if (existing) {
     const { data, error } = await supabaseAdmin
-      .from('user_lesson_progress')
-      .update({ ...updates, updated_at: new Date().toISOString() })
+      .from('lesson_completions')
+      .update(updates)
       .eq('user_id', userId)
       .eq('lesson_id', lessonId)
       .select()
@@ -81,13 +81,13 @@ export async function updateLessonProgress(
     return data;
   } else {
     const { data, error } = await supabaseAdmin
-      .from('user_lesson_progress')
+      .from('lesson_completions')
       .insert([
         {
           user_id: userId,
           lesson_id: lessonId,
           ...updates,
-          last_accessed_at: updates.last_accessed_at || new Date().toISOString()
+          completed_at: updates.completed_at || new Date().toISOString()
         }
       ])
       .select()
@@ -99,22 +99,21 @@ export async function updateLessonProgress(
 }
 
 export async function getUserProgressSummary(userId: string) {
-  // Get all lesson progress
+  // Get all lesson completions
   const { data, error } = await supabaseAdmin
-    .from('user_lesson_progress')
+    .from('lesson_completions')
     .select('*, lessons(id, title, topic_id, topics(name))')
     .eq('user_id', userId);
 
   if (error) throw error;
 
-  const completed = data?.filter((p) => p.is_completed).length || 0;
-  const total = data?.length || 0;
-  const inProgress = data?.filter((p) => !p.is_completed && p.progress_percentage > 0).length || 0;
+  const completed = data?.length || 0;
+  const total = completed; // Total tracked is the same as completed in this table
 
   return {
     total,
     completed,
-    inProgress,
+    inProgress: 0, // lesson_completions only tracks completed lessons
     lessons: data ?? []
   };
 }

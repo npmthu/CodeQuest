@@ -45,7 +45,7 @@ export interface ForumReply {
   author_id: string;
   parent_reply_id?: string;
   content_markdown: string;
-  code_snippet?: string;
+  code_snippet?: any; // jsonb in DB
   upvotes: number;
   is_accepted_answer: boolean;
   created_at: string;
@@ -57,7 +57,6 @@ export interface ForumReplyWithAuthor extends ForumReply {
 }
 
 export interface ForumVote {
-  id: string;
   user_id: string;
   votable_type: 'post' | 'reply';
   votable_id: string;

@@ -49,12 +49,11 @@ export async function updateProgressHandler(req: Request, res: Response) {
     }
 
     const { lessonId } = req.params;
-    const { isCompleted, progressPercentage } = req.body;
+    const { timeSpentSec, completed } = req.body;
 
     const progress = await lessonService.updateLessonProgress(user.id, lessonId, {
-      is_completed: isCompleted,
-      progress_percentage: progressPercentage,
-      last_accessed_at: new Date().toISOString()
+      time_spent_sec: timeSpentSec,
+      completed_at: completed ? new Date().toISOString() : undefined
     });
 
     return res.json({ 

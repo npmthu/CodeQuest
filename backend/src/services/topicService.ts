@@ -43,7 +43,7 @@ export async function listTopics(publishedOnly = true) {
 export async function getTopic(id: string) {
   const { data, error } = await supabaseAdmin
     .from('topics')
-    .select('*, lessons(id, title, description, difficulty, order_index)')
+    .select('*, lessons(id, title, slug, content_markdown, difficulty, display_order)')
     .eq('id', id)
     .single();
 

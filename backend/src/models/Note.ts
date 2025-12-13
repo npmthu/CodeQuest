@@ -3,8 +3,8 @@
 export interface Note {
   id: string;
   user_id: string;
-  title: string;
-  content_markdown: string;
+  title?: string; // Optional in DB
+  content_markdown?: string;
   is_private: boolean;
   tags?: string[];
   created_at: string;

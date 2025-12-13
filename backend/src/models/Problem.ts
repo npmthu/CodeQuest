@@ -1,28 +1,46 @@
-import { TestCase } from './TestCase';
+// Problem model - matches database schema
 
 export interface Problem {
   id: string;
-  slug?: string;
+  slug: string;
   title: string;
   description_markdown: string;
-  difficulty: 1 | 2 | 3;
-  starter_code: Record<string, string>;
-  tags: string[];
+  difficulty: number;
   time_limit_ms?: number;
   memory_limit_kb?: number;
   input_format?: string;
   output_format?: string;
-  sample_test_cases?: TestCase[];
-  hints?: Hint[];
-  related_problems?: { id: string; title: string; difficulty: 1 | 2 | 3 }[];
-  user_progress?: { submission_count: number; best_submission_id?: string; solved?: boolean };
+  constraints?: string;
+  created_by?: string;
+  is_published?: boolean;
+  is_premium?: boolean;
+  acceptance_rate?: number;
+  total_submissions?: number;
+  total_accepted?: number;
+  created_at?: string;
+  updated_at?: string;
+  metadata?: Record<string, any>;
+  editorial_markdown?: string;
 }
 
 export interface ProblemSummary {
   id: string;
   title: string;
+  difficulty?: number;
 }
 
+// Additional types for frontend/API responses (not in DB)
+export interface ProblemWithTestCases extends Problem {
+  sample_test_cases?: any[];
+}
+
+export interface ProblemWithProgress extends Problem {
+  user_progress?: {
+    submission_count: number;
+    best_submission_id?: string;
+    solved?: boolean;
+  };
+}
 
 export interface Hint {
   level: number;
