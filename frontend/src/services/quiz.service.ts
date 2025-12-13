@@ -7,8 +7,25 @@ import {
   SubmitQuizRequest 
 } from '../interfaces/quiz.interface';
 import { ApiResponse } from '../interfaces/api.interface';
+import { supabase } from '../../lib/supabaseClient';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE || 'http://localhost:3000/api';
+
+/**
+ * Helper: Get Authorization header with current Supabase token
+ */
+async function getAuthHeaders(): Promise<Record<string, string>> {
+  try {
+    const { data } = await supabase.auth.getSession();
+    const token = data?.session?.access_token;
+    if (token) {
+      return { 'Authorization': `Bearer ${token}` };
+    }
+  } catch (err) {
+    console.warn('Failed to get auth token:', err);
+  }
+  return {};
+}
 
 export const quizService = {
   /**
@@ -20,8 +37,10 @@ export const quizService = {
       url.searchParams.append('topicId', topicId);
     }
     
+    const authHeaders = await getAuthHeaders();
     const response = await fetch(url.toString(), {
-      credentials: 'include'
+      credentials: 'include',
+      headers: authHeaders
     });
     const result: ApiResponse<Quiz[]> = await response.json();
     
@@ -36,8 +55,10 @@ export const quizService = {
    * Lấy chi tiết quiz kèm questions
    */
   async getQuizById(quizId: string): Promise<QuizDetail> {
+    const authHeaders = await getAuthHeaders();
     const response = await fetch(`${API_BASE_URL}/quizzes/${quizId}`, {
-      credentials: 'include'
+      credentials: 'include',
+      headers: authHeaders
     });
     const result: ApiResponse<QuizDetail> = await response.json();
     
@@ -52,10 +73,12 @@ export const quizService = {
    * Submit quiz answers
    */
   async submitQuiz(quizId: string, data: SubmitQuizRequest): Promise<QuizResult> {
+    const authHeaders = await getAuthHeaders();
     const response = await fetch(`${API_BASE_URL}/quizzes/${quizId}/submit`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        ...authHeaders
       },
       credentials: 'include',
       body: JSON.stringify(data)

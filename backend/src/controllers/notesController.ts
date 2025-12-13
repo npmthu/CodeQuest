@@ -1,6 +1,12 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import * as notesService from '../services/notesService';
+import {
+  mapNoteToDTO,
+  mapCreateNoteDTOToEntity,
+  mapUpdateNoteDTOToEntity
+} from '../mappers/note.mapper';
+import type { CreateNoteDTO, UpdateNoteDTO } from '../dtos/note.dto';
 
 /**
  * List user's notes
@@ -14,7 +20,11 @@ export const listNotes = async (req: AuthRequest, res: Response) => {
     }
 
     const notes = await notesService.listNotes(userId);
-    return res.json({ success: true, data: notes });
+    
+    // Map to DTOs (camelCase)
+    const noteDTOs = notes.map(mapNoteToDTO);
+    
+    return res.json({ success: true, data: noteDTOs });
   } catch (error: any) {
     console.error('Error listing notes:', error);
     return res.status(500).json({ success: false, error: error.message });
@@ -39,7 +49,10 @@ export const getNote = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ success: false, error: 'Note not found' });
     }
 
-    return res.json({ success: true, data: note });
+    // Map to DTO (camelCase)
+    const noteDTO = mapNoteToDTO(note);
+
+    return res.json({ success: true, data: noteDTO });
   } catch (error: any) {
     console.error('Error getting note:', error);
     return res.status(500).json({ success: false, error: error.message });
@@ -57,16 +70,23 @@ export const createNote = async (req: AuthRequest, res: Response) => {
       return res.status(401).json({ success: false, error: 'Unauthorized' });
     }
 
-    const { title, content_markdown, is_private, tags } = req.body;
+    // Accept camelCase from frontend
+    const createDTO: CreateNoteDTO = {
+      title: req.body.title,
+      contentMarkdown: req.body.contentMarkdown,
+      isPrivate: req.body.isPrivate,
+      tags: req.body.tags
+    };
 
-    const note = await notesService.createNote({
-      title,
-      contentMarkdown: content_markdown,
-      isPrivate: is_private,
-      tags
-    }, userId);
+    // Map DTO to DB entity (snake_case)
+    const entityData = mapCreateNoteDTOToEntity(createDTO, userId);
 
-    return res.status(201).json({ success: true, data: note });
+    const note = await notesService.createNote(entityData);
+    
+    // Map response to DTO (camelCase)
+    const noteDTO = mapNoteToDTO(note);
+
+    return res.status(201).json({ success: true, data: noteDTO });
   } catch (error: any) {
     console.error('Error creating note:', error);
     return res.status(500).json({ success: false, error: error.message });
@@ -85,20 +105,28 @@ export const updateNote = async (req: AuthRequest, res: Response) => {
     }
 
     const { id } = req.params;
-    const { title, contentMarkdown, isPrivate, tags } = req.body;
+    
+    // Accept camelCase from frontend
+    const updateDTO: UpdateNoteDTO = {
+      title: req.body.title,
+      contentMarkdown: req.body.contentMarkdown,
+      isPrivate: req.body.isPrivate,
+      tags: req.body.tags
+    };
 
-    const note = await notesService.updateNote(id, userId, {
-      title,
-      contentMarkdown,
-      isPrivate,
-      tags
-    });
+    // Map DTO to DB entity (snake_case)
+    const entityData = mapUpdateNoteDTOToEntity(updateDTO);
+
+    const note = await notesService.updateNote(id, userId, entityData);
 
     if (!note) {
       return res.status(404).json({ success: false, error: 'Note not found' });
     }
 
-    return res.json({ success: true, data: note });
+    // Map response to DTO (camelCase)
+    const noteDTO = mapNoteToDTO(note);
+
+    return res.json({ success: true, data: noteDTO });
   } catch (error: any) {
     console.error('Error updating note:', error);
     return res.status(500).json({ success: false, error: error.message });

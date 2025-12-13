@@ -48,8 +48,8 @@ export default function NotebookPage() {
     try {
       await createNoteMutation.mutateAsync({
         title: newNoteTitle,
-        content_markdown: '',
-        is_private: true,
+        contentMarkdown: '',
+        isPrivate: true,
         tags: []
       });
 
@@ -180,10 +180,10 @@ export default function NotebookPage() {
                   </div>
                 </div>
                 <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
-                  {note.content_markdown?.substring(0, 100) || 'No content'}
+                  {note.contentMarkdown?.substring(0, 100) || 'No content'}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {new Date(note.updated_at).toLocaleDateString()}
+                  {new Date(note.updatedAt).toLocaleDateString()}
                 </p>
               </button>
             ))

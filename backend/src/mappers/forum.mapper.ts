@@ -1,4 +1,4 @@
-// Forum Mappers - Convert DB models sang DTOs
+// Forum Mappers - Convert DB models sang DTOs and vice versa
 
 import { ForumPost, ForumReply } from '../models/Forum';
 import { User } from '../models/User';
@@ -9,6 +9,8 @@ import {
   ForumReplyDTO,
   ForumReplyWithAuthorDTO,
   AuthorDTO,
+  CreateForumPostDTO,
+  CreateForumReplyDTO
 } from '../dtos/forum.dto';
 import { mapProblemToSummaryDTO } from './problem.mapper';
 

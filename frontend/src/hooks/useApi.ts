@@ -735,7 +735,7 @@ export function useInterviewSessions() {
     queryKey: ["interviewSessions"],
     queryFn: async () => {
       const result = await apiFetch("/interview/sessions");
-      return result.data;
+      return result.data || [];
     },
   });
 }
@@ -745,7 +745,7 @@ export function useInterviewSession(id: string) {
     queryKey: ["interviewSession", id],
     queryFn: async () => {
       const result = await apiFetch(`/interview/sessions/${id}`);
-      return result.data;
+      return result.data || null;
     },
     enabled: !!id,
   });
@@ -756,12 +756,12 @@ export function useCreateInterviewSession() {
 
   return useMutation({
     mutationFn: async (payload: {
-      interviewer_id?: string;
-      interview_type: string;
-      difficulty: string;
-      scheduled_at?: string;
-      duration_min?: number;
-      communication_mode?: string;
+      interviewerId?: string;
+      interviewType: string;
+      difficulty?: string;
+      scheduledAt?: string;
+      durationMin?: number;
+      notes?: string;
     }) => {
       return apiFetch("/interview/sessions", {
         method: "POST",
@@ -781,15 +781,27 @@ export function useUpdateInterviewSession() {
     mutationFn: async ({
       id,
       status,
-      workspace_data,
+      startedAt,
+      endedAt,
+      recordingUrl,
+      notes,
     }: {
       id: string;
       status?: string;
-      workspace_data?: any;
+      startedAt?: string;
+      endedAt?: string;
+      recordingUrl?: string;
+      notes?: string;
     }) => {
       return apiFetch(`/interview/sessions/${id}`, {
         method: "PATCH",
-        body: JSON.stringify({ status, workspace_data }),
+        body: JSON.stringify({
+          status,
+          startedAt,
+          endedAt,
+          recordingUrl,
+          notes,
+        }),
       });
     },
     onSuccess: (_, variables) => {
@@ -861,7 +873,7 @@ export function useNotes() {
     queryKey: ["notes"],
     queryFn: async () => {
       const result = await apiFetch("/notes");
-      return result.data;
+      return result.data || [];
     },
   });
 }
@@ -871,7 +883,7 @@ export function useNote(id: string) {
     queryKey: ["note", id],
     queryFn: async () => {
       const result = await apiFetch(`/notes/${id}`);
-      return result.data;
+      return result.data || null;
     },
     enabled: !!id,
   });
@@ -883,9 +895,11 @@ export function useCreateNote() {
   return useMutation({
     mutationFn: async (payload: {
       title?: string;
-      content_markdown?: string;
-      is_private?: boolean;
+      contentMarkdown?: string;
+      isPrivate?: boolean;
       tags?: string[];
+      problemId?: string;
+      lessonId?: string;
     }) => {
       return apiFetch("/notes", {
         method: "POST",
@@ -904,8 +918,8 @@ export function useUpdateNote(id: string) {
   return useMutation({
     mutationFn: async (payload: {
       title?: string;
-      content_markdown?: string;
-      is_private?: boolean;
+      contentMarkdown?: string;
+      isPrivate?: boolean;
       tags?: string[];
     }) => {
       return apiFetch(`/notes/${id}`, {

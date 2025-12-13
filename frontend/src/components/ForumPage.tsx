@@ -68,7 +68,7 @@ export default function ForumPage() {
       case "popular":
         return [...postsList].sort((a, b) => (b.upvotes || 0) - (a.upvotes || 0));
       case "mostReplies":
-        return [...postsList].sort((a, b) => (b.reply_count || 0) - (a.reply_count || 0));
+        return [...postsList].sort((a, b) => (b.replyCount || 0) - (a.replyCount || 0));
       case "recent":
       default:
         return postsList; // Already sorted by created_at from backend
@@ -91,7 +91,7 @@ export default function ForumPage() {
     try {
       await createPostMutation.mutateAsync({
         title: newPostTitle,
-        content_markdown: newPostContent,
+        contentMarkdown: newPostContent,
         tags: newPostTags
       });
 

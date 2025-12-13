@@ -56,8 +56,14 @@ export function QuizTake({ quiz }: QuizTakeProps) {
     setIsSubmitting(true);
 
     try {
+      // Convert answers Record<questionId, answer> to Array<{questionId, answer}>
+      const answersArray = Object.entries(answers).map(([questionId, answer]) => ({
+        questionId,
+        answer: String(answer)
+      }));
+
       const submission: SubmitQuizRequest = {
-        answers: answers
+        answers: answersArray
       };
 
       console.log("Submitting answers:", submission);

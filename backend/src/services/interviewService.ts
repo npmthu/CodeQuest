@@ -3,10 +3,6 @@ import type {
   InterviewSession,
   InterviewFeedback
 } from '../models/Interview';
-import type {
-  UpdateInterviewSessionDTO,
-  CreateInterviewFeedbackDTO
-} from '../dtos/interview.dto';
 
 /**
  * List interview sessions for a user
@@ -123,17 +119,10 @@ export async function isSessionParticipant(sessionId: string, userId: string): P
 /**
  * Create interview session
  */
-export async function createInterviewSession(payload: any): Promise<InterviewSession> {
-  const sessionData = {
-    ...payload,
-    duration_min: payload.duration_min || 60,
-    communication_mode: payload.communication_mode || 'video',
-    status: 'scheduled' as const
-  };
-
+export async function createInterviewSession(payload: Partial<InterviewSession>): Promise<InterviewSession> {
   const { data: session, error } = await supabaseAdmin
     .from('interview_sessions')
-    .insert([sessionData])
+    .insert([payload])
     .select()
     .single();
 
@@ -150,10 +139,11 @@ export async function createInterviewSession(payload: any): Promise<InterviewSes
  */
 export async function updateInterviewSession(
   sessionId: string,
-  updates: UpdateInterviewSessionDTO
+  updates: Partial<InterviewSession>
 ): Promise<InterviewSession> {
   const updateData: any = { ...updates };
 
+  // Auto-set timestamps based on status
   if (updates.status === 'in_progress' && !updateData.started_at) {
     updateData.started_at = new Date().toISOString();
   }
@@ -179,20 +169,10 @@ export async function updateInterviewSession(
 /**
  * Submit interview feedback
  */
-export async function submitInterviewFeedback(payload: CreateInterviewFeedbackDTO): Promise<InterviewFeedback> {
+export async function submitInterviewFeedback(payload: Partial<InterviewFeedback>): Promise<InterviewFeedback> {
   const { data: feedback, error } = await supabaseAdmin
     .from('interview_feedback')
-    .insert([{
-      session_id: payload.sessionId,
-      from_user_id: payload.fromUserId,
-      to_user_id: payload.toUserId,
-      overall_rating: payload.overallRating,
-      communication_rating: payload.communicationRating,
-      problem_solving_rating: payload.problemSolvingRating,
-      technical_knowledge_rating: payload.technicalKnowledgeRating,
-      feedback_text: payload.feedbackText,
-      recommended_topics: payload.recommendedTopics
-    }])
+    .insert([payload])
     .select()
     .single();
 

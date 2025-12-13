@@ -3,6 +3,7 @@ import { AuthRequest } from "../middleware/auth";
 import quizService from "../services/quizService";
 import gradingService, { AnswerSubmission } from "../services/gradingService";
 import { supabaseAdmin } from "../config/database";
+import { mapQuizAttemptToDTO } from "../mappers/quiz.mapper";
 
 export class QuizSubmissionController {
   /**
@@ -85,16 +86,15 @@ export class QuizSubmissionController {
 
       console.log("✅ Inserted quiz result:", quizResult);
 
+      // Map to DTO (camelCase)
+      const attemptDTO = mapQuizAttemptToDTO(quizResult);
+
       // Return result with grading details
       res.status(201).json({
         success: true,
         data: {
-          id: quizResult.id,
-          score: gradingResult.score,
-          totalScore: gradingResult.totalScore,
+          ...attemptDTO,
           percentage: Math.round(percentage * 100) / 100,
-          passed: gradingResult.passed,
-          submittedAt: quizResult.submitted_at,
           details: gradingResult.details, // Include question-by-question breakdown
         },
       });
@@ -204,6 +204,7 @@ export class QuizSubmissionController {
       console.log("\n📤 Final response details:");
       console.log(JSON.stringify(detailsWithQuestionInfo, null, 2));
 
+      // Map to camelCase response
       res.json({
         success: true,
         data: {
@@ -217,7 +218,16 @@ export class QuizSubmissionController {
           percentage: gradingResult.percentage,
           passed: result.passed,
           submittedAt: result.submitted_at,
-          details: detailsWithQuestionInfo,
+          details: detailsWithQuestionInfo.map((d: any) => ({
+            questionId: d.questionId,
+            questionText: d.question_text,
+            userAnswer: d.userAnswer,
+            correctAnswer: d.correctAnswer,
+            isCorrect: d.isCorrect,
+            points: d.points,
+            maxPoints: d.maxPoints,
+            explanation: d.explanation
+          })),
         },
       });
     } catch (error) {
@@ -250,11 +260,19 @@ export class QuizSubmissionController {
 
       if (error) throw error;
 
-      // Calculate percentage for display
+      // Calculate percentage and map to camelCase
       const resultsWithPercentage = results?.map((r) => ({
-        ...r,
+        id: r.id,
+        userId: r.user_id,
+        quizId: r.quiz_id,
+        quizTitle: r.quiz?.title,
+        quizDescription: r.quiz?.description,
+        score: r.score,
+        totalPoints: r.total_points,
         percentage:
           r.total_points > 0 ? Math.round((r.score / r.total_points) * 100) : 0,
+        passed: r.passed,
+        submittedAt: r.submitted_at,
       }));
 
       res.json({ success: true, data: resultsWithPercentage });

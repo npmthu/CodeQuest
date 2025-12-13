@@ -1,11 +1,10 @@
 import { supabaseAdmin } from '../config/database';
 import type { Note } from '../models/Note';
-import type { CreateNoteDTO, UpdateNoteDTO } from '../dtos/note.dto';
 
 /**
  * List notes for a user
  */
-export async function listNotes(userId: string, limit = 100): Promise<any[]> {
+export async function listNotes(userId: string, limit = 100): Promise<Note[]> {
   const { data: notes, error } = await supabaseAdmin
     .from('notes')
     .select('*')
@@ -18,7 +17,7 @@ export async function listNotes(userId: string, limit = 100): Promise<any[]> {
     throw error;
   }
 
-  return notes || [];
+  return (notes || []) as Note[];
 }
 
 /**
@@ -46,18 +45,10 @@ export async function getNote(noteId: string, userId: string): Promise<Note | nu
 /**
  * Create a new note
  */
-export async function createNote(payload: CreateNoteDTO, userId: string): Promise<Note> {
-  const noteData = {
-    user_id: userId,
-    title: payload.title || 'Untitled Note',
-    content_markdown: payload.contentMarkdown || '',
-    is_private: payload.isPrivate !== undefined ? payload.isPrivate : true,
-    tags: payload.tags || []
-  };
-
+export async function createNote(payload: Partial<Note>): Promise<Note> {
   const { data: note, error } = await supabaseAdmin
     .from('notes')
-    .insert([noteData])
+    .insert([payload])
     .select()
     .single();
 
@@ -72,15 +63,11 @@ export async function createNote(payload: CreateNoteDTO, userId: string): Promis
 /**
  * Update a note
  */
-export async function updateNote(noteId: string, userId: string, updates: UpdateNoteDTO): Promise<Note | null> {
+export async function updateNote(noteId: string, userId: string, updates: Partial<Note>): Promise<Note | null> {
   const updateData: any = { 
+    ...updates,
     updated_at: new Date().toISOString() 
   };
-  
-  if (updates.title !== undefined) updateData.title = updates.title;
-  if (updates.contentMarkdown !== undefined) updateData.content_markdown = updates.contentMarkdown;
-  if (updates.isPrivate !== undefined) updateData.is_private = updates.isPrivate;
-  if (updates.tags !== undefined) updateData.tags = updates.tags;
 
   const { data: note, error } = await supabaseAdmin
     .from('notes')

@@ -3,6 +3,7 @@ import { Request, Response } from "express";
 import quizService from "../services/quizService";
 import { AuthRequest } from "../middleware/auth";
 import { supabaseAdmin } from "../config/database";
+import { mapQuizToDTO, mapQuizToDetailDTO } from "../mappers/quiz.mapper";
 
 export class QuizController {
   /**
@@ -32,11 +33,15 @@ export class QuizController {
 
       if (error) throw error;
 
-      // Process count aggregates - Supabase returns [{count: n}] instead of n
+      // Process count aggregates and map to camelCase
       const processedQuizzes = quizzes?.map((quiz: any) => ({
-        ...quiz,
-        questions: quiz.questions?.[0]?.count || 0,
-        attempts: quiz.attempts?.[0]?.count || 0,
+        ...mapQuizToDTO(quiz),
+        topic: quiz.topic ? {
+          id: quiz.topic.id,
+          name: quiz.topic.name
+        } : undefined,
+        questionCount: quiz.questions?.[0]?.count || 0,
+        attemptCount: quiz.attempts?.[0]?.count || 0,
       }));
 
       res.json({ success: true, data: processedQuizzes });
@@ -54,7 +59,7 @@ export class QuizController {
       const { id } = req.params;
       const user = req.user;
 
-      // Instructors and admins can see correct answers
+      // Always fetch questions, but hide correct answers from learners
       const includeAnswers =
         user?.role === "instructor" || user?.role === "admin";
 
@@ -64,13 +69,18 @@ export class QuizController {
         return res.status(404).json({ error: "Quiz not found" });
       }
 
+      // Always map to DetailDTO (includes questions), service already hides correct answers for learners
+      const quizDTO = quiz.questions 
+        ? mapQuizToDetailDTO(quiz, quiz.questions)
+        : mapQuizToDTO(quiz);
+
       // Check if user has already taken the quiz
       if (user) {
         const hasTaken = await quizService.hasUserTakenQuiz(user.id, id);
-        return res.json({ success: true, data: { ...quiz, hasTaken } });
+        return res.json({ success: true, data: { ...quizDTO, hasTaken } });
       }
 
-      res.json({ success: true, data: quiz });
+      res.json({ success: true, data: quizDTO });
     } catch (error) {
       console.error("Error fetching quiz:", error);
       res.status(500).json({ error: "Failed to fetch quiz" });
@@ -129,7 +139,10 @@ export class QuizController {
         questions,
       });
 
-      res.status(201).json(quiz);
+      // Map response to DTO
+      const quizDTO = mapQuizToDTO(quiz);
+
+      res.status(201).json({ success: true, data: quizDTO });
     } catch (error) {
       console.error("Error creating quiz:", error);
       res.status(500).json({ error: "Failed to create quiz" });

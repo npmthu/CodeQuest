@@ -8,16 +8,30 @@ import {
   CreateForumReplyRequest
 } from '../interfaces/forum.interface';
 import { ApiResponse } from '../interfaces/api.interface';
+import { supabase } from '../../lib/supabaseClient';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE || 'http://localhost:3000/api';
+
+async function getAuthHeaders(): Promise<Record<string, string>> {
+  try {
+    const { data } = await supabase.auth.getSession();
+    const token = data?.session?.access_token;
+    if (token) return { 'Authorization': `Bearer ${token}` };
+  } catch (err) {
+    console.warn('Failed to get auth token:', err);
+  }
+  return {};
+}
 
 export const forumService = {
   /**
    * Lấy danh sách forum posts
    */
   async getPosts(): Promise<ForumPostWithAuthor[]> {
+    const authHeaders = await getAuthHeaders();
     const response = await fetch(`${API_BASE_URL}/forum/posts`, {
-      credentials: 'include'
+      credentials: 'include',
+      headers: authHeaders
     });
     const result: ApiResponse<ForumPostWithAuthor[]> = await response.json();
     
@@ -32,8 +46,10 @@ export const forumService = {
    * Lấy chi tiết một post kèm replies
    */
   async getPostById(postId: string): Promise<ForumPostWithAuthor> {
+    const authHeaders = await getAuthHeaders();
     const response = await fetch(`${API_BASE_URL}/forum/posts/${postId}`, {
-      credentials: 'include'
+      credentials: 'include',
+      headers: authHeaders
     });
     const result: ApiResponse<ForumPostWithAuthor> = await response.json();
     
@@ -48,10 +64,12 @@ export const forumService = {
    * Tạo post mới
    */
   async createPost(data: CreateForumPostRequest): Promise<ForumPost> {
+    const authHeaders = await getAuthHeaders();
     const response = await fetch(`${API_BASE_URL}/forum/posts`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        ...authHeaders
       },
       credentials: 'include',
       body: JSON.stringify(data)
@@ -70,8 +88,10 @@ export const forumService = {
    * Lấy replies của một post
    */
   async getReplies(postId: string): Promise<ForumReplyWithAuthor[]> {
+    const authHeaders = await getAuthHeaders();
     const response = await fetch(`${API_BASE_URL}/forum/posts/${postId}/replies`, {
-      credentials: 'include'
+      credentials: 'include',
+      headers: authHeaders
     });
     const result: ApiResponse<ForumReplyWithAuthor[]> = await response.json();
     
@@ -86,10 +106,12 @@ export const forumService = {
    * Tạo reply mới
    */
   async createReply(postId: string, data: CreateForumReplyRequest): Promise<void> {
+    const authHeaders = await getAuthHeaders();
     const response = await fetch(`${API_BASE_URL}/forum/posts/${postId}/replies`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        ...authHeaders
       },
       credentials: 'include',
       body: JSON.stringify(data)

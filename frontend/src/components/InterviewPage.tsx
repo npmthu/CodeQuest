@@ -19,7 +19,7 @@ import {
 import InterviewRoomPage from "./InterviewRoomPage";
 import InterviewSchedulePage from "./InterviewSchedulePage";
 import { useInterviewSessions } from "../hooks/useApi";
-import type { InterviewSession } from "../interfaces";
+import type { InterviewSessionWithUsers } from "../interfaces";
 
 export default function InterviewPage() {
   const [currentView, setCurrentView] = useState<"dashboard" | "room" | "schedule">("dashboard");
@@ -162,8 +162,8 @@ export default function InterviewPage() {
                     <div className="flex items-start justify-between mb-4">
                       <div>
                         <div className="flex items-center gap-2 mb-2">
-                          <h4>{interview.interview_type === 'coding' ? 'Coding Interview' : 
-                               interview.interview_type === 'system_design' ? 'System Design' : 
+                          <h4>{interview.interviewType === 'coding' ? 'Coding Interview' : 
+                               interview.interviewType === 'system_design' ? 'System Design' : 
                                'Behavioral Interview'}</h4>
                           <Badge className={
                             interview.status === "scheduled" 
@@ -179,21 +179,21 @@ export default function InterviewPage() {
                           )}
                         </div>
                         <p className="text-sm text-muted-foreground">
-                          {interviewer ? `with ${interviewer.display_name}` : 'Interviewer TBA'}
+                          {interviewer ? `with ${interviewer.displayName}` : 'Interviewer TBA'}
                         </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-6 text-sm text-muted-foreground mb-4">
                       <span className="flex items-center gap-1">
                         <Calendar className="w-4 h-4" />
-                        {interview.scheduled_at ? new Date(interview.scheduled_at).toLocaleDateString() : 'Not scheduled'}
+                        {interview.scheduledAt ? new Date(interview.scheduledAt).toLocaleDateString() : 'Not scheduled'}
                       </span>
                       <span className="flex items-center gap-1">
                         <Clock className="w-4 h-4" />
-                        {interview.scheduled_at ? new Date(interview.scheduled_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'TBA'}
+                        {interview.scheduledAt ? new Date(interview.scheduledAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'TBA'}
                       </span>
-                      {interview.duration_min && (
-                        <span>{interview.duration_min} min</span>
+                      {interview.durationMin && (
+                        <span>{interview.durationMin} min</span>
                       )}
                     </div>
                     <div className="flex items-center gap-2">
@@ -266,24 +266,24 @@ export default function InterviewPage() {
                 <Card key={interview.id} className="p-6 hover:shadow-lg transition-all cursor-pointer">
                   <div className="mb-3">
                     <h4 className="text-sm truncate mb-1">
-                      {interview.interview_type === 'coding' ? 'Coding Interview' : 
-                       interview.interview_type === 'system_design' ? 'System Design' : 
+                      {interview.interviewType === 'coding' ? 'Coding Interview' : 
+                       interview.interviewType === 'system_design' ? 'System Design' : 
                        'Behavioral Interview'}
                     </h4>
                     <p className="text-xs text-muted-foreground">
-                      {interview.ended_at ? new Date(interview.ended_at).toLocaleDateString() : 
-                       interview.scheduled_at ? new Date(interview.scheduled_at).toLocaleDateString() : 'N/A'}
+                      {interview.endedAt ? new Date(interview.endedAt).toLocaleDateString() : 
+                       interview.scheduledAt ? new Date(interview.scheduledAt).toLocaleDateString() : 'N/A'}
                     </p>
                   </div>
                   <p className="text-xs text-muted-foreground mb-3">
-                    Interviewer: {interviewer?.display_name || 'N/A'}
+                    Interviewer: {interviewer?.displayName || 'N/A'}
                   </p>
                   {interview.difficulty && (
                     <Badge variant="outline" className="mb-3">{interview.difficulty}</Badge>
                   )}
-                  {interview.duration_min && (
+                  {interview.durationMin && (
                     <p className="text-xs text-muted-foreground mb-3">
-                      Duration: {interview.duration_min} minutes
+                      Duration: {interview.durationMin} minutes
                     </p>
                   )}
                 </Card>

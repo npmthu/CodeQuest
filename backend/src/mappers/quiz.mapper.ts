@@ -80,3 +80,14 @@ export function mapQuizAttemptToResultDTO(
     correctAnswers
   };
 }
+
+// ============= Request Mappers (DTO → DB) =============
+
+export function mapSubmitQuizDTOToEntity(dto: { answers: any[] }, userId: string, quizId: string): any {
+  return {
+    user_id: userId,
+    quiz_id: quizId,
+    answers: dto.answers,
+    started_at: new Date().toISOString()
+  };
+}

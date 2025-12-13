@@ -44,5 +44,8 @@ export interface QuizResult extends QuizAttempt {
 }
 
 export interface SubmitQuizRequest {
-  answers: Record<string, any>;
+  answers: Array<{
+    questionId: string;
+    answer: string;
+  }>;
 }

@@ -1,6 +1,8 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import * as forumService from '../services/forumService';
+import { mapCreateForumPostDTOToEntity, mapCreateForumReplyDTOToEntity } from '../mappers/forum.mapper.request';
+import type { CreateForumPostDTO, CreateForumReplyDTO } from '../dtos/forum.dto';
 
 /**
  * List forum posts
@@ -47,18 +49,22 @@ export const createForumPost = async (req: AuthRequest, res: Response) => {
       return res.status(401).json({ success: false, error: 'Unauthorized' });
     }
 
-    const { title, content_markdown, related_problem_id, tags } = req.body;
+    // Accept camelCase from frontend
+    const createDTO: CreateForumPostDTO = {
+      title: req.body.title,
+      contentMarkdown: req.body.contentMarkdown,
+      relatedProblemId: req.body.relatedProblemId,
+      tags: req.body.tags
+    };
 
-    if (!title || !content_markdown) {
+    if (!createDTO.title || !createDTO.contentMarkdown) {
       return res.status(400).json({ success: false, error: 'Title and content are required' });
     }
 
-    const post = await forumService.createForumPost({
-      title,
-      contentMarkdown: content_markdown,
-      relatedProblemId: related_problem_id,
-      tags
-    }, userId);
+    // Map DTO to DB entity (snake_case)
+    const entityData = mapCreateForumPostDTOToEntity(createDTO, userId);
+
+    const post = await forumService.createForumPost(entityData);
 
     return res.status(201).json({ success: true, data: post });
   } catch (error: any) {
@@ -79,17 +85,22 @@ export const createReply = async (req: AuthRequest, res: Response) => {
     }
 
     const { id: postId } = req.params;
-    const { content_markdown, code_snippet, parent_reply_id } = req.body;
+    
+    // Accept camelCase from frontend
+    const replyDTO: CreateForumReplyDTO = {
+      contentMarkdown: req.body.contentMarkdown,
+      codeSnippet: req.body.codeSnippet,
+      parentReplyId: req.body.parentReplyId
+    };
 
-    if (!content_markdown) {
+    if (!replyDTO.contentMarkdown) {
       return res.status(400).json({ success: false, error: 'Content is required' });
     }
 
-    const reply = await forumService.createReply({
-      contentMarkdown: content_markdown,
-      codeSnippet: code_snippet,
-      parentReplyId: parent_reply_id
-    }, postId, userId);
+    // Map DTO to DB entity (snake_case)
+    const entityData = mapCreateForumReplyDTOToEntity(replyDTO, postId, userId);
+
+    const reply = await forumService.createReply(entityData, postId);
 
     // Increment reply count
     await forumService.incrementReplyCount(postId);
@@ -133,17 +144,20 @@ export const voteForumItem = async (req: AuthRequest, res: Response) => {
       return res.status(401).json({ success: false, error: 'Unauthorized' });
     }
 
-    const { votable_type, votable_id, vote_type } = req.body;
+    // Accept camelCase from frontend
+    const votableType = req.body.votableType;
+    const votableId = req.body.votableId;
+    const voteType = req.body.voteType;
 
-    if (!votable_type || !votable_id || !vote_type) {
+    if (!votableType || !votableId || !voteType) {
       return res.status(400).json({ success: false, error: 'Missing required fields' });
     }
 
     const result = await forumService.voteForumItem(
       userId,
-      votable_type,
-      votable_id,
-      vote_type
+      votableType,
+      votableId,
+      voteType
     );
 
     return res.json({ success: true, message: 'Vote recorded', data: result });

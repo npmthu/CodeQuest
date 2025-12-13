@@ -32,12 +32,14 @@ export async function updateUserHandler(req: AuthRequest, res: Response) {
       return res.status(401).json({ success: false, error: 'Unauthorized' });
     }
 
-    const { display_name, bio, avatar_url, metadata } = req.body;
-    const updatedUser = await userService.updateUser(userId, {
-      displayName: display_name,
-      bio,
-      avatarUrl: avatar_url
-    });
+    // Accept camelCase from frontend
+    const updates = {
+      displayName: req.body.displayName,
+      bio: req.body.bio,
+      avatarUrl: req.body.avatarUrl
+    };
+    
+    const updatedUser = await userService.updateUser(userId, updates);
 
     const userDTO = mapUserToProfileDTO(updatedUser);
     res.json({ success: true, data: userDTO, message: 'Profile updated' });
