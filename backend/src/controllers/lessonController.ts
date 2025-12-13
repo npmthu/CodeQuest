@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import * as lessonService from '../services/lessonService';
+import { mapLessonToDTO, mapLessonWithProgressToDTO } from '../mappers/lesson.mapper';
 
 export async function listLessonsHandler(req: Request, res: Response) {
   try {
@@ -11,7 +12,8 @@ export async function listLessonsHandler(req: Request, res: Response) {
       publishedOnly
     );
 
-    return res.json({ success: true, data: lessons });
+    const lessonsDTO = lessons.map(mapLessonToDTO);
+    return res.json({ success: true, data: lessonsDTO });
   } catch (error: any) {
     return res.status(500).json({ success: false, error: error.message });
   }
@@ -27,14 +29,17 @@ export async function getLessonHandler(req: Request, res: Response) {
 
     // If user is authenticated, also fetch their progress
     const user = (req as any).user;
-    let progress = null;
+    let lessonDTO;
     if (user) {
-      progress = await lessonService.getUserLessonProgress(user.id, req.params.id);
+      const progress = await lessonService.getUserLessonProgress(user.id, req.params.id);
+      lessonDTO = mapLessonWithProgressToDTO(lesson, progress || undefined);
+    } else {
+      lessonDTO = mapLessonToDTO(lesson);
     }
 
     return res.json({ 
       success: true, 
-      data: { lesson, progress } 
+      data: lessonDTO
     });
   } catch (error: any) {
     return res.status(500).json({ success: false, error: error.message });

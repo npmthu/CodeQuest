@@ -2,11 +2,13 @@
 import { Request, Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import * as userService from '../services/userService';
+import { mapUserToDTO, mapUserToProfileDTO } from '../mappers/user.mapper';
 
 export async function listUsers(req: Request, res: Response) {
   try {
     const users = await userService.listUsers();
-    res.json({ success: true, data: users });
+    const usersDTO = users.map(mapUserToDTO);
+    res.json({ success: true, data: usersDTO });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -16,7 +18,8 @@ export async function getUserHandler(req: Request, res: Response) {
   try {
     const user = await userService.getUser(req.params.id);
     if (!user) return res.status(404).json({ success: false, error: 'User not found' });
-    res.json({ success: true, data: user });
+    const userDTO = mapUserToProfileDTO(user);
+    res.json({ success: true, data: userDTO });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -37,7 +40,8 @@ export async function updateUserHandler(req: AuthRequest, res: Response) {
       metadata
     });
 
-    res.json({ success: true, data: updatedUser, message: 'Profile updated' });
+    const userDTO = mapUserToProfileDTO(updatedUser);
+    res.json({ success: true, data: userDTO, message: 'Profile updated' });
   } catch (err: any) {
     console.error('Update user error:', err);
     res.status(500).json({ success: false, error: err.message });
