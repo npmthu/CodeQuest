@@ -1,4 +1,4 @@
-// Quiz routes - /api/quiz/*
+// Quiz routes - /api/quizzes/*
 import { Router } from "express";
 import quizController from "../controllers/quizController";
 import quizSubmissionController from "../controllers/quizSubmissionController";

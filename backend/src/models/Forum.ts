@@ -63,27 +63,3 @@ export interface ForumVote {
   vote_type: 'upvote' | 'downvote';
   created_at: string;
 }
-
-// DTOs
-export interface CreateForumPostDTO {
-  author_id: string;
-  title: string;
-  content_markdown: string;
-  related_problem_id?: string;
-  tags?: string[];
-}
-
-export interface CreateReplyDTO {
-  post_id: string;
-  author_id: string;
-  content_markdown: string;
-  code_snippet?: string;
-  parent_reply_id?: string;
-}
-
-export interface VoteDTO {
-  user_id: string;
-  votable_type: 'post' | 'reply';
-  votable_id: string;
-  vote_type: 'upvote' | 'downvote';
-}

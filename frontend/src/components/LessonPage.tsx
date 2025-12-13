@@ -12,29 +12,19 @@ import {
   FileText,
   Clock
 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-import { useApi } from "../api/ApiProvider";
 import { useNavigate, useParams } from "react-router-dom";
-import type { Lesson, LessonWithProgress } from "../types";
+import { useLessons } from "../hooks/useApi";
+import type { Lesson, LessonWithProgress } from "../interfaces";
 
 export default function LessonPage() {
   const navigate = useNavigate();
   const { topicId, courseId } = useParams<{ topicId: string; courseId?: string }>();
-  const api = useApi();
 
-  // Fetch lessons for this topic
-  const { data: lessonsData, isLoading } = useQuery({
-    queryKey: ['lessons', topicId],
-    queryFn: async () => {
-      const params = topicId ? `?topicId=${topicId}` : '';
-      const response = await api.get(`/lessons${params}`);
-      return response.data;
-    },
-    enabled: !!topicId
-  });
+  // Fetch lessons for this topic using the hook
+  const { data: lessonsData, isLoading } = useLessons(topicId);
 
   const lessons: LessonWithProgress[] = lessonsData || [];
-  const completedLessons = lessons.filter((l) => l.is_completed).length;
+  const completedLessons = lessons.filter((l) => l.isCompleted).length;
   const progressPercent = lessons.length > 0 ? (completedLessons / lessons.length) * 100 : 0;
 
   if (isLoading) {
@@ -95,7 +85,7 @@ export default function LessonPage() {
           <div className="lg:col-span-2 space-y-4">
             <h3 className="mb-4">Course Content</h3>
             {lessons.map((lesson) => {
-              const isCompleted = lesson.is_completed;
+              const isCompleted = lesson.isCompleted;
               const isCurrent = false; // TODO: Track current lesson
 
               const getLessonIcon = () => {
@@ -134,10 +124,10 @@ export default function LessonPage() {
                                 {lesson.difficulty}
                               </Badge>
                             )}
-                            {lesson.estimated_time && (
+                            {lesson.estimatedTimeMin && (
                               <span className="text-sm text-muted-foreground flex items-center gap-1">
                                 <Clock className="w-3 h-3" />
-                                {lesson.estimated_time}
+                                {lesson.estimatedTimeMin}
                               </span>
                             )}
                           </div>

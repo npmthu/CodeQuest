@@ -1,5 +1,6 @@
 import { supabaseAdmin } from '../config/database';
-import type { ForumPost, ForumReply, CreateForumPostDTO, CreateReplyDTO, VoteDTO } from '../models/Forum';
+import type { ForumPost, ForumReply } from '../models/Forum';
+import type { CreateForumPostDTO, CreateForumReplyDTO, VoteDTO } from '../dtos/forum.dto';
 
 /**
  * List forum posts with author and problem details
@@ -102,10 +103,16 @@ export async function getForumPost(id: string): Promise<any | null> {
 /**
  * Create a new forum post
  */
-export async function createForumPost(payload: CreateForumPostDTO): Promise<ForumPost> {
+export async function createForumPost(payload: CreateForumPostDTO, authorId: string): Promise<ForumPost> {
   const { data: post, error } = await supabaseAdmin
     .from('forum_posts')
-    .insert([payload])
+    .insert([{
+      author_id: authorId,
+      title: payload.title,
+      content_markdown: payload.contentMarkdown,
+      related_problem_id: payload.relatedProblemId,
+      tags: payload.tags
+    }])
     .select()
     .single();
 
@@ -120,10 +127,16 @@ export async function createForumPost(payload: CreateForumPostDTO): Promise<Foru
 /**
  * Create a reply to a forum post
  */
-export async function createReply(payload: CreateReplyDTO): Promise<ForumReply> {
+export async function createReply(payload: CreateForumReplyDTO, postId: string, authorId: string): Promise<ForumReply> {
   const { data: reply, error } = await supabaseAdmin
     .from('forum_replies')
-    .insert([payload])
+    .insert([{
+      post_id: postId,
+      author_id: authorId,
+      content_markdown: payload.contentMarkdown,
+      code_snippet: payload.codeSnippet,
+      parent_reply_id: payload.parentReplyId
+    }])
     .select()
     .single();
 

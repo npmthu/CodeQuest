@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuiz, useQuizResults, useQuizStatistics } from "../hooks/useApi";
 import { QuizTake } from "./quiz/QuizTake";
 import { useAuth } from "../contexts/AuthContext";
+import type { QuizDetail } from "../interfaces/quiz.interface";
 
 export default function QuizDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -49,17 +50,10 @@ export default function QuizDetailPage() {
   if (showTake) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <QuizTake quiz={quiz} />
+        <QuizTake quiz={quiz as QuizDetail} />
       </div>
     );
   }
-
-  // Handle both number (from list) and array (from detail) formats
-  const questionCount = typeof quiz.questions === 'number'
-    ? quiz.questions
-    : Array.isArray(quiz.questions)
-    ? quiz.questions.length
-    : 0;
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -96,30 +90,22 @@ export default function QuizDetailPage() {
             <p className="text-gray-700 text-lg mb-6">{quiz.description}</p>
           )}
 
-          {quiz.topic && (
-            <div className="mb-6">
-              <span className="inline-flex items-center px-3 py-1 bg-blue-50 text-blue-700 text-sm rounded">
-                Topic: {quiz.topic.name}
-              </span>
-            </div>
-          )}
-
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <div className="text-center p-4 bg-gray-50 rounded-lg">
               <div className="text-3xl font-bold text-gray-900">
-                {questionCount}
+                {(quiz as QuizDetail).questionCount || 0}
               </div>
               <div className="text-sm text-gray-600">Questions</div>
             </div>
             <div className="text-center p-4 bg-gray-50 rounded-lg">
               <div className="text-3xl font-bold text-gray-900">
-                {quiz.time_limit_min}
+                {quiz.timeLimitMin || 'N/A'}
               </div>
               <div className="text-sm text-gray-600">Minutes</div>
             </div>
             <div className="text-center p-4 bg-gray-50 rounded-lg">
               <div className="text-3xl font-bold text-gray-900">
-                {quiz.passing_score}%
+                {quiz.passingScore}%
               </div>
               <div className="text-sm text-gray-600">To Pass</div>
             </div>
@@ -133,7 +119,7 @@ export default function QuizDetailPage() {
 
           {/* Action buttons */}
           <div className="flex gap-4">
-            {quiz.hasTaken ? (
+            {results && results.length > 0 ? (
               <div className="flex-grow">
                 <div className="p-4 bg-green-50 border border-green-200 rounded-lg text-center">
                   <p className="text-green-800 font-semibold">
@@ -211,10 +197,10 @@ export default function QuizDetailPage() {
           <h3 className="font-bold text-blue-900 mb-3">📋 Instructions</h3>
           <ul className="space-y-2 text-blue-800">
             <li>
-              • You have {quiz.time_limit_min} minutes to complete this quiz
+              • You have {quiz.timeLimitMin || 30} minutes to complete this quiz
             </li>
             <li>• The quiz will auto-submit when time runs out</li>
-            <li>• You need {quiz.passing_score}% or higher to pass</li>
+            <li>• You need {quiz.passingScore}% or higher to pass</li>
             <li>• Each quiz can only be taken once</li>
             <li>• Make sure you have a stable internet connection</li>
           </ul>

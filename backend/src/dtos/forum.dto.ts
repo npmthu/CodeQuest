@@ -1,5 +1,7 @@
 // Forum DTOs - Contract giữa backend và frontend
 
+import { ProblemSummaryDTO } from './problem.dto';
+
 export interface ForumPostDTO {
   id: string;
   authorId: string;
@@ -43,13 +45,6 @@ export interface AuthorDTO {
   avatarUrl?: string;
   reputation: number;
   level?: string;
-}
-
-export interface ProblemSummaryDTO {
-  id: string;
-  title: string;
-  slug: string;
-  difficulty: number;
 }
 
 export interface CreateForumPostDTO {

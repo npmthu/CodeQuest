@@ -114,11 +114,11 @@ export const updateInterviewSession = async (req: AuthRequest, res: Response) =>
     }
 
     const { id } = req.params;
-    const { status, workspace_data } = req.body;
+    const { status, workspaceData } = req.body;
 
     const session = await interviewService.updateInterviewSession(id, {
       status,
-      workspace_data
+      workspaceData
     });
 
     return res.json({ success: true, data: session });
@@ -155,15 +155,15 @@ export const submitInterviewFeedback = async (req: AuthRequest, res: Response) =
     }
 
     const feedback = await interviewService.submitInterviewFeedback({
-      session_id: sessionId,
-      from_user_id: userId,
-      to_user_id,
-      overall_rating,
-      communication_rating,
-      problem_solving_rating,
-      technical_knowledge_rating,
-      feedback_text,
-      recommended_topics
+      sessionId,
+      fromUserId: userId,
+      toUserId: to_user_id,
+      overallRating: overall_rating,
+      communicationRating: communication_rating,
+      problemSolvingRating: problem_solving_rating,
+      technicalKnowledgeRating: technical_knowledge_rating,
+      feedbackText: feedback_text,
+      recommendedTopics: recommended_topics
     });
 
     return res.status(201).json({ success: true, data: feedback });

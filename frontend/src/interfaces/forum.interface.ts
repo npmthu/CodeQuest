@@ -1,5 +1,7 @@
 // Frontend Forum Interfaces - Mirror của backend DTOs
 
+import { ProblemSummary } from "./problem.interface";
+
 export interface ForumPost {
   id: string;
   authorId: string;
@@ -43,13 +45,6 @@ export interface Author {
   avatarUrl?: string;
   reputation: number;
   level?: string;
-}
-
-export interface ProblemSummary {
-  id: string;
-  title: string;
-  slug: string;
-  difficulty: number;
 }
 
 export interface CreateForumPostRequest {

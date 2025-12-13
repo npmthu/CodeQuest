@@ -9,8 +9,8 @@ import {
   ForumReplyDTO,
   ForumReplyWithAuthorDTO,
   AuthorDTO,
-  ProblemSummaryDTO
 } from '../dtos/forum.dto';
+import { mapProblemToSummaryDTO } from './problem.mapper';
 
 export function mapForumPostToDTO(post: ForumPost): ForumPostDTO {
   return {
@@ -73,14 +73,5 @@ export function mapUserToAuthorDTO(user: User): AuthorDTO {
     avatarUrl: user.avatar_url,
     reputation: user.reputation || 0,
     level: user.level
-  };
-}
-
-export function mapProblemToSummaryDTO(problem: Problem): ProblemSummaryDTO {
-  return {
-    id: problem.id,
-    title: problem.title,
-    slug: problem.slug,
-    difficulty: problem.difficulty
   };
 }

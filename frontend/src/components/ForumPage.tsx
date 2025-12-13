@@ -38,7 +38,7 @@ import {
   useDeleteForumPost
 } from "../hooks/useApi";
 import { useAuth } from "../contexts/AuthContext";
-import type { ForumPostWithAuthor } from "../types";
+import type { ForumPostWithAuthor } from "../interfaces";
 import ForumPostDetail from "./ForumPostDetail";
 
 export default function ForumPage() {
@@ -265,12 +265,12 @@ export default function ForumPage() {
               <div className="flex gap-4">
                 {/* Avatar */}
                 <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                  {typeof post.author === 'object' && post.author?.avatar_url ? (
-                    <img src={post.author.avatar_url} alt="" className="w-12 h-12 rounded-full object-cover" />
+                  {typeof post.author === 'object' && post.author?.avatarUrl ? (
+                    <img src={post.author.avatarUrl} alt="" className="w-12 h-12 rounded-full object-cover" />
                   ) : (
                     <span className="text-blue-600 font-bold">
                       {typeof post.author === 'object' 
-                        ? post.author?.display_name?.substring(0, 2).toUpperCase() || 'U'
+                        ? post.author?.displayName?.substring(0, 2).toUpperCase() || 'U'
                         : 'U'}
                     </span>
                   )}
@@ -282,7 +282,7 @@ export default function ForumPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-2">
                         <h4 className="truncate">{post.title}</h4>
-                        {post.is_pinned && (
+                        {post.isPinned && (
                           <Badge className="bg-orange-100 text-orange-700 flex items-center gap-1">
                             <TrendingUp className="w-3 h-3" />
                             Pinned
@@ -292,13 +292,13 @@ export default function ForumPage() {
                       <div className="flex items-center gap-3 text-sm text-muted-foreground">
                         <span>
                           {typeof post.author === 'object' 
-                            ? post.author?.display_name || 'Anonymous'
+                            ? post.author?.displayName || 'Anonymous'
                             : 'Anonymous'}
                         </span>
                         <span>•</span>
                         <span className="flex items-center gap-1">
                           <Clock className="w-3 h-3" />
-                          {new Date(post.created_at).toLocaleDateString()}
+                          {new Date(post.createdAt).toLocaleDateString()}
                         </span>
                       </div>
                     </div>
@@ -317,18 +317,18 @@ export default function ForumPage() {
                   <div className="flex items-center gap-6 mt-4 text-sm text-muted-foreground">
                     <div className="flex items-center gap-2">
                       <MessageSquare className="w-4 h-4" />
-                      <span>{post.reply_count || 0} replies</span>
+                      <span>{post.replyCount || 0} replies</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <ThumbsUp className="w-4 h-4" />
                       <span>{post.upvotes || 0}</span>
                     </div>
-                    {post.has_accepted_answer && (
+                    {post.hasAcceptedAnswer && (
                       <Badge className="bg-green-100 text-green-700">
                         ✓ Answered
                       </Badge>
                     )}
-                    {user?.id === post.author_id && (
+                    {user?.id === post.authorId && (
                       <Button
                         variant="ghost"
                         size="sm"

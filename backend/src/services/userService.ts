@@ -1,9 +1,9 @@
 import { supabaseAdmin } from "../config/database";
 import type {
   User,
-  UserLearningProfile,
-  UpdateUserPayload,
-} from "../models/User";
+  UserLearningProfile
+} from '../models/User';
+import type { UpdateUserDTO } from '../dtos/user.dto';
 
 export async function listUsers(limit = 100) {
   const { data, error } = await supabaseAdmin
@@ -37,7 +37,7 @@ export async function createUser(payload: Partial<User>) {
   return data as User;
 }
 
-export async function updateUser(id: string, patch: UpdateUserPayload) {
+export async function updateUser(id: string, patch: UpdateUserDTO) {
   const { data, error } = await supabaseAdmin
     .from("users")
     .update({

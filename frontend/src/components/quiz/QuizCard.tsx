@@ -1,26 +1,14 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import type { Quiz } from "../../types/quiz";
+import type { Quiz } from "../../interfaces/quiz.interface";
 
 interface QuizCardProps {
   quiz: Quiz;
 }
 
 export function QuizCard({ quiz }: QuizCardProps) {
-  // Backend now returns count as number, not array
-  const questionCount =
-    typeof quiz.questions === "number"
-      ? quiz.questions
-      : Array.isArray(quiz.questions)
-      ? quiz.questions.length
-      : 0;
-
-  const attemptCount =
-    typeof quiz.attempts === "number"
-      ? quiz.attempts
-      : Array.isArray(quiz.attempts)
-      ? quiz.attempts.length
-      : 0;
+  // Quiz from the interface doesn't include questions or attempts count in the basic Quiz type
+  // These would be part of QuizDetail if needed
 
   const getDifficultyColor = (difficulty?: string) => {
     switch (difficulty?.toLowerCase()) {
@@ -60,31 +48,19 @@ export function QuizCard({ quiz }: QuizCardProps) {
         <p className="text-gray-600 mb-4 line-clamp-2">{quiz.description}</p>
       )}
 
-      {quiz.topic && (
-        <div className="mb-3">
-          <span className="inline-flex items-center px-2 py-1 bg-blue-50 text-blue-700 text-sm rounded">
-            Topic: {quiz.topic.name}
-          </span>
-        </div>
-      )}
-
       <div className="flex items-center gap-4 text-sm text-gray-500">
-        <span>Duration: {quiz.time_limit_min} min</span>
-        <span>{questionCount} questions</span>
-        <span>Pass: {quiz.passing_score}%</span>
+        {quiz.timeLimitMin && (
+          <span>Duration: {quiz.timeLimitMin} min</span>
+        )}
+        <span>Pass: {quiz.passingScore}%</span>
+        {!quiz.isPublished && (
+          <span className="text-orange-600 font-medium">Draft</span>
+        )}
       </div>
 
-      {attemptCount > 0 && (
+      {quiz.createdAt && (
         <div className="mt-3 text-sm text-gray-500">
-          {attemptCount} attempt{attemptCount !== 1 ? "s" : ""}
-        </div>
-      )}
-
-      {quiz.hasTaken && (
-        <div className="mt-3">
-          <span className="inline-flex items-center px-2 py-1 bg-green-50 text-green-700 text-sm rounded font-medium">
-            Completed
-          </span>
+          Created: {new Date(quiz.createdAt).toLocaleDateString()}
         </div>
       )}
     </Link>

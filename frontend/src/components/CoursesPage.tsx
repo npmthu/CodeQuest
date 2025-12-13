@@ -1,21 +1,13 @@
 import { Card } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { BookOpen, Clock, Award } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-import { useApi } from "../api/ApiProvider";
 import { useNavigate } from "react-router-dom";
+import { useCourses } from "../hooks/useApi";
 
 export default function CoursesPage() {
   const navigate = useNavigate();
-  const api = useApi();
 
-  const { data: coursesData, isLoading } = useQuery({
-    queryKey: ['courses'],
-    queryFn: async () => {
-      const response = await api.get('/courses');
-      return response.data;
-    }
-  });
+  const { data: coursesData, isLoading } = useCourses();
 
   const courses = coursesData || [];
 

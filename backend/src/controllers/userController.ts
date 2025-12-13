@@ -34,10 +34,9 @@ export async function updateUserHandler(req: AuthRequest, res: Response) {
 
     const { display_name, bio, avatar_url, metadata } = req.body;
     const updatedUser = await userService.updateUser(userId, {
-      display_name,
+      displayName: display_name,
       bio,
-      avatar_url,
-      metadata
+      avatarUrl: avatar_url
     });
 
     const userDTO = mapUserToProfileDTO(updatedUser);

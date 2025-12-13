@@ -60,12 +60,11 @@ export const createNote = async (req: AuthRequest, res: Response) => {
     const { title, content_markdown, is_private, tags } = req.body;
 
     const note = await notesService.createNote({
-      user_id: userId,
       title,
-      content_markdown,
-      is_private,
+      contentMarkdown: content_markdown,
+      isPrivate: is_private,
       tags
-    });
+    }, userId);
 
     return res.status(201).json({ success: true, data: note });
   } catch (error: any) {
@@ -86,12 +85,12 @@ export const updateNote = async (req: AuthRequest, res: Response) => {
     }
 
     const { id } = req.params;
-    const { title, content_markdown, is_private, tags } = req.body;
+    const { title, contentMarkdown, isPrivate, tags } = req.body;
 
     const note = await notesService.updateNote(id, userId, {
       title,
-      content_markdown,
-      is_private,
+      contentMarkdown,
+      isPrivate,
       tags
     });
 

@@ -8,3 +8,4 @@ export * from './submission.interface';
 export * from './quiz.interface';
 export * from './topic.interface';
 export * from './forum.interface';
+export * from './testcase.interface';

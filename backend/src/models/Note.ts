@@ -11,18 +11,3 @@ export interface Note {
   updated_at: string;
 }
 
-// DTOs
-export interface CreateNoteDTO {
-  user_id: string;
-  title?: string;
-  content_markdown?: string;
-  is_private?: boolean;
-  tags?: string[];
-}
-
-export interface UpdateNoteDTO {
-  title?: string;
-  content_markdown?: string;
-  is_private?: boolean;
-  tags?: string[];
-}

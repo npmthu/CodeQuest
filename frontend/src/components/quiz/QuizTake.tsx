@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import type { Quiz, QuizQuestion, AnswerSubmission } from "../../types/quiz";
+import type { QuizDetail, QuizQuestion, SubmitQuizRequest } from "../../interfaces/quiz.interface";
 import { useSubmitQuiz } from "../../hooks/useApi";
 
 interface QuizTakeProps {
-  quiz: Quiz;
+  quiz: QuizDetail;
 }
 
 export function QuizTake({ quiz }: QuizTakeProps) {
   const navigate = useNavigate();
-  const [answers, setAnswers] = useState<Record<string, string>>({});
-  const [timeLeft, setTimeLeft] = useState(quiz.time_limit_min * 60); // seconds
+  const [answers, setAnswers] = useState<Record<string, any>>({});
+  const [timeLeft, setTimeLeft] = useState((quiz.timeLimitMin || 30) * 60); // seconds
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const submitMutation = useSubmitQuiz(quiz.id);
@@ -56,16 +56,13 @@ export function QuizTake({ quiz }: QuizTakeProps) {
     setIsSubmitting(true);
 
     try {
-      const submission: AnswerSubmission[] = Object.entries(answers).map(
-        ([questionId, answer]) => ({
-          questionId,
-          answer: String(answer || ""), // Ensure answer is always a string
-        })
-      );
+      const submission: SubmitQuizRequest = {
+        answers: answers
+      };
 
       console.log("Submitting answers:", submission);
 
-      const result = await submitMutation.mutateAsync(submission);
+      const result = await submitMutation.mutateAsync([submission]);
 
       console.log("Submit result:", result);
 
@@ -77,8 +74,8 @@ export function QuizTake({ quiz }: QuizTakeProps) {
     }
   };
 
-  const progress = quiz.questions
-    ? (Object.keys(answers).length / quiz.questions.length) * 100
+  const progress = quiz.questionCount
+    ? (Object.keys(answers).length / quiz.questionCount) * 100
     : 0;
 
   return (
@@ -103,7 +100,7 @@ export function QuizTake({ quiz }: QuizTakeProps) {
           />
         </div>
         <p className="text-sm text-gray-600 mt-2">
-          {Object.keys(answers).length} / {quiz.questions?.length || 0}{" "}
+          {Object.keys(answers).length} / {quiz.questionCount}{" "}
           questions answered
         </p>
       </div>
@@ -165,13 +162,13 @@ function QuestionCard({
 
         <div className="flex-grow">
           <h3 className="text-lg font-semibold mb-4 text-gray-900">
-            {question.question_text}
+            {question.questionText}
             <span className="ml-2 text-sm text-gray-500">
               ({question.points} points)
             </span>
           </h3>
 
-          {question.question_type === "multiple_choice" && (
+          {question.questionType === "multiple_choice" && (
             <div className="space-y-2">
               {options.map((option: any, idx: number) => {
                 const optionText =
@@ -208,7 +205,7 @@ function QuestionCard({
             </div>
           )}
 
-          {question.question_type === "true_false" && (
+          {question.questionType === "true_false" && (
             <div className="space-y-2">
               {["True", "False"].map((option) => (
                 <label
@@ -233,7 +230,7 @@ function QuestionCard({
             </div>
           )}
 
-          {question.question_type === "short_answer" && (
+          {question.questionType === "short_answer" && (
             <input
               type="text"
               value={answer || ""}

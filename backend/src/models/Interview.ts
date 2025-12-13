@@ -47,33 +47,3 @@ export interface InterviewFeedback {
   recommended_topics?: string[];
   created_at: string;
 }
-
-// DTOs
-export interface CreateInterviewSessionDTO {
-  interviewee_id: string;
-  interviewer_id?: string;
-  interview_type: 'behavioral' | 'technical' | 'system_design' | 'coding' | 'mock';
-  difficulty: 'easy' | 'medium' | 'hard';
-  scheduled_at?: string;
-  duration_min?: number;
-  communication_mode?: 'video' | 'audio' | 'text';
-}
-
-export interface UpdateInterviewSessionDTO {
-  status?: 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
-  workspace_data?: any;
-  started_at?: string;
-  ended_at?: string;
-}
-
-export interface CreateInterviewFeedbackDTO {
-  session_id: string;
-  from_user_id: string;
-  to_user_id: string;
-  overall_rating: number;
-  communication_rating?: number;
-  problem_solving_rating?: number;
-  technical_knowledge_rating?: number;
-  feedback_text?: string;
-  recommended_topics?: string[];
-}

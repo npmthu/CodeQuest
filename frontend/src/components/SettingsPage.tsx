@@ -7,7 +7,7 @@ import { Switch } from "./ui/switch";
 import { Badge } from "./ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { useAuth } from "../contexts/AuthContext";
-import { useApi } from "../api/ApiProvider";
+import { useUpdateUserProfile } from "../hooks/useApi";
 import { 
   User, 
   Bell, 
@@ -19,14 +19,13 @@ import {
 
 export default function SettingsPage() {
   const { user, profile, loading } = useAuth();
-  const api = useApi();
+  const updateProfileMutation = useUpdateUserProfile();
   const [displayName, setDisplayName] = useState(profile?.display_name || '');
   const [bio, setBio] = useState(profile?.bio || '');
   const [location, setLocation] = useState('');
   const [githubUrl, setGithubUrl] = useState('');
   const [linkedinUrl, setLinkedinUrl] = useState('');
   const [websiteUrl, setWebsiteUrl] = useState('');
-  const [isSaving, setIsSaving] = useState(false);
 
   if (loading) {
     return (
@@ -38,18 +37,14 @@ export default function SettingsPage() {
 
   const handleSaveProfile = async () => {
     try {
-      setIsSaving(true);
-      await api.patch('/users/me', {
+      await updateProfileMutation.mutateAsync({
         display_name: displayName,
         bio: bio,
-        // Add other fields as needed
       });
       alert('Profile updated successfully!');
     } catch (error) {
       console.error('Error saving profile:', error);
       alert('Failed to save profile');
-    } finally {
-      setIsSaving(false);
     }
   };
 
@@ -127,9 +122,9 @@ export default function SettingsPage() {
               <Button 
                 className="bg-blue-600 hover:bg-blue-700" 
                 onClick={handleSaveProfile}
-                disabled={isSaving}
+                disabled={updateProfileMutation.isPending}
               >
-                {isSaving ? 'Saving...' : 'Save Changes'}
+                {updateProfileMutation.isPending ? 'Saving...' : 'Save Changes'}
               </Button>
             </div>
           </Card>
@@ -170,9 +165,9 @@ export default function SettingsPage() {
               <Button 
                 className="bg-blue-600 hover:bg-blue-700"
                 onClick={handleSaveProfile}
-                disabled={isSaving}
+                disabled={updateProfileMutation.isPending}
               >
-                {isSaving ? 'Saving...' : 'Save Links'}
+                {updateProfileMutation.isPending ? 'Saving...' : 'Save Links'}
               </Button>
             </div>
           </Card>

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useApi } from "../api/ApiProvider";
+import { useProblems, useProblem } from "../hooks/useApi";
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
@@ -26,7 +27,7 @@ import type {
   ProblemSummary, 
   Language, 
   TestCase 
-} from "../types";
+} from "../interfaces";
 
 // ---------- Component Props ----------
 interface CodeEditorProps {
@@ -40,8 +41,7 @@ const difficultyColor = (d: number) => (d === 1 ? "green" : d === 2 ? "yellow" :
 // ---------- Component ----------
 export default function CodeEditor({ apiBase }: CodeEditorProps) {
   const navigate = useNavigate();
-  const [problemList, setProblemList] = useState<ProblemSummary[]>([]);
-  const [problem, setProblem] = useState<Problem | null>(null);
+  const [selectedProblemId, setSelectedProblemId] = useState<string | null>(null);
 
   // derive effective API base: prop override -> Vite env -> default
   const effectiveApiBase: string =
@@ -50,12 +50,13 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
   const [language, setLanguage] = useState<Language>({
     id: 'python',
     name: 'python',
+    version: '3.x',
+    isEnabled: true,
     file_extension: '.py',
     run_command: 'python3'
   });
   const [code, setCode] = useState("");
 
-  const [loadingProblem, setLoadingProblem] = useState(false);
   const [loadingAction, setLoadingAction] = useState(false); // run/submit
   const [error, setError] = useState<string | null>(null);
 
@@ -66,77 +67,41 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
   // submission polling
   const pollRef = useRef<number | null>(null);
 
-  // API client
-  const { get, post, apiBase: clientApiBase } = useApi();
+  // API client for submission (still needed for complex operations)
+  const { get, post } = useApi();
 
-  // Fetch problems list and first problem detail on mount
+  // Fetch problems list using hook
+  const { data: problemList = [], isLoading: loadingProblems } = useProblems();
+  
+  // Fetch selected problem detail using hook
+  const { data: problem, isLoading: loadingProblem } = useProblem(selectedProblemId || '');
+
+  // Select first problem on mount
   useEffect(() => {
-    let mounted = true;
-
-    async function loadProblems() {
-      setLoadingProblem(true);
-      setError(null);
-      try {
-        const json = await get("/problems");
-        const data: ProblemSummary[] = json.data || [];
-        if (!mounted) return;
-        setProblemList(data);
-        if (data.length > 0) {
-          await loadProblemDetail(data[1].id);
-        }
-      } catch (err: any) {
-        console.error(err);
-        if (!mounted) return;
-        setError(err.message || "Unknown error fetching problems");
-      } finally {
-        if (mounted) setLoadingProblem(false);
-      }
+    if (problemList && problemList.length > 0 && !selectedProblemId) {
+      setSelectedProblemId(problemList[0].id);
     }
+  }, [problemList, selectedProblemId]);
 
-    async function loadProblemDetail(id: string) {
-      setLoadingProblem(true);
-      setError(null);
-      try {
-        const json = await get(`/problems/${id}`);
-        const p: Problem = json.data;
-        setProblem(p);
-        // set starter code for current language
-        setCode(p.starter_code?.[language.name] ?? "");
-        // initialize test case states
-        const tstates: Record<number, "not_run" | "running" | "passed" | "failed"> = {};
-        (p.sample_test_cases || []).forEach((_, i) => (tstates[i] = "not_run"));
-        setTestCaseStates(tstates);
-      } catch (err: any) {
-        console.error(err);
-        setError(err.message || "Unknown error fetching problem detail");
-      } finally {
-        setLoadingProblem(false);
-      }
-    }
-
-    loadProblems();
-
-    return () => {
-      mounted = false;
-      if (pollRef.current) window.clearInterval(pollRef.current);
-    };
-  }, [effectiveApiBase]);
-
-  // when language changes, update starter code (but only if user hasn't typed anything? we override always per requirement)
+  // Update code when problem or language changes
   useEffect(() => {
     if (problem) {
-      setCode(problem.starter_code?.[language.name] ?? "");
+      setCode(problem.starterCode?.[language.name] ?? "");
+      // initialize test case states
+      const tstates: Record<number, "not_run" | "running" | "passed" | "failed"> = {};
+      (problem.sampleTestCases || []).forEach((_: any, i: any) => (tstates[i] = "not_run"));
+      setTestCaseStates(tstates);
     }
-  }, [language, problem]);
+  }, [problem, language]);
 
   // Reset handler
   const handleReset = () => {
     if (!problem) return;
-    setCode(problem.starter_code?.[language.name] ?? "");
+    setCode(problem.starterCode?.[language.name] ?? "");
     setOutput("");
     // reset testcase states
     const tstates: Record<number, "not_run" | "running" | "passed" | "failed"> = {};
-    (problem.sample_test_cases || []).forEach((_, i) => (tstates[i] = "not_run"));
+    (problem.sampleTestCases || []).forEach((_: any, i: any) => (tstates[i] = "not_run"));
     setTestCaseStates(tstates);
     setAiReview(null);
     setError(null);
@@ -230,7 +195,7 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
             setOutput(`Submission ${submissionId} status: ${pdata?.status ?? "pending"}`);
             // optionally mark testcase states as running
             const tstates: Record<number, "not_run" | "running"> = {};
-            (problem.sample_test_cases || []).forEach((_, i) => (tstates[i] = "running"));
+            (problem.sampleTestCases || []).forEach((_: any, i: any) => (tstates[i] = "running"));
             setTestCaseStates((s) => ({ ...s, ...tstates }));
           }
         } catch (err: any) {
@@ -254,7 +219,7 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
   };
 
   // UI
-  if (loadingProblem && !problem)
+  if ((loadingProblems || loadingProblem) && !problem)
     return (
       <div className="h-screen flex items-center justify-center">
         <div className="flex items-center gap-2">
@@ -314,6 +279,8 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
                   setLanguage({
                     id: langName,
                     name: langName,
+                    version: '1.0',
+                    isEnabled: true,
                     file_extension: langName === 'python' ? '.py' : langName === 'java' ? '.java' : '.cpp',
                     run_command: langName === 'python' ? 'python3' : langName === 'java' ? 'java' : 'g++'
                   });
@@ -349,35 +316,35 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
               <div className="text-sm text-gray-600">
                 <div className="mb-3">
                   <div className="font-medium">Input format</div>
-                  <div className="text-sm text-gray-500">{problem.input_format ?? "-"}</div>
+                  <div className="text-sm text-gray-500">{problem.inputFormat ?? "-"}</div>
                 </div>
 
                 <div className="mb-3">
                   <div className="font-medium">Output format</div>
-                  <div className="text-sm text-gray-500">{problem.output_format ?? "-"}</div>
+                  <div className="text-sm text-gray-500">{problem.outputFormat ?? "-"}</div>
                 </div>
 
                 <div className="mb-3">
                   <div className="font-medium">Constraints</div>
-                  <div className="text-sm text-gray-500">{problem.time_limit_ms ? `${problem.time_limit_ms} ms` : "-"} • {problem.memory_limit_kb ? `${problem.memory_limit_kb} KB` : "-"}</div>
+                  <div className="text-sm text-gray-500">{problem.timeLimitMs ? `${problem.timeLimitMs} ms` : "-"} • {problem.memoryLimitKb ? `${problem.memoryLimitKb} KB` : "-"}</div>
                 </div>
               </div>
 
               <div className="prose max-w-none text-sm whitespace-pre-wrap">
                 {/* show markdown raw (to avoid adding dependencies). In a real app render markdown to HTML. */}
-                <pre className="whitespace-pre-wrap text-sm">{problem.description_markdown}</pre>
+                <pre className="whitespace-pre-wrap text-sm">{problem.descriptionMarkdown}</pre>
               </div>
 
               <div>
                 <div className="font-medium mb-2">Sample Test Cases</div>
                 <div className="space-y-3">
-                  {(problem.sample_test_cases || []).map((tc:TestCase, idx) => (
+                  {(problem.sampleTestCases || []).map((tc:TestCase, idx: any) => (
                     <Card key={idx} className="p-3 bg-gray-50 border-gray-200">
                       <div className="text-sm">
                         <div className="font-medium">Input</div>
-                        <pre className="whitespace-pre-wrap">{tc.input_encrypted}</pre>
+                        <pre className="whitespace-pre-wrap">{tc.inputEncrypted}</pre>
                         <div className="font-medium">Output</div>
-                        <pre className="whitespace-pre-wrap">{tc.expected_output_encrypted}</pre>
+                        <pre className="whitespace-pre-wrap">{tc.expectedOutputEncrypted}</pre>
                       </div>
                     </Card>
                   ))}
@@ -386,10 +353,10 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
 
               <TabsContent value="hints" className="p-0 m-0">
                 <div className="space-y-3">
-                  {(problem.hints || []).map((h, i) => (
+                  {(problem.hints || []).map((h: any, i: any) => (
                     <Card key={i} className="p-3 bg-blue-50 border-blue-200 flex items-start gap-3">
                       <Lightbulb className="w-5 h-5 text-blue-600 mt-0.5" />
-                      <div className="text-sm">{h.text}</div>
+                      <div className="text-sm">{h.content || h.text}</div>
                     </Card>
                   ))}
                 </div>
@@ -441,7 +408,7 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
 
               <TabsContent value="testcases" className="flex-1 overflow-auto p-6 m-0">
                 <div className="space-y-3">
-                  {(problem.sample_test_cases || []).map((tc:TestCase, i) => {
+                  {(problem.sampleTestCases || []).map((tc:TestCase, i: any) => {
                     const state = testCaseStates[i] ?? "not_run";
                     return (
                       <div
@@ -459,14 +426,14 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
                         </div>
                         <div className="flex-1 text-sm">
                           <div className="font-medium">Test case {i + 1} — {state.replace("_", " ")}</div>
-                          <div className="text-xs text-gray-600 mt-1">Input: <pre className="whitespace-pre-wrap">{tc.input_encrypted}</pre></div>
-                          <div className="text-xs text-gray-600">Expected Output: <pre className="whitespace-pre-wrap">{tc.expected_output_encrypted}</pre></div>
+                          <div className="text-xs text-gray-600 mt-1">Input: <pre className="whitespace-pre-wrap">{tc.inputEncrypted}</pre></div>
+                          <div className="text-xs text-gray-600">Expected Output: <pre className="whitespace-pre-wrap">{tc.expectedOutputEncrypted}</pre></div>
                         </div>
                       </div>
                     );
                   })}
 
-                  {(problem.sample_test_cases || []).length === 0 && <div className="text-sm text-gray-500">No sample test cases.</div>}
+                  {(problem.sampleTestCases || []).length === 0 && <div className="text-sm text-gray-500">No sample test cases.</div>}
                 </div>
               </TabsContent>
 
@@ -494,7 +461,7 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
             </div>
 
             <div className="flex items-center gap-3">
-              <div className="text-sm text-gray-500 mr-2">{problem.time_limit_ms ? `${problem.time_limit_ms} ms` : ""} • {problem.memory_limit_kb ? `${problem.memory_limit_kb} KB` : ""}</div>
+              <div className="text-sm text-gray-500 mr-2">{problem.timeLimitMs ? `${problem.timeLimitMs} ms` : ""} • {problem.memoryLimitKb ? `${problem.memoryLimitKb} KB` : ""}</div>
               <Button className="bg-blue-600 hover:bg-blue-700 text-white" onClick={handleSubmit} disabled={loadingAction}>
                 {loadingAction ? (
                   <>

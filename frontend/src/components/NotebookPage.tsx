@@ -28,7 +28,7 @@ import {
 import { Label } from "./ui/label";
 import NotebookDetailPlaceholder from "./NotebookDetailPlaceholder";
 import { useNotes, useCreateNote } from "../hooks/useApi";
-import type { Note } from "../types";
+import type { Note } from "../interfaces";
 
 export default function NotebookPage() {
   const [selectedNote, setSelectedNote] = useState<string | null>(null);

@@ -1,11 +1,12 @@
 import { supabaseAdmin } from '../config/database';
 import type {
   InterviewSession,
-  InterviewFeedback,
-  CreateInterviewSessionDTO,
+  InterviewFeedback
+} from '../models/Interview';
+import type {
   UpdateInterviewSessionDTO,
   CreateInterviewFeedbackDTO
-} from '../models/Interview';
+} from '../dtos/interview.dto';
 
 /**
  * List interview sessions for a user
@@ -122,7 +123,7 @@ export async function isSessionParticipant(sessionId: string, userId: string): P
 /**
  * Create interview session
  */
-export async function createInterviewSession(payload: CreateInterviewSessionDTO): Promise<InterviewSession> {
+export async function createInterviewSession(payload: any): Promise<InterviewSession> {
   const sessionData = {
     ...payload,
     duration_min: payload.duration_min || 60,
@@ -181,7 +182,17 @@ export async function updateInterviewSession(
 export async function submitInterviewFeedback(payload: CreateInterviewFeedbackDTO): Promise<InterviewFeedback> {
   const { data: feedback, error } = await supabaseAdmin
     .from('interview_feedback')
-    .insert([payload])
+    .insert([{
+      session_id: payload.sessionId,
+      from_user_id: payload.fromUserId,
+      to_user_id: payload.toUserId,
+      overall_rating: payload.overallRating,
+      communication_rating: payload.communicationRating,
+      problem_solving_rating: payload.problemSolvingRating,
+      technical_knowledge_rating: payload.technicalKnowledgeRating,
+      feedback_text: payload.feedbackText,
+      recommended_topics: payload.recommendedTopics
+    }])
     .select()
     .single();
 

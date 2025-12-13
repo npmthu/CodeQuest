@@ -19,7 +19,7 @@ import {
 import InterviewRoomPage from "./InterviewRoomPage";
 import InterviewSchedulePage from "./InterviewSchedulePage";
 import { useInterviewSessions } from "../hooks/useApi";
-import type { InterviewSessionWithUsers } from "../types";
+import type { InterviewSession } from "../interfaces";
 
 export default function InterviewPage() {
   const [currentView, setCurrentView] = useState<"dashboard" | "room" | "schedule">("dashboard");

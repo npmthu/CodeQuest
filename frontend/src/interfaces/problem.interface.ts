@@ -1,5 +1,7 @@
 // Frontend Problem Interfaces - Mirror của backend DTOs
 
+import { Hint, TestCase } from "./testcase.interface";
+
 export interface Problem {
   id: string;
   slug: string;
@@ -17,11 +19,16 @@ export interface Problem {
   totalSubmissions: number;
   totalAccepted: number;
   createdAt?: string;
+  // Additional fields for CodeEditor
+  starterCode?: { [key: string]: string }; // { "python": "...", "javascript": "..." }
+  sampleTestCases?: TestCase[];
+  hints?: Hint[];
+  tags?: string[];
 }
+
 
 export interface ProblemDetail extends Problem {
   editorialMarkdown?: string;
-  sampleTestCases?: TestCase[];
 }
 
 export interface ProblemListItem {
@@ -34,10 +41,9 @@ export interface ProblemListItem {
   userSolved?: boolean;
 }
 
-export interface TestCase {
+export interface ProblemSummary {
   id: string;
-  name?: string;
-  input?: string;
-  expectedOutput?: string;
-  isSample: boolean;
+  slug: string;
+  title: string;
+  difficulty: number;
 }

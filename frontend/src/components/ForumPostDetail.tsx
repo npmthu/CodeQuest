@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { useState, useCallback, memo, useMemo } from "react";
 import { useAuth } from "../contexts/AuthContext";
-import type { ForumPostWithAuthor } from "../types";
+import type { ForumPostWithAuthor } from "../interfaces";
 import { useUserVotes, useVoteForumItem, useCreateForumReply, useDeleteReply, useDeleteForumPost } from "../hooks/useApi";
 
 interface ForumPostDetailProps {
@@ -220,9 +220,9 @@ export default function ForumPostDetail({ post, onBack, onUpdate }: ForumPostDet
   const deletePostMutation = useDeleteForumPost();
 
   const author = typeof post.author === 'object' ? post.author : null;
-  const authorName = author?.display_name || "Anonymous";
-  const authorAvatar = author?.avatar_url;
-  const createdAt = post.created_at ? new Date(post.created_at).toLocaleDateString() : "Unknown";
+  const authorName = author?.displayName || "Anonymous";
+  const authorAvatar = author?.avatarUrl;
+  const createdAt = post.createdAt ? new Date(post.createdAt).toLocaleDateString() : "Unknown";
 
   const handleVote = useCallback(async (votableType: 'post' | 'reply', votableId: string) => {
     if (!user) {
@@ -379,9 +379,9 @@ export default function ForumPostDetail({ post, onBack, onUpdate }: ForumPostDet
           <h2 className="mb-6">{post.title}</h2>
 
           <div className="prose prose-sm max-w-none mb-6">
-            {post.content_markdown ? (
+            {post.contentMarkdown ? (
               <div className="whitespace-pre-wrap text-muted-foreground">
-                {post.content_markdown}
+                {post.contentMarkdown}
               </div>
             ) : (
               <p className="text-muted-foreground italic">No content provided</p>
@@ -395,9 +395,9 @@ export default function ForumPostDetail({ post, onBack, onUpdate }: ForumPostDet
             </div>
             <div className="flex items-center gap-2 text-muted-foreground">
               <MessageSquare className="w-5 h-5" />
-              <span>{post.reply_count ?? 0} replies</span>
+              <span>{post.replyCount ?? 0} replies</span>
             </div>
-            {post.has_accepted_answer && (
+            {post.hasAcceptedAnswer && (
               <Badge className="bg-green-100 text-green-700">✓ Answered</Badge>
             )}
           </div>
@@ -420,7 +420,7 @@ export default function ForumPostDetail({ post, onBack, onUpdate }: ForumPostDet
               <Share2 className="w-4 h-4 mr-2" />
               Share
             </Button>
-            {user?.id === post.author_id && (
+            {user?.id === post.authorId && (
               <Button 
                 variant="outline" 
                 className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
@@ -472,7 +472,7 @@ export default function ForumPostDetail({ post, onBack, onUpdate }: ForumPostDet
         </Card>
 
         <Card className="p-8">
-          <h3 className="mb-6">Replies ({post.reply_count ?? 0})</h3>
+          <h3 className="mb-6">Replies ({post.replyCount ?? 0})</h3>
           
           {topLevelReplies.length > 0 ? (
             <div className="space-y-4">

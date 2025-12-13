@@ -3,7 +3,7 @@
 import { Problem, ProblemDetail, ProblemListItem } from '../interfaces/problem.interface';
 import { ApiResponse } from '../interfaces/api.interface';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE || 'http://localhost:3000/api';
 
 export const problemService = {
   /**

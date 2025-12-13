@@ -54,12 +54,11 @@ export const createForumPost = async (req: AuthRequest, res: Response) => {
     }
 
     const post = await forumService.createForumPost({
-      author_id: userId,
       title,
-      content_markdown,
-      related_problem_id,
+      contentMarkdown: content_markdown,
+      relatedProblemId: related_problem_id,
       tags
-    });
+    }, userId);
 
     return res.status(201).json({ success: true, data: post });
   } catch (error: any) {
@@ -87,12 +86,10 @@ export const createReply = async (req: AuthRequest, res: Response) => {
     }
 
     const reply = await forumService.createReply({
-      post_id: postId,
-      author_id: userId,
-      content_markdown,
-      code_snippet,
-      parent_reply_id
-    });
+      contentMarkdown: content_markdown,
+      codeSnippet: code_snippet,
+      parentReplyId: parent_reply_id
+    }, postId, userId);
 
     // Increment reply count
     await forumService.incrementReplyCount(postId);

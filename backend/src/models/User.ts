@@ -26,10 +26,3 @@ export interface UserLearningProfile {
   last_activity_date?: string;
   updated_at: string;
 }
-
-export interface UpdateUserPayload {
-  display_name?: string;
-  bio?: string;
-  avatar_url?: string;
-  metadata?: Record<string, any>;
-}

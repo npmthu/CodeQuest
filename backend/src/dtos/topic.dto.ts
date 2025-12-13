@@ -1,5 +1,6 @@
 // Topic DTOs - Contract giữa backend và frontend
 
+import { LessonSummaryDTO } from './lesson.dto';
 export interface TopicDTO {
   id: string;
   name: string;
@@ -14,15 +15,6 @@ export interface TopicDTO {
 export interface TopicWithLessonsDTO extends TopicDTO {
   lessons: LessonSummaryDTO[];
   lessonCount: number;
-}
-
-export interface LessonSummaryDTO {
-  id: string;
-  title: string;
-  slug: string;
-  difficulty?: string;
-  estimatedTimeMin?: number;
-  displayOrder: number;
 }
 
 export interface CreateTopicDTO {

@@ -1,22 +1,14 @@
 import { Card } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { ArrowLeft, BookOpen, FileText, Clock } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-import { useApi } from "../api/ApiProvider";
 import { useNavigate, useParams } from "react-router-dom";
+import { useTopics } from "../hooks/useApi";
 
 export default function TopicsPage() {
   const navigate = useNavigate();
   const { courseId } = useParams<{ courseId: string }>();
-  const api = useApi();
 
-  const { data: topicsData, isLoading } = useQuery({
-    queryKey: ['topics', courseId],
-    queryFn: async () => {
-      const response = await api.get('/topics');
-      return response.data;
-    }
-  });
+  const { data: topicsData, isLoading } = useTopics();
 
   // Filter topics by courseId if provided
   const topics = courseId 

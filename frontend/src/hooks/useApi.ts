@@ -1,7 +1,16 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../../lib/supabaseClient";
+import { 
+  topicService, 
+  lessonService, 
+  problemService, 
+  quizService,
+  forumService,
+  submissionService,
+  userService
+} from '../services';
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:3000/api";
+const API_BASE = (import.meta as any).env?.VITE_API_BASE || "http://localhost:3000/api";
 
 // Helper to get auth headers
 async function getAuthHeaders() {
@@ -100,6 +109,7 @@ export function useUserStats() {
   return useQuery({
     queryKey: ["userStats"],
     queryFn: async () => {
+      // Keep using apiFetch for stats as this endpoint might not be in userService yet
       const result = await apiFetch("/users/me/stats");
       return result.data;
     },
@@ -118,6 +128,47 @@ export function useUserProgress() {
   });
 }
 
+// Update User Profile Hook
+export function useUpdateUserProfile() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: {
+      display_name?: string;
+      bio?: string;
+      avatar_url?: string;
+    }) => {
+      return userService.updateProfile(data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["currentUser"] });
+      queryClient.invalidateQueries({ queryKey: ["userStats"] });
+    },
+  });
+}
+
+// Course Hooks
+export function useCourses() {
+  return useQuery({
+    queryKey: ["courses"],
+    queryFn: async () => {
+      const result = await apiFetch("/courses");
+      return result.data;
+    },
+  });
+}
+
+export function useCourse(id: string) {
+  return useQuery({
+    queryKey: ["course", id],
+    queryFn: async () => {
+      const result = await apiFetch(`/courses/${id}`);
+      return result.data;
+    },
+    enabled: !!id,
+  });
+}
+
 // Leaderboard Hook
 export function useLeaderboard(limit: number = 100) {
   return useQuery({
@@ -133,20 +184,14 @@ export function useLeaderboard(limit: number = 100) {
 export function useTopics() {
   return useQuery({
     queryKey: ["topics"],
-    queryFn: async () => {
-      const result = await apiFetch("/topics");
-      return result.data;
-    },
+    queryFn: () => topicService.getTopics(),
   });
 }
 
 export function useTopic(id: string) {
   return useQuery({
     queryKey: ["topic", id],
-    queryFn: async () => {
-      const result = await apiFetch(`/topics/${id}`);
-      return result.data;
-    },
+    queryFn: () => topicService.getTopicById(id),
     enabled: !!id,
   });
 }
@@ -155,21 +200,14 @@ export function useTopic(id: string) {
 export function useLessons(topicId?: string) {
   return useQuery({
     queryKey: ["lessons", topicId],
-    queryFn: async () => {
-      const endpoint = topicId ? `/lessons?topicId=${topicId}` : "/lessons";
-      const result = await apiFetch(endpoint);
-      return result.data;
-    },
+    queryFn: () => lessonService.getLessons(topicId),
   });
 }
 
 export function useLesson(id: string) {
   return useQuery({
     queryKey: ["lesson", id],
-    queryFn: async () => {
-      const result = await apiFetch(`/lessons/${id}`);
-      return result.data;
-    },
+    queryFn: () => lessonService.getLessonById(id),
     enabled: !!id,
   });
 }
@@ -180,16 +218,16 @@ export function useUpdateLessonProgress() {
   return useMutation({
     mutationFn: async ({
       lessonId,
-      isCompleted,
-      progressPercentage,
+      completed,
+      timeSpentSec,
     }: {
       lessonId: string;
-      isCompleted?: boolean;
-      progressPercentage?: number;
+      completed?: boolean;
+      timeSpentSec?: number;
     }) => {
-      return apiFetch(`/lessons/${lessonId}/progress`, {
-        method: "POST",
-        body: JSON.stringify({ isCompleted, progressPercentage }),
+      return lessonService.updateProgress(lessonId, {
+        completed,
+        timeSpentSec,
       });
     },
     onSuccess: () => {
@@ -203,20 +241,14 @@ export function useUpdateLessonProgress() {
 export function useProblems() {
   return useQuery({
     queryKey: ["problems"],
-    queryFn: async () => {
-      const result = await apiFetch("/problems");
-      return result.data;
-    },
+    queryFn: () => problemService.getProblems(),
   });
 }
 
 export function useProblem(id: string) {
   return useQuery({
     queryKey: ["problem", id],
-    queryFn: async () => {
-      const result = await apiFetch(`/problems/${id}`);
-      return result.data;
-    },
+    queryFn: () => problemService.getProblemById(id),
     enabled: !!id,
   });
 }
@@ -231,9 +263,10 @@ export function useSubmitCode() {
       code: string;
       languageId: string;
     }) => {
-      return apiFetch("/submissions", {
-        method: "POST",
-        body: JSON.stringify(payload),
+      return submissionService.createSubmission({
+        problemId: payload.problemId,
+        code: payload.code,
+        languageId: payload.languageId,
       });
     },
     onSuccess: () => {
@@ -246,13 +279,7 @@ export function useSubmitCode() {
 export function useSubmissions(problemId?: string) {
   return useQuery({
     queryKey: ["submissions", problemId],
-    queryFn: async () => {
-      const endpoint = problemId
-        ? `/submissions?problemId=${problemId}`
-        : "/submissions";
-      const result = await apiFetch(endpoint);
-      return result.data;
-    },
+    queryFn: () => submissionService.getUserSubmissions(),
   });
 }
 
@@ -352,20 +379,14 @@ export function useBusinessActivities() {
 export function useForumPosts() {
   return useQuery({
     queryKey: ["forumPosts"],
-    queryFn: async () => {
-      const result = await apiFetch("/forum/posts");
-      return result.data;
-    },
+    queryFn: () => forumService.getPosts(),
   });
 }
 
 export function useForumPost(id: string) {
   return useQuery({
     queryKey: ["forumPost", id],
-    queryFn: async () => {
-      const result = await apiFetch(`/forum/posts/${id}`);
-      return result.data;
-    },
+    queryFn: () => forumService.getPostById(id),
     enabled: !!id,
   });
 }
@@ -390,14 +411,11 @@ export function useCreateForumPost() {
   return useMutation({
     mutationFn: async (payload: {
       title: string;
-      content_markdown: string;
-      related_problem_id?: string;
-      tags?: any;
+      contentMarkdown: string;
+      relatedProblem_id?: string;
+      tags?: string[];
     }) => {
-      return apiFetch("/forum/posts", {
-        method: "POST",
-        body: JSON.stringify(payload),
-      });
+      return forumService.createPost(payload);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["forumPosts"] });
@@ -938,11 +956,7 @@ const QUIZ_KEYS = {
 export function useQuizzes(topicId?: string) {
   return useQuery({
     queryKey: QUIZ_KEYS.list({ topicId }),
-    queryFn: async () => {
-      const url = topicId ? `/quiz?topicId=${topicId}` : "/quiz";
-      const result = await apiFetch(url);
-      return result.data;
-    },
+    queryFn: () => quizService.getQuizzes(topicId),
   });
 }
 
@@ -952,8 +966,7 @@ export function useQuiz(quizId: string | undefined) {
     queryKey: QUIZ_KEYS.detail(quizId || ""),
     queryFn: async () => {
       if (!quizId) throw new Error("Quiz ID required");
-      const result = await apiFetch(`/quiz/${quizId}`);
-      return result.data;
+      return quizService.getQuizById(quizId);
     },
     enabled: !!quizId,
   });
@@ -965,7 +978,7 @@ export function useCreateQuiz() {
 
   return useMutation({
     mutationFn: async (data: any) => {
-      const result = await apiFetch("/quiz", {
+      const result = await apiFetch("/quizzes", {
         method: "POST",
         body: JSON.stringify(data),
       });
@@ -983,7 +996,7 @@ export function useUpdateQuiz(quizId: string) {
 
   return useMutation({
     mutationFn: async (data: any) => {
-      const result = await apiFetch(`/quiz/${quizId}`, {
+      const result = await apiFetch(`/quizzes/${quizId}`, {
         method: "PATCH",
         body: JSON.stringify(data),
       });
@@ -1002,7 +1015,7 @@ export function useDeleteQuiz() {
 
   return useMutation({
     mutationFn: async (quizId: string) => {
-      await apiFetch(`/quiz/${quizId}`, {
+      await apiFetch(`/quizzes/${quizId}`, {
         method: "DELETE",
       });
     },
@@ -1018,11 +1031,7 @@ export function useSubmitQuiz(quizId: string) {
 
   return useMutation({
     mutationFn: async (answers: any[]) => {
-      const result = await apiFetch(`/quiz/${quizId}/submit`, {
-        method: "POST",
-        body: JSON.stringify({ answers }),
-      });
-      return result.data;
+      return quizService.submitQuiz(quizId, { answers });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUIZ_KEYS.detail(quizId) });
@@ -1036,7 +1045,7 @@ export function useQuizResults(quizId: string, enabled: boolean = true) {
   return useQuery({
     queryKey: QUIZ_KEYS.attempts(quizId),
     queryFn: async () => {
-      const result = await apiFetch(`/quiz/${quizId}/results`);
+      const result = await apiFetch(`/quizzes/${quizId}/results`);
       return result.data;
     },
     enabled: enabled && !!quizId,
@@ -1049,7 +1058,7 @@ export function useQuizResult(quizId: string, resultId: string | undefined) {
     queryKey: [...QUIZ_KEYS.attempts(quizId), resultId],
     queryFn: async () => {
       if (!resultId) throw new Error("Result ID required");
-      const result = await apiFetch(`/quiz/${quizId}/result/${resultId}`);
+      const result = await apiFetch(`/quizzes/${quizId}/result/${resultId}`);
       return result.data;
     },
     enabled: !!resultId,
@@ -1061,7 +1070,7 @@ export function useQuizStatistics(quizId: string, enabled: boolean = true) {
   return useQuery({
     queryKey: QUIZ_KEYS.statistics(quizId),
     queryFn: async () => {
-      const result = await apiFetch(`/quiz/${quizId}/statistics`);
+      const result = await apiFetch(`/quizzes/${quizId}/statistics`);
       return result.data;
     },
     enabled: enabled && !!quizId,

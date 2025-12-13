@@ -1,5 +1,7 @@
 // Frontend Submission Interfaces - Mirror của backend DTOs
 
+import { TestCaseResult } from "./testcase.interface";
+
 export interface Submission {
   id: string;
   problemId: string;
@@ -31,16 +33,6 @@ export interface ExecutionSummary {
   failedTests: number;
   executionTimeMs?: number;
   memoryKb?: number;
-}
-
-export interface TestCaseResult {
-  testCaseId?: string;
-  passed: boolean;
-  input?: string;
-  expectedOutput?: string;
-  actualOutput?: string;
-  error?: string;
-  executionTimeMs?: number;
 }
 
 export interface CreateSubmissionRequest {

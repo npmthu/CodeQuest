@@ -31,6 +31,6 @@ router.use("/business", businessRoutes);
 router.use("/forum", forumRoutes);
 router.use("/interview", interviewRoutes);
 router.use("/notes", notesRoutes);
-router.use("/quiz", quizRoutes);
+router.use("/quizzes", quizRoutes);
 
 export default router;
