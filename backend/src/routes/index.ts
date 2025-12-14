@@ -14,6 +14,7 @@ import forumRoutes from "./forum.routes";
 import interviewRoutes from "./interview.routes";
 import notesRoutes from "./notes.routes";
 import quizRoutes from "./quiz.routes";
+import aiRoutes from "./ai.routes";
 
 const router = express.Router();
 
@@ -32,5 +33,6 @@ router.use("/forum", forumRoutes);
 router.use("/interview", interviewRoutes);
 router.use("/notes", notesRoutes);
 router.use("/quizzes", quizRoutes);
+router.use("/ai", aiRoutes);
 
 export default router;

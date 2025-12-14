@@ -26,7 +26,7 @@ import {
   DialogFooter,
 } from "./ui/dialog";
 import { Label } from "./ui/label";
-import NotebookDetailPlaceholder from "./NotebookDetailPlaceholder";
+import NotebookDetailPlaceholder from "./NotebookDetail";
 import { useNotes, useCreateNote } from "../hooks/useApi";
 import type { Note } from "../interfaces";
 

@@ -1101,3 +1101,77 @@ export function useMyQuizResults() {
     },
   });
 }
+
+// ============================================
+// AI Hooks
+// ============================================
+
+// Request AI code review for a submission
+export function useRequestCodeReview() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      submissionId,
+      code,
+      language,
+      problemTitle,
+    }: {
+      submissionId: string;
+      code: string;
+      language: string;
+      problemTitle?: string;
+    }) => {
+      const result = await apiFetch("/ai/code-review", {
+        method: "POST",
+        body: JSON.stringify({ submissionId, code, language, problemTitle }),
+      });
+      return result.data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ["codeReview", variables.submissionId],
+      });
+    },
+  });
+}
+
+// Get existing code review
+export function useCodeReview(submissionId: string | undefined) {
+  return useQuery({
+    queryKey: ["codeReview", submissionId],
+    queryFn: async () => {
+      if (!submissionId) throw new Error("Submission ID required");
+      const result = await apiFetch(`/ai/code-review/${submissionId}`);
+      return result.data;
+    },
+    enabled: !!submissionId,
+    // If the review doesn't exist yet, retry a few times and poll while missing
+    retry: 3,
+    // When the query is in error state (e.g., 404), poll every 2s to pick up the review
+    refetchInterval: (query) => (query.state.status === 'error' ? 2000 : false),
+  });
+}
+
+// Request AI notebook assistance
+export function useNotebookAssist() {
+  return useMutation({
+    mutationFn: async ({
+      question,
+      context,
+      sourceType,
+      sourceId,
+    }: {
+      question: string;
+      context?: string;
+      sourceType?: string;
+      sourceId?: string;
+    }) => {
+      const result = await apiFetch("/ai/notebook-assist", {
+        method: "POST",
+        body: JSON.stringify({ question, context, sourceType, sourceId }),
+      });
+      return result.data;
+    },
+  });
+}

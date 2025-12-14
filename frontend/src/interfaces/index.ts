@@ -11,3 +11,4 @@ export * from './forum.interface';
 export * from './testcase.interface';
 export * from './interview.interface';
 export * from './note.interface';
+export * from './ai.interface';

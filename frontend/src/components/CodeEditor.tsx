@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useApi } from "../api/ApiProvider";
-import { useProblems, useProblem } from "../hooks/useApi";
+import { useProblems, useProblem, useRequestCodeReview, useCodeReview } from "../hooks/useApi";
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
@@ -16,6 +16,7 @@ import {
   Sparkles,
   AlertTriangle,
   Loader2,
+  Brain,
 } from "lucide-react";
 
 import { useNavigate } from "react-router-dom";
@@ -63,6 +64,7 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
   const [output, setOutput] = useState("");
   const [testCaseStates, setTestCaseStates] = useState<Record<number, "not_run" | "running" | "passed" | "failed">>({});
   const [aiReview, setAiReview] = useState<string | null>(null);
+  const [lastSubmissionId, setLastSubmissionId] = useState<string | null>(null);
 
   // submission polling
   const pollRef = useRef<number | null>(null);
@@ -75,6 +77,10 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
   
   // Fetch selected problem detail using hook
   const { data: problem, isLoading: loadingProblem } = useProblem(selectedProblemId || '');
+
+  // AI code review hooks
+  const requestCodeReviewMutation = useRequestCodeReview();
+  const { data: codeReviewData } = useCodeReview(lastSubmissionId || undefined);
 
   // Select first problem on mount
   useEffect(() => {
@@ -152,12 +158,45 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
 
     try {
       const json = await post(`/submissions`, { problem_id: problem.id, language, code });
-      if (!json.success || !json.data?.submission_id) {
+      if (!json.success || !json.data) {
         setOutput(json.message ?? "Submission failed");
+        setLoadingAction(false);
         return;
       }
 
       const submissionId: string = json.data.submission_id;
+      const responseData = json.data;
+      // expose submission id so AI review UI can request reviews for this submission
+      setLastSubmissionId(submissionId);
+
+      // Check if result is immediately available (synchronous execution)
+      if (responseData.status === 'done' && responseData.result) {
+        const r = responseData.result;
+        setOutput(r?.stdout ?? r?.output ?? JSON.stringify(r, null, 2));
+
+        if (Array.isArray(r?.test_cases)) {
+          const tstates: Record<number, "not_run" | "running" | "passed" | "failed"> = {};
+          r.test_cases.forEach((tc: TestCaseResult, i: number) => (tstates[i] = tc.passed ? "passed" : "failed"));
+          setTestCaseStates(tstates);
+        }
+        if (r?.ai_review) setAiReview(r.ai_review);
+        // Auto-request AI review for this submission
+        try {
+          requestCodeReviewMutation.mutate({
+            submissionId,
+            code,
+            language: language.name,
+            problemTitle: problem.title,
+          });
+        } catch (e) {
+          console.error('Failed to trigger AI review mutation:', e);
+        }
+
+        setLoadingAction(false);
+        return;
+      }
+
+      // Otherwise, poll for async result
       setOutput(`Submission queued: ${submissionId}`);
 
       // start polling for submission result every 2s
@@ -184,6 +223,18 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
               setTestCaseStates(tstates);
             }
             if (r?.ai_review) setAiReview(r.ai_review);
+
+            // Auto-request AI review for this submission when polling finishes
+            try {
+              requestCodeReviewMutation.mutate({
+                submissionId,
+                code,
+                language: language.name,
+                problemTitle: problem.title,
+              });
+            } catch (e) {
+              console.error('Failed to trigger AI review mutation (poll):', e);
+            }
 
             if (pollRef.current) {
               window.clearInterval(pollRef.current);
@@ -377,7 +428,7 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
               value={code}
               onChange={(e) => setCode(e.target.value)}
               spellCheck={false}
-              className="w-full h-full p-6 font-mono text-sm bg-gray-900 text-gray-50 outline-none border-0 resize-none"
+              className="w-full h-full p-6 font-mono text-sm bg-gray-900 text-white outline-none border-0 resize-none"
             />
           </div>
 
@@ -437,13 +488,134 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
                 </div>
               </TabsContent>
 
-              <TabsContent value="ai-review" className="flex-1 overflow-auto p-6 m-0">
-                {aiReview ? (
+              <TabsContent value="ai-review" className="flex-1 overflow-auto p-6 m-0 space-y-4">
+                {/* AI Review Request Button */}
+                {lastSubmissionId && !codeReviewData && (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      if (!lastSubmissionId || !problem) return;
+                      requestCodeReviewMutation.mutate({
+                        submissionId: lastSubmissionId,
+                        code,
+                        language: language.name,
+                        problemTitle: problem.title,
+                      });
+                    }}
+                    disabled={requestCodeReviewMutation.isPending}
+                  >
+                    {requestCodeReviewMutation.isPending ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Analyzing...
+                      </>
+                    ) : (
+                      <>
+                        <Brain className="w-4 h-4 mr-2" /> Request AI Code Review
+                      </>
+                    )}
+                  </Button>
+                )}
+
+                {/* AI Review Error */}
+                {requestCodeReviewMutation.isError && (
+                  <Card className="p-4 bg-red-50 border-red-200">
+                    <div className="flex items-start gap-2 text-sm text-red-800">
+                      <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <div className="font-medium">Failed to generate review</div>
+                        <div className="text-xs mt-1">
+                          {requestCodeReviewMutation.error?.message || "An error occurred"}
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                )}
+
+                {/* AI Review Results */}
+                {codeReviewData && (
+                  <div className="space-y-4">
+                    {codeReviewData.cached && (
+                      <Badge variant="outline" className="text-xs">
+                        <Sparkles className="w-3 h-3 mr-1" /> Cached Review
+                      </Badge>
+                    )}
+
+                    {/* Summary */}
+                    <Card className="p-4 bg-blue-50 border-blue-200">
+                      <div className="flex items-start gap-3">
+                        <Brain className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                          <div className="font-semibold text-sm text-blue-900 mb-2">Summary</div>
+                          <div className="text-sm text-blue-800 whitespace-pre-wrap">
+                            {codeReviewData.summary}
+                          </div>
+                        </div>
+                      </div>
+                    </Card>
+
+                    {/* Quality Rating */}
+                    {codeReviewData.qualityRating && (
+                      <Card className="p-4">
+                        <div className="text-sm">
+                          <span className="font-medium">Quality Rating:</span>{" "}
+                          <span className="text-gray-700">{codeReviewData.qualityRating}/10</span>
+                        </div>
+                      </Card>
+                    )}
+
+                    {/* Issues */}
+                    {codeReviewData.issues && codeReviewData.issues.length > 0 && (
+                      <Card className="p-4 bg-red-50 border-red-200">
+                        <div className="font-semibold text-sm text-red-900 mb-3 flex items-center gap-2">
+                          <AlertTriangle className="w-4 h-4" /> Issues Found
+                        </div>
+                        <div className="space-y-2">
+                          {codeReviewData.issues.map((issue: string, idx: number) => (
+                            <div key={idx} className="text-sm text-red-800 pl-4 border-l-2 border-red-300">
+                              {issue}
+                            </div>
+                          ))}
+                        </div>
+                      </Card>
+                    )}
+
+                    {/* Suggestions */}
+                    {codeReviewData.suggestions && codeReviewData.suggestions.length > 0 && (
+                      <Card className="p-4 bg-green-50 border-green-200">
+                        <div className="font-semibold text-sm text-green-900 mb-3 flex items-center gap-2">
+                          <Lightbulb className="w-4 h-4" /> Suggestions
+                        </div>
+                        <div className="space-y-2">
+                          {codeReviewData.suggestions.map((suggestion: string, idx: number) => (
+                            <div key={idx} className="text-sm text-green-800 pl-4 border-l-2 border-green-300">
+                              {suggestion}
+                            </div>
+                          ))}
+                        </div>
+                      </Card>
+                    )}
+
+                    {/* Processing Time */}
+                    {codeReviewData.processingTimeMs && (
+                      <div className="text-xs text-gray-500">
+                        Review generated in {codeReviewData.processingTimeMs}ms
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Legacy AI Review (from backend submission) */}
+                {aiReview && !codeReviewData && (
                   <Card className="p-4 bg-blue-50 border-blue-200">
                     <div className="text-sm whitespace-pre-wrap">{aiReview}</div>
                   </Card>
-                ) : (
-                  <div className="text-sm text-gray-500">No AI review available.</div>
+                )}
+
+                {/* No Review State */}
+                {!aiReview && !codeReviewData && !lastSubmissionId && (
+                  <div className="text-sm text-gray-500">
+                    Submit your code first to request an AI code review.
+                  </div>
                 )}
               </TabsContent>
             </Tabs>
