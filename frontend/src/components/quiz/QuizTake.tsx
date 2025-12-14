@@ -68,7 +68,7 @@ export function QuizTake({ quiz }: QuizTakeProps) {
 
       console.log("Submitting answers:", submission);
 
-      const result = await submitMutation.mutateAsync([submission]);
+      const result = await submitMutation.mutateAsync(answersArray);
 
       console.log("Submit result:", result);
 
