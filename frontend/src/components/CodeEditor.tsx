@@ -65,6 +65,7 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
   const [testCaseStates, setTestCaseStates] = useState<Record<number, "not_run" | "running" | "passed" | "failed">>({});
   const [aiReview, setAiReview] = useState<string | null>(null);
   const [lastSubmissionId, setLastSubmissionId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("output");
 
   // submission polling
   const pollRef = useRef<number | null>(null);
@@ -232,6 +233,8 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
                 language: language.name,
                 problemTitle: problem.title,
               });
+              // Switch to AI Review tab to show the suggestions
+              setTimeout(() => setActiveTab("ai-review"), 500);
             } catch (e) {
               console.error('Failed to trigger AI review mutation (poll):', e);
             }
@@ -434,11 +437,18 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
 
           {/* Bottom panels */}
           <div className="h-56 border-t border-gray-200 bg-white flex flex-col">
-            <Tabs defaultValue="output" className="h-full flex flex-col">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
               <TabsList className="w-full justify-start rounded-none border-b border-gray-200 px-6 bg-white">
                 <TabsTrigger value="output">Output</TabsTrigger>
                 <TabsTrigger value="testcases">Test Cases</TabsTrigger>
-                <TabsTrigger value="ai-review">AI Review</TabsTrigger>
+                <TabsTrigger value="ai-review" className="flex items-center gap-2">
+                  AI Review
+                  {codeReviewData && (
+                    <Badge className="bg-blue-600 text-white text-xs px-1.5 py-0.5">
+                      <Sparkles className="w-3 h-3" />
+                    </Badge>
+                  )}
+                </TabsTrigger>
               </TabsList>
 
               <TabsContent value="output" className="flex-1 overflow-auto p-6 m-0">

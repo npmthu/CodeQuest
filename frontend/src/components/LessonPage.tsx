@@ -54,7 +54,13 @@ export default function LessonPage() {
       <div className="bg-white border-b border-border">
         <div className="max-w-6xl mx-auto px-8 py-6">
           <button
-            onClick={() => navigate(courseId ? `/courses/${courseId}/topics` : '/courses')}
+            onClick={() => {
+              if (courseId) {
+                navigate(`/courses/${courseId}/topics`);
+              } else {
+                navigate(-1); // Go back to previous page
+              }
+            }}
             className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4"
           >
             <ArrowLeft className="w-4 h-4" />

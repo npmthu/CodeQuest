@@ -12,6 +12,7 @@ import DashboardLayout from "./components/DashboardLayout";
 import Dashboard from "./components/Dashboard";
 import HomePage from "./components/HomePage";
 import CoursesPage from "./components/CoursesPage";
+import CourseDetailPage from "./components/CourseDetailPage";
 import TopicsPage from "./components/TopicsPage";
 import LessonPage from "./components/LessonPage";
 import CodeEditor from "./components/CodeEditor";
@@ -122,6 +123,14 @@ function AppContent() {
         element={
           <DashboardRoute>
             <CoursesPage />
+          </DashboardRoute>
+        }
+      />
+      <Route
+        path="/courses/:courseId"
+        element={
+          <DashboardRoute>
+            <CourseDetailPage />
           </DashboardRoute>
         }
       />

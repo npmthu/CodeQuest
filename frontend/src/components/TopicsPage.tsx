@@ -29,11 +29,11 @@ export default function TopicsPage() {
       <div>
         {courseId && (
           <button
-            onClick={() => navigate('/courses')}
+            onClick={() => navigate(`/courses/${courseId}`)}
             className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to Courses
+            Back to selected course
           </button>
         )}
         <h2 className="text-3xl font-bold">
