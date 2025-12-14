@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { AuthRequest } from '../middleware/auth';
 import { supabaseAdmin } from '../config/database';
 
 /**
@@ -42,8 +43,10 @@ export async function listCoursesHandler(req: Request, res: Response) {
  * Get single course by ID
  * GET /api/courses/:id
  */
-export async function getCourseHandler(req: Request, res: Response) {
+export async function getCourseHandler(req: AuthRequest, res: Response) {
   try {
+    const user = req.user;
+    
     const { data: course, error } = await supabaseAdmin
       .from('courses')
       .select('*')
@@ -57,18 +60,37 @@ export async function getCourseHandler(req: Request, res: Response) {
       throw error;
     }
 
-    // Get topics for this course
-    const { data: topics } = await supabaseAdmin
-      .from('topics')
-      .select('*')
-      .eq('course_id', course.id)
-      .order('created_at', { ascending: true });
+    // Check if user is enrolled
+    let isEnrolled = false;
+    if (user) {
+      const { data: enrollment } = await supabaseAdmin
+        .from('enrollments')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('course_id', course.id)
+        .single();
+      
+      isEnrolled = !!enrollment;
+    }
+
+    // Only return topics if user is enrolled
+    let topics = [];
+    if (isEnrolled) {
+      const { data: topicsData } = await supabaseAdmin
+        .from('topics')
+        .select('*')
+        .eq('course_id', course.id)
+        .order('created_at', { ascending: true });
+      
+      topics = topicsData || [];
+    }
 
     return res.json({ 
       success: true, 
       data: {
         ...course,
-        topics: topics || []
+        topics,
+        isEnrolled
       }
     });
   } catch (error: any) {

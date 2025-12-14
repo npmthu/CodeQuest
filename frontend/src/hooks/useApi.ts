@@ -169,6 +169,45 @@ export function useCourse(id: string) {
   });
 }
 
+// Enrollment Hooks
+export function useMyEnrollments() {
+  return useQuery({
+    queryKey: ["myEnrollments"],
+    queryFn: async () => {
+      const result = await apiFetch("/enrollments");
+      return result.data;
+    },
+  });
+}
+
+export function useEnrollInCourse() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (courseId: string) => {
+      const result = await apiFetch(`/enrollments/${courseId}`, {
+        method: "POST",
+      });
+      return result.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["myEnrollments"] });
+      queryClient.invalidateQueries({ queryKey: ["courses"] });
+    },
+  });
+}
+
+export function useCheckEnrollment(courseId: string) {
+  return useQuery({
+    queryKey: ["enrollment", courseId],
+    queryFn: async () => {
+      const result = await apiFetch(`/enrollments/check/${courseId}`);
+      return result.data;
+    },
+    enabled: !!courseId,
+  });
+}
+
 // Leaderboard Hook
 export function useLeaderboard(limit: number = 100) {
   return useQuery({

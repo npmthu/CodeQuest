@@ -12,6 +12,7 @@ import DashboardLayout from "./components/DashboardLayout";
 import Dashboard from "./components/Dashboard";
 import HomePage from "./components/HomePage";
 import CoursesPage from "./components/CoursesPage";
+import CourseEnrollPage from "./components/CourseEnrollPage";
 import CourseDetailPage from "./components/CourseDetailPage";
 import TopicsPage from "./components/TopicsPage";
 import LessonPage from "./components/LessonPage";
@@ -131,6 +132,14 @@ function AppContent() {
         element={
           <DashboardRoute>
             <CourseDetailPage />
+          </DashboardRoute>
+        }
+      />
+      <Route
+        path="/courses/:courseId/enroll"
+        element={
+          <DashboardRoute>
+            <CourseEnrollPage />
           </DashboardRoute>
         }
       />

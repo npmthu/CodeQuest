@@ -7,31 +7,44 @@ import {
   Clock,
   Award,
   Users,
-  PlayCircle,
   CheckCircle2,
-  FileText,
-  TrendingUp
+  TrendingUp,
+  Lock
 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useCourse } from "../hooks/useApi";
-import { useEffect } from "react";
+import { useCourse, useEnrollInCourse } from "../hooks/useApi";
+import { useState, useEffect } from "react";
 
-export default function CourseDetailPage() {
+export default function CourseEnrollPage() {
   const navigate = useNavigate();
   const { courseId } = useParams<{ courseId: string }>();
+  const [enrolling, setEnrolling] = useState(false);
 
   const { data: course, isLoading: loadingCourse } = useCourse(courseId || '');
+  const enrollMutation = useEnrollInCourse();
 
-  // Get topics from course response (backend only returns topics if enrolled)
-  const topics = course?.topics || [];
   const isEnrolled = course?.isEnrolled || false;
 
-  // If user is not enrolled, redirect to enrollment page
+  // If user is already enrolled, redirect to course content
   useEffect(() => {
-    if (!loadingCourse && !isEnrolled && courseId) {
-      navigate(`/courses/${courseId}/enroll`, { replace: true });
+    if (isEnrolled && courseId) {
+      navigate(`/courses/${courseId}/topics`, { replace: true });
     }
-  }, [isEnrolled, loadingCourse, courseId, navigate]);
+  }, [isEnrolled, courseId, navigate]);
+
+  const handleEnroll = async () => {
+    if (!courseId || enrolling) return;
+    
+    setEnrolling(true);
+    try {
+      await enrollMutation.mutateAsync(courseId);
+      // After successful enrollment, navigate to course content
+      navigate(`/courses/${courseId}/topics`);
+    } catch (error: any) {
+      alert(error.message || 'Failed to enroll in course');
+      setEnrolling(false);
+    }
+  };
 
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty?.toLowerCase()) {
@@ -110,11 +123,11 @@ export default function CourseDetailPage() {
               </div>
 
               {/* Stats Grid */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-6">
                 <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
                   <BookOpen className="w-5 h-5 text-blue-600" />
                   <div>
-                    <div className="text-2xl font-bold text-blue-900">{topics.length}</div>
+                    <div className="text-2xl font-bold text-blue-900">{course.topic_count || 0}</div>
                     <div className="text-xs text-blue-700">Topics</div>
                   </div>
                 </div>
@@ -132,43 +145,31 @@ export default function CourseDetailPage() {
                 <div className="flex items-center gap-3 p-4 bg-green-50 rounded-lg border border-green-200">
                   <Award className="w-5 h-5 text-green-600" />
                   <div>
-                    <div className="text-2xl font-bold text-green-900">0</div>
-                    <div className="text-xs text-green-700">Completed</div>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3 p-4 bg-orange-50 rounded-lg border border-orange-200">
-                  <TrendingUp className="w-5 h-5 text-orange-600" />
-                  <div>
-                    <div className="text-2xl font-bold text-orange-900">0%</div>
-                    <div className="text-xs text-orange-700">Progress</div>
+                    <div className="text-2xl font-bold text-green-900">Certificate</div>
+                    <div className="text-xs text-green-700">On Completion</div>
                   </div>
                 </div>
               </div>
 
-              {/* Action Buttons */}
+              {/* Enroll Button */}
               <div className="flex items-center gap-4 mt-6">
-                {topics.length > 0 && (
-                  <Button 
-                    size="lg"
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
-                    onClick={() => {
-                      // Navigate to first topic
-                      const firstTopic = topics[0];
-                      navigate(`/courses/${courseId}/lessons/${firstTopic.id}`);
-                    }}
-                  >
-                    <PlayCircle className="w-5 h-5 mr-2" />
-                    Start Learning
-                  </Button>
-                )}
                 <Button 
-                  variant="outline" 
                   size="lg"
-                  className="border-blue-600 text-blue-600 hover:bg-blue-50"
+                  className="bg-green-600 hover:bg-green-700 text-white text-lg px-8 py-6"
+                  onClick={handleEnroll}
+                  disabled={enrolling}
                 >
-                  <BookOpen className="w-5 h-5 mr-2" />
-                  View Syllabus
+                  {enrolling ? (
+                    <>
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                      Enrolling...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-6 h-6 mr-2" />
+                      Enroll in This Course
+                    </>
+                  )}
                 </Button>
               </div>
             </div>
@@ -176,96 +177,33 @@ export default function CourseDetailPage() {
         </div>
       </div>
 
-      {/* Course Content Section */}
+      {/* Course Content Preview */}
       <div className="max-w-7xl mx-auto px-8 py-8">
-        {/* Topics Section */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h2 className="text-3xl font-bold">Course Topics</h2>
-              <p className="text-muted-foreground mt-1">
-                Explore the curriculum and start your learning journey
-              </p>
+        {/* What You'll Learn */}
+        <Card className="p-8 mb-8 bg-white">
+          <h2 className="text-2xl font-bold mb-6">What You'll Learn</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex items-start gap-3">
+              <CheckCircle2 className="w-5 h-5 text-green-600 mt-1 flex-shrink-0" />
+              <p className="text-gray-700">Master the fundamental concepts and best practices</p>
             </div>
-            <Badge variant="outline" className="text-sm px-4 py-2">
-              {topics.length} topic{topics.length !== 1 ? 's' : ''} available
-            </Badge>
+            <div className="flex items-start gap-3">
+              <CheckCircle2 className="w-5 h-5 text-green-600 mt-1 flex-shrink-0" />
+              <p className="text-gray-700">Build real-world projects and applications</p>
+            </div>
+            <div className="flex items-start gap-3">
+              <CheckCircle2 className="w-5 h-5 text-green-600 mt-1 flex-shrink-0" />
+              <p className="text-gray-700">Gain hands-on experience through exercises</p>
+            </div>
+            <div className="flex items-start gap-3">
+              <CheckCircle2 className="w-5 h-5 text-green-600 mt-1 flex-shrink-0" />
+              <p className="text-gray-700">Earn a certificate upon completion</p>
+            </div>
           </div>
+        </Card>
 
-          {topics.length === 0 ? (
-            <Card className="p-12 text-center bg-white">
-              <BookOpen className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-xl font-semibold mb-2">No topics available yet</h3>
-              <p className="text-muted-foreground">
-                Topics for this course are being prepared. Check back soon!
-              </p>
-            </Card>
-          ) : (
-            <div className="space-y-4">
-              {topics.map((topic: any, index: number) => (
-                <Card 
-                  key={topic.id}
-                  className="p-6 hover:shadow-lg transition-all cursor-pointer bg-white border-2 hover:border-blue-300"
-                  onClick={() => navigate(`/courses/${courseId}/lessons/${topic.id}`)}
-                >
-                  <div className="flex items-start gap-6">
-                    {/* Topic Number */}
-                    <div className="flex-shrink-0">
-                      <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold text-lg shadow-md">
-                        {index + 1}
-                      </div>
-                    </div>
-
-                    {/* Topic Content */}
-                    <div className="flex-1">
-                      <div className="flex items-start justify-between mb-2">
-                        <h3 className="text-xl font-semibold text-gray-900">
-                          {topic.title}
-                        </h3>
-                        <Badge variant="outline" className="ml-4">
-                          <CheckCircle2 className="w-3 h-3 mr-1" />
-                          0/{topic.lesson_count || 0}
-                        </Badge>
-                      </div>
-
-                      <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
-                        {topic.description || 'No description available'}
-                      </p>
-
-                      {/* Topic Stats */}
-                      <div className="flex items-center gap-6 text-sm">
-                        <div className="flex items-center gap-2 text-blue-600">
-                          <FileText className="w-4 h-4" />
-                          <span className="font-medium">{topic.lesson_count || 0} lessons</span>
-                        </div>
-                        {topic.estimated_duration && (
-                          <div className="flex items-center gap-2 text-purple-600">
-                            <Clock className="w-4 h-4" />
-                            <span className="font-medium">{topic.estimated_duration}</span>
-                          </div>
-                        )}
-                        <div className="flex items-center gap-2 text-gray-500">
-                          <TrendingUp className="w-4 h-4" />
-                          <span className="font-medium">0% complete</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Arrow Icon */}
-                    <div className="flex-shrink-0 self-center">
-                      <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center group-hover:bg-blue-100 transition-colors">
-                        <PlayCircle className="w-5 h-5 text-gray-600" />
-                      </div>
-                    </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Additional Info Section */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+        {/* Course Features */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <Card className="p-6 bg-white">
             <div className="flex items-start gap-3">
               <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -308,6 +246,33 @@ export default function CourseDetailPage() {
             </div>
           </Card>
         </div>
+
+        {/* Locked Content Preview */}
+        <Card className="p-12 text-center bg-gradient-to-br from-yellow-50 to-orange-50 border-2 border-yellow-200">
+          <Lock className="w-20 h-20 mx-auto text-yellow-600 mb-6" />
+          <h3 className="text-2xl font-bold mb-3">Unlock Full Course Content</h3>
+          <p className="text-lg text-gray-700 mb-8 max-w-2xl mx-auto">
+            Enroll now to access {course.topic_count || 'all'} topics, interactive lessons, quizzes, and earn your certificate upon completion.
+          </p>
+          <Button 
+            size="lg"
+            className="bg-green-600 hover:bg-green-700 text-white text-lg px-10 py-6"
+            onClick={handleEnroll}
+            disabled={enrolling}
+          >
+            {enrolling ? (
+              <>
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                Enrolling...
+              </>
+            ) : (
+              <>
+                <CheckCircle2 className="w-6 h-6 mr-2" />
+                Start Learning Now
+              </>
+            )}
+          </Button>
+        </Card>
       </div>
     </div>
   );

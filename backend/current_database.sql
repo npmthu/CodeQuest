@@ -116,6 +116,18 @@ CREATE TABLE public.courses (
   CONSTRAINT courses_pkey PRIMARY KEY (id),
   CONSTRAINT courses_partner_id_fkey FOREIGN KEY (partner_id) REFERENCES public.partners(id)
 );
+CREATE TABLE public.enrollments (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  course_id uuid NOT NULL,
+  status USER-DEFINED NOT NULL DEFAULT 'enrolled'::enrollment_status,
+  enrolled_at timestamp with time zone NOT NULL DEFAULT now(),
+  completed_at timestamp with time zone,
+  progress jsonb DEFAULT '{}'::jsonb,
+  CONSTRAINT enrollments_pkey PRIMARY KEY (id),
+  CONSTRAINT enrollments_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT enrollments_course_id_fkey FOREIGN KEY (course_id) REFERENCES public.courses(id)
+);
 CREATE TABLE public.forum_posts (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
   author_id uuid NOT NULL,
@@ -337,9 +349,9 @@ CREATE TABLE public.quizzes (
 );
 CREATE TABLE public.submissions (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
-  user_id uuid NOT NULL,
+  user_id uuid,
   problem_id uuid NOT NULL,
-  language_id uuid NOT NULL,
+  language_id uuid,
   code text NOT NULL,
   code_url text,
   status character varying NOT NULL DEFAULT 'PENDING'::character varying,
