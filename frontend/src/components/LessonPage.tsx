@@ -41,7 +41,7 @@ export default function LessonPage() {
         <BookOpen className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
         <h3 className="text-xl font-semibold mb-2">No topic selected</h3>
         <p className="text-muted-foreground">Please select a topic to view its lessons</p>
-        <Button onClick={() => navigate(courseId ? `/courses/${courseId}/topics` : '/courses')} className="mt-4">
+        <Button onClick={() => navigate(courseId ? `/courses/${courseId}` : '/courses')} className="mt-4">
           Browse Topics
         </Button>
       </Card>
@@ -56,7 +56,7 @@ export default function LessonPage() {
           <button
             onClick={() => {
               if (courseId) {
-                navigate(`/courses/${courseId}/topics`);
+                navigate(`/courses/${courseId}`);
               } else {
                 navigate(-1); // Go back to previous page
               }
@@ -64,7 +64,7 @@ export default function LessonPage() {
             className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to Topics
+            Back to Course
           </button>
           <div className="flex items-start justify-between">
             <div>

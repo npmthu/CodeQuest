@@ -60,7 +60,7 @@ export default function CoursesPage() {
     <Card 
       key={course.id}
       className="overflow-hidden hover:shadow-xl transition-all cursor-pointer bg-white border-2 hover:border-blue-300 relative"
-      onClick={() => navigate(enrolled ? `/courses/${course.id}/topics` : `/courses/${course.id}/enroll`)}
+      onClick={() => navigate(enrolled ? `/courses/${course.id}` : `/courses/${course.id}/enroll`)}
     >
       {enrolled && (
         <div className="absolute top-4 right-4 z-10 bg-green-500 text-white px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1">

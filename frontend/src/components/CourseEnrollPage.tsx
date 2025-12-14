@@ -28,7 +28,7 @@ export default function CourseEnrollPage() {
   // If user is already enrolled, redirect to course content
   useEffect(() => {
     if (isEnrolled && courseId) {
-      navigate(`/courses/${courseId}/topics`, { replace: true });
+      navigate(`/courses/${courseId}`, { replace: true });
     }
   }, [isEnrolled, courseId, navigate]);
 
@@ -39,7 +39,7 @@ export default function CourseEnrollPage() {
     try {
       await enrollMutation.mutateAsync(courseId);
       // After successful enrollment, navigate to course content
-      navigate(`/courses/${courseId}/topics`);
+      navigate(`/courses/${courseId}`);
     } catch (error: any) {
       alert(error.message || 'Failed to enroll in course');
       setEnrolling(false);

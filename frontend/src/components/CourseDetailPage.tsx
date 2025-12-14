@@ -13,25 +13,19 @@ import {
   TrendingUp
 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useCourse } from "../hooks/useApi";
-import { useEffect } from "react";
+import { useCourse, useTopics } from "../hooks/useApi";
 
 export default function CourseDetailPage() {
   const navigate = useNavigate();
   const { courseId } = useParams<{ courseId: string }>();
 
   const { data: course, isLoading: loadingCourse } = useCourse(courseId || '');
+  const { data: topicsData, isLoading: loadingTopics } = useTopics();
 
-  // Get topics from course response (backend only returns topics if enrolled)
-  const topics = course?.topics || [];
-  const isEnrolled = course?.isEnrolled || false;
-
-  // If user is not enrolled, redirect to enrollment page
-  useEffect(() => {
-    if (!loadingCourse && !isEnrolled && courseId) {
-      navigate(`/courses/${courseId}/enroll`, { replace: true });
-    }
-  }, [isEnrolled, loadingCourse, courseId, navigate]);
+  // Filter topics by courseId
+  const topics = courseId 
+    ? (topicsData || []).filter((t: any) => t.course_id === courseId)
+    : [];
 
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty?.toLowerCase()) {
@@ -42,7 +36,7 @@ export default function CourseDetailPage() {
     }
   };
 
-  if (loadingCourse) {
+  if (loadingCourse || loadingTopics) {
     return (
       <div className="p-8 flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>

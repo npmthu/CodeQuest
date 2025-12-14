@@ -187,7 +187,7 @@ export default function LearningPathDetail({
                     ? "opacity-60 cursor-not-allowed" 
                     : "hover:shadow-lg cursor-pointer"
                 }`}
-                onClick={() => !course.locked && navigate(`/courses/${course.id}/topics`)}
+                onClick={() => !course.locked && navigate(`/courses/${course.id}`)}
               >
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0">
