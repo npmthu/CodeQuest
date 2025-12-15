@@ -42,7 +42,7 @@ export async function getCertificateById(
     .select(
       `
       *,
-      user:users(full_name, display_name),
+      user:users(id, display_name, email),
       course:courses(title)
     `
     )
@@ -62,7 +62,7 @@ export async function getCertificateById(
     ...data,
     user_name:
       (data.user as any)?.display_name ||
-      (data.user as any)?.full_name ||
+      (data.user as any)?.email ||
       "Unknown User",
     course_title: (data.course as any)?.title || "Unknown Course",
   };
@@ -80,7 +80,7 @@ export async function getUserCourseCertificate(
     .select(
       `
       *,
-      user:users(full_name, display_name),
+      user:users(id, display_name, email),
       course:courses(title)
     `
     )
@@ -100,7 +100,7 @@ export async function getUserCourseCertificate(
     ...data,
     user_name:
       (data.user as any)?.display_name ||
-      (data.user as any)?.full_name ||
+      (data.user as any)?.email ||
       "Unknown User",
     course_title: (data.course as any)?.title || "Unknown Course",
   };
@@ -225,7 +225,7 @@ export async function createCertificate(
     .select(
       `
       *,
-      user:users(full_name, display_name),
+      user:users(id, display_name, email),
       course:courses(title)
     `
     )
@@ -240,7 +240,7 @@ export async function createCertificate(
     ...certificate,
     user_name:
       (certificate.user as any)?.display_name ||
-      (certificate.user as any)?.full_name ||
+      (certificate.user as any)?.email ||
       "Unknown User",
     course_title: (certificate.course as any)?.title || "Unknown Course",
   };
@@ -257,7 +257,7 @@ export async function getUserCertificates(
     .select(
       `
       *,
-      user:users(full_name, display_name),
+      user:users(id, display_name, email),
       course:courses(title)
     `
     )
@@ -273,7 +273,7 @@ export async function getUserCertificates(
     ...cert,
     user_name:
       (cert.user as any)?.display_name ||
-      (cert.user as any)?.full_name ||
+      (cert.user as any)?.email ||
       "Unknown User",
     course_title: (cert.course as any)?.title || "Unknown Course",
   }));
