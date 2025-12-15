@@ -63,7 +63,7 @@ const ReplyItem = memo<ReplyItemProps>(({
   
   // Sort nested replies by upvotes (descending)
   const nestedReplies = allReplies
-    .filter((r: any) => r.parent_reply_id === reply.id)
+    .filter((r: any) => r.parentReplyId === reply.id)
     .sort((a, b) => (b.upvotes || 0) - (a.upvotes || 0));
 
   return (
@@ -71,11 +71,11 @@ const ReplyItem = memo<ReplyItemProps>(({
       <Card className={`p-4 ${depth === 0 ? 'bg-gray-50' : 'bg-white'}`}>
         <div className="flex gap-4">
           <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-            {reply.author?.avatar_url ? (
-              <img src={reply.author.avatar_url} alt="" className="w-10 h-10 rounded-full object-cover" />
+            {reply.author?.avatarUrl ? (
+              <img src={reply.author.avatarUrl} alt="" className="w-10 h-10 rounded-full object-cover" />
             ) : (
               <span className="text-blue-600 font-semibold text-sm">
-                {reply.author?.display_name?.substring(0, 2).toUpperCase() || 'U'}
+                {reply.author?.displayName?.substring(0, 2).toUpperCase() || 'U'}
               </span>
             )}
           </div>
@@ -83,25 +83,25 @@ const ReplyItem = memo<ReplyItemProps>(({
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-2">
               <span className="font-medium text-sm">
-                {reply.author?.display_name || 'Anonymous'}
+                {reply.author?.displayName || 'Anonymous'}
               </span>
               <span className="text-xs text-muted-foreground">•</span>
               <span className="text-xs text-muted-foreground flex items-center gap-1">
                 <Clock className="w-3 h-3" />
-                {new Date(reply.created_at).toLocaleDateString()}
+                {new Date(reply.createdAt).toLocaleDateString()}
               </span>
-              {reply.is_accepted_answer && (
+              {reply.isAcceptedAnswer && (
                 <Badge className="bg-green-100 text-green-700 text-xs">✓ Accepted</Badge>
               )}
             </div>
             
             <div className="text-sm text-muted-foreground whitespace-pre-wrap mb-3">
-              {reply.content_markdown}
+              {reply.contentMarkdown}
             </div>
             
-            {reply.code_snippet && (
+            {reply.codeSnippet && (
               <pre className="bg-gray-900 text-gray-100 p-3 rounded text-xs overflow-x-auto mb-3">
-                <code>{reply.code_snippet}</code>
+                <code>{reply.codeSnippet}</code>
               </pre>
             )}
             
@@ -127,7 +127,7 @@ const ReplyItem = memo<ReplyItemProps>(({
                   {isReplying ? 'Cancel' : 'Reply'}
                 </Button>
               )}
-              {currentUserId && reply.author_id === currentUserId && (
+              {currentUserId && reply.authorId === currentUserId && (
                 <Button 
                   variant="ghost" 
                   size="sm" 
@@ -144,7 +144,7 @@ const ReplyItem = memo<ReplyItemProps>(({
             {isReplying && (
               <div className="mt-4 pt-4 border-t border-border">
                 <p className="text-xs text-muted-foreground mb-2">
-                  Replying to <strong>{reply.author?.display_name || 'Anonymous'}</strong>
+                  Replying to <strong>{reply.author?.displayName || 'Anonymous'}</strong>
                 </p>
                 <Textarea
                   value={nestedContent}
@@ -330,7 +330,7 @@ export default function ForumPostDetail({ post, onBack, onUpdate }: ForumPostDet
 
   // Sort replies by upvotes (descending) - most upvoted first
   const topLevelReplies = useMemo(() => {
-    const filtered = ((post as any).replies || []).filter((r: any) => !r.parent_reply_id);
+    const filtered = ((post as any).replies || []).filter((r: any) => !r.parentReplyId);
     return [...filtered].sort((a, b) => (b.upvotes || 0) - (a.upvotes || 0));
   }, [(post as any).replies]);
   
