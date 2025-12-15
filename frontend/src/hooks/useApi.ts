@@ -1,16 +1,17 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../../lib/supabaseClient";
-import { 
-  topicService, 
-  lessonService, 
-  problemService, 
+import {
+  topicService,
+  lessonService,
+  problemService,
   quizService,
   forumService,
   submissionService,
-  userService
-} from '../services';
+  userService,
+} from "../services";
 
-const API_BASE = (import.meta as any).env?.VITE_API_BASE || "http://localhost:3000/api";
+const API_BASE =
+  (import.meta as any).env?.VITE_API_BASE || "http://localhost:3000/api";
 
 // Helper to get auth headers
 async function getAuthHeaders() {
@@ -169,6 +170,17 @@ export function useCourse(id: string) {
   });
 }
 
+export function useCourseProgress(courseId: string) {
+  return useQuery({
+    queryKey: ["courseProgress", courseId],
+    queryFn: async () => {
+      const result = await apiFetch(`/courses/${courseId}/progress`);
+      return result.data;
+    },
+    enabled: !!courseId,
+  });
+}
+
 // Enrollment Hooks
 export function useMyEnrollments() {
   return useQuery({
@@ -182,7 +194,7 @@ export function useMyEnrollments() {
 
 export function useEnrollInCourse() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (courseId: string) => {
       const result = await apiFetch(`/enrollments/${courseId}`, {
@@ -269,7 +281,11 @@ export function useUpdateLessonProgress() {
         timeSpentSec,
       });
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
+      // Invalidate the specific lesson to update isCompleted status
+      queryClient.invalidateQueries({
+        queryKey: ["lesson", variables.lessonId],
+      });
       queryClient.invalidateQueries({ queryKey: ["lessons"] });
       queryClient.invalidateQueries({ queryKey: ["userProgress"] });
     },
@@ -1188,7 +1204,7 @@ export function useCodeReview(submissionId: string | undefined) {
     // If the review doesn't exist yet, retry a few times and poll while missing
     retry: 3,
     // When the query is in error state (e.g., 404), poll every 2s to pick up the review
-    refetchInterval: (query) => (query.state.status === 'error' ? 2000 : false),
+    refetchInterval: (query) => (query.state.status === "error" ? 2000 : false),
   });
 }
 
@@ -1211,6 +1227,66 @@ export function useNotebookAssist() {
         body: JSON.stringify({ question, context, sourceType, sourceId }),
       });
       return result.data;
+    },
+  });
+}
+
+// ============================================
+// Certificate Hooks
+// ============================================
+
+export interface Certificate {
+  id: string;
+  userId: string;
+  courseId: string;
+  serialNumber: string;
+  certificateUrl?: string;
+  issuedAt: string;
+  userName: string;
+  courseTitle: string;
+}
+
+// Get certificate by ID
+export function useCertificate(certificateId: string) {
+  return useQuery({
+    queryKey: ["certificate", certificateId],
+    queryFn: async () => {
+      const result = await apiFetch(`/certificates/${certificateId}`);
+      return result.data as Certificate;
+    },
+    enabled: !!certificateId,
+  });
+}
+
+// Check if user has certificate for a course
+export function useCourseCertificate(courseId: string) {
+  return useQuery({
+    queryKey: ["courseCertificate", courseId],
+    queryFn: async () => {
+      const result = await apiFetch(`/certificates/course/${courseId}`);
+      return result.data as Certificate | null;
+    },
+    enabled: !!courseId,
+  });
+}
+
+// Claim a certificate for a completed course
+export function useClaimCertificate() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (courseId: string) => {
+      const result = await apiFetch("/certificates/claim", {
+        method: "POST",
+        body: JSON.stringify({ courseId }),
+      });
+      return result.data as Certificate;
+    },
+    onSuccess: (_, courseId) => {
+      queryClient.invalidateQueries({
+        queryKey: ["courseCertificate", courseId],
+      });
+      queryClient.invalidateQueries({ queryKey: ["certificates"] });
     },
   });
 }

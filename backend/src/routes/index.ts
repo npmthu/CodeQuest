@@ -16,6 +16,7 @@ import interviewRoutes from "./interview.routes";
 import notesRoutes from "./notes.routes";
 import quizRoutes from "./quiz.routes";
 import aiRoutes from "./ai.routes";
+import certificateRoutes from "./certificate.routes";
 
 const router = express.Router();
 
@@ -36,5 +37,6 @@ router.use("/interview", interviewRoutes);
 router.use("/notes", notesRoutes);
 router.use("/quizzes", quizRoutes);
 router.use("/ai", aiRoutes);
+router.use("/certificates", certificateRoutes);
 
 export default router;
