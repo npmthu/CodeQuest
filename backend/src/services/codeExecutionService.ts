@@ -3,6 +3,9 @@
  * Piston: Free code execution engine (https://github.com/engineer-man/piston)
  */
 
+import { supabaseAdmin } from '../config/database';
+import type { TestCase } from '../models/TestCase';
+
 const PISTON_API = 'https://emkc.org/api/v2/piston';
 
 // Language mapping: frontend name -> Piston language name
@@ -52,79 +55,252 @@ interface PistonExecuteResponse {
   };
 }
 
-export const executeCode = async (
-  code: string, 
-  language: string, 
-  problemId: string,
-  stdin?: string
-) => {
+/**
+ * Execute code against a single test case
+ */
+const executeCodeWithInput = async (
+  code: string,
+  language: string,
+  stdin: string,
+  timeout: number = 3000
+): Promise<{
+  stdout: string;
+  stderr: string;
+  exitCode: number;
+  executionTime: number;
+  compileError?: string;
+}> => {
   const startTime = Date.now();
   
   try {
-    // Map language name
     const pistonLang = LANGUAGE_MAP[language.toLowerCase()] || 'python';
     
-    // Prepare execution request
     const executeRequest: PistonExecuteRequest = {
       language: pistonLang,
-      version: '*', // Use latest version
-      files: [
-        {
-          content: code
-        }
-      ],
-      stdin: stdin || '',
-      compile_timeout: 10000, // 10s
-      run_timeout: 3000,      // 3s
-      run_memory_limit: 128000000 // 128MB
+      version: '*',
+      files: [{ content: code }],
+      stdin: stdin,
+      compile_timeout: 10000,
+      run_timeout: timeout,
+      run_memory_limit: 128000000
     };
 
-    // Call Piston API
     const response = await fetch(`${PISTON_API}/execute`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(executeRequest)
     });
 
     if (!response.ok) {
-      throw new Error(`Piston API error: ${response.status} ${response.statusText}`);
+      throw new Error(`Piston API error: ${response.status}`);
     }
 
-    const result: PistonExecuteResponse = await response.json() as PistonExecuteResponse;
+    const result = await response.json() as PistonExecuteResponse;
     const executionTime = Date.now() - startTime;
 
-    // Determine status
-    let status = 'ACCEPTED';
-    let passed = true;
-    let error = null;
+    return {
+      stdout: result.run.stdout || '',
+      stderr: result.run.stderr || '',
+      exitCode: result.run.code,
+      executionTime,
+      compileError: result.compile?.stderr || result.compile?.output
+    };
+  } catch (err: any) {
+    return {
+      stdout: '',
+      stderr: err.message,
+      exitCode: -1,
+      executionTime: Date.now() - startTime
+    };
+  }
+};
 
-    if (result.compile && result.compile.code !== 0) {
-      status = 'COMPILE_ERROR';
-      passed = false;
-      error = result.compile.stderr || result.compile.output;
-    } else if (result.run.code !== 0) {
-      status = 'RUNTIME_ERROR';
-      passed = false;
-      error = result.run.stderr || 'Program exited with non-zero code';
-    } else if (result.run.signal) {
-      status = 'RUNTIME_ERROR';
-      passed = false;
-      error = `Program terminated by signal: ${result.run.signal}`;
+/**
+ * Compare two outputs (trim whitespace for comparison)
+ */
+const compareOutputs = (actual: string, expected: string): boolean => {
+  const normalizeOutput = (str: string) => {
+    return str.trim().replace(/\r\n/g, '\n').replace(/\s+$/gm, '');
+  };
+  
+  return normalizeOutput(actual) === normalizeOutput(expected);
+};
+
+/**
+ * Execute code against all test cases for a problem
+ */
+export const executeCode = async (
+  code: string, 
+  language: string, 
+  problemId: string,
+  runSampleOnly: boolean = false
+) => {
+  const startTime = Date.now();
+  
+  try {
+    // Fetch test cases from database
+    const { data: testCases, error: tcError } = await supabaseAdmin
+      .from('test_cases')
+      .select('*')
+      .eq('problem_id', problemId)
+      .order('display_order', { ascending: true });
+
+    if (tcError) {
+      console.error('Error fetching test cases:', tcError);
+      throw new Error(`Failed to fetch test cases: ${tcError.message}`);
     }
+
+    if (!testCases || testCases.length === 0) {
+      return {
+        status: 'NO_TEST_CASES',
+        output: 'No test cases found for this problem',
+        error: 'No test cases available',
+        execution_time: Date.now() - startTime,
+        memory_used: 0,
+        test_cases: [],
+        passed: false
+      };
+    }
+
+    // Filter to sample test cases if in "run" mode
+    const casesToRun = runSampleOnly 
+      ? testCases.filter((tc: any) => tc.is_sample === true)
+      : testCases;
+
+    if (casesToRun.length === 0 && runSampleOnly) {
+      return {
+        status: 'NO_SAMPLE_CASES',
+        output: 'No sample test cases found for this problem',
+        error: null,
+        execution_time: Date.now() - startTime,
+        memory_used: 0,
+        test_cases: [],
+        passed: true
+      };
+    }
+
+    // Execute code against each test case
+    const testCaseResults = [];
+    let allPassed = true;
+    let firstOutput = '';
+    let firstError = '';
+    let hasCompileError = false;
+
+    for (const testCase of casesToRun) {
+      const result = await executeCodeWithInput(
+        code,
+        language,
+        testCase.input_encrypted,
+        3000
+      );
+
+      // Check for compile errors (only need to check once)
+      if (result.compileError && !hasCompileError) {
+        hasCompileError = true;
+        firstError = result.compileError;
+        allPassed = false;
+        
+        testCaseResults.push({
+          test_case_id: testCase.id,
+          name: testCase.name || `Test Case ${testCase.display_order + 1}`,
+          passed: false,
+          input: testCase.is_sample ? testCase.input_encrypted : '[Hidden]',
+          expected_output: testCase.is_sample ? testCase.expected_output_encrypted : '[Hidden]',
+          actual_output: '',
+          error: result.compileError,
+          execution_time_ms: result.executionTime,
+          points: 0
+        });
+        
+        continue; // Skip remaining test cases if compilation failed
+      }
+
+      if (hasCompileError) {
+        // If we already have a compile error, mark remaining tests as failed
+        testCaseResults.push({
+          test_case_id: testCase.id,
+          name: testCase.name || `Test Case ${testCase.display_order + 1}`,
+          passed: false,
+          input: testCase.is_sample ? testCase.input_encrypted : '[Hidden]',
+          expected_output: testCase.is_sample ? testCase.expected_output_encrypted : '[Hidden]',
+          actual_output: '',
+          error: 'Compilation failed',
+          execution_time_ms: 0,
+          points: 0
+        });
+        continue;
+      }
+
+      // Store first output for display
+      if (!firstOutput && result.stdout) {
+        firstOutput = result.stdout;
+      }
+      if (!firstError && result.stderr) {
+        firstError = result.stderr;
+      }
+
+      // Runtime error check
+      if (result.exitCode !== 0) {
+        allPassed = false;
+        testCaseResults.push({
+          test_case_id: testCase.id,
+          name: testCase.name || `Test Case ${testCase.display_order + 1}`,
+          passed: false,
+          input: testCase.is_sample ? testCase.input_encrypted : '[Hidden]',
+          expected_output: testCase.is_sample ? testCase.expected_output_encrypted : '[Hidden]',
+          actual_output: result.stdout,
+          error: result.stderr || 'Runtime error: Non-zero exit code',
+          execution_time_ms: result.executionTime,
+          points: 0
+        });
+        continue;
+      }
+
+      // Compare outputs
+      const passed = compareOutputs(result.stdout, testCase.expected_output_encrypted);
+      
+      if (!passed) {
+        allPassed = false;
+      }
+
+      testCaseResults.push({
+        test_case_id: testCase.id,
+        name: testCase.name || `Test Case ${testCase.display_order + 1}`,
+        passed,
+        input: testCase.is_sample ? testCase.input_encrypted : '[Hidden]',
+        expected_output: testCase.is_sample ? testCase.expected_output_encrypted : '[Hidden]',
+        actual_output: result.stdout,
+        error: passed ? null : 'Output does not match expected',
+        execution_time_ms: result.executionTime,
+        points: passed ? (testCase.points || 10) : 0
+      });
+    }
+
+    // Calculate final status
+    let status = 'ACCEPTED';
+    if (hasCompileError) {
+      status = 'COMPILE_ERROR';
+    } else if (!allPassed) {
+      const hasRuntimeError = testCaseResults.some(tc => tc.error && tc.error !== 'Output does not match expected');
+      status = hasRuntimeError ? 'RUNTIME_ERROR' : 'WRONG_ANSWER';
+    }
+
+    const totalExecutionTime = Date.now() - startTime;
+    const totalPoints = testCaseResults.reduce((sum, tc) => sum + tc.points, 0);
+    const maxPoints = casesToRun.reduce((sum, tc) => sum + (tc.points || 10), 0);
 
     return {
       status,
-      output: result.run.stdout || result.run.output || '',
-      error,
-      execution_time: executionTime,
-      memory_used: 0, // Piston doesn't provide memory info
-      test_cases: [],
-      passed,
-      compile_output: result.compile?.output,
-      language: result.language,
-      version: result.version
+      output: firstOutput || firstError || 'No output',
+      error: hasCompileError ? firstError : null,
+      execution_time: totalExecutionTime,
+      memory_used: 0,
+      test_cases: testCaseResults,
+      passed: allPassed,
+      total_points: totalPoints,
+      max_points: maxPoints,
+      passed_count: testCaseResults.filter(tc => tc.passed).length,
+      total_count: testCaseResults.length
     };
   } catch (err: any) {
     console.error('Code execution error:', err);

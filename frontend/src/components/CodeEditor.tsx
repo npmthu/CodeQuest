@@ -18,6 +18,8 @@ import {
   Loader2,
   Brain,
 } from "lucide-react";
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
 import { useNavigate } from "react-router-dom";
 import type { 
@@ -38,6 +40,50 @@ interface CodeEditorProps {
 // ---------- Utility helpers ----------
 const difficultyText = (d: number) => (d === 1 ? "Easy" : d === 2 ? "Medium" : "Hard");
 const difficultyColor = (d: number) => (d === 1 ? "green" : d === 2 ? "yellow" : "red");
+
+// ---------- Starter Code Templates ----------
+const STARTER_CODE: Record<string, string> = {
+  python: `# Write your solution here
+def solution():
+    """
+    Your code implementation goes here
+    """
+    pass
+
+# Test your code
+if __name__ == "__main__":
+    result = solution()
+    print(result)
+`,
+  java: `public class Solution {
+    /**
+     * Your code implementation goes here
+     */
+    public static void main(String[] args) {
+        Solution solution = new Solution();
+        // Test your code here
+        System.out.println("Result: ");
+    }
+    
+    // Add your methods here
+}
+`,
+  cpp: `#include <iostream>
+#include <vector>
+#include <string>
+
+using namespace std;
+
+/**
+ * Your code implementation goes here
+ */
+int main() {
+    // Test your code here
+    cout << "Result: " << endl;
+    return 0;
+}
+`,
+};
 
 // ---------- Component ----------
 export default function CodeEditor({ apiBase }: CodeEditorProps) {
@@ -63,12 +109,18 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
 
   const [output, setOutput] = useState("");
   const [testCaseStates, setTestCaseStates] = useState<Record<number, "not_run" | "running" | "passed" | "failed">>({});
+  const [testCaseResults, setTestCaseResults] = useState<TestCaseResult[]>([]);
   const [aiReview, setAiReview] = useState<string | null>(null);
   const [lastSubmissionId, setLastSubmissionId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("output");
 
   // submission polling
   const pollRef = useRef<number | null>(null);
+  
+  // Refs for scroll synchronization
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const highlightRef = useRef<HTMLDivElement>(null);
+  const lineNumbersRef = useRef<HTMLDivElement>(null);
 
   // API client for submission (still needed for complex operations)
   const { get, post } = useApi();
@@ -93,7 +145,11 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
   // Update code when problem or language changes
   useEffect(() => {
     if (problem) {
-      setCode(problem.starterCode?.[language.name] ?? "");
+      // Use backend starter code if available, otherwise use default templates
+      const backendStarterCode = problem.starterCode?.[language.name];
+      const defaultStarterCode = STARTER_CODE[language.name] || "";
+      setCode(backendStarterCode || defaultStarterCode);
+      
       // initialize test case states
       const tstates: Record<number, "not_run" | "running" | "passed" | "failed"> = {};
       (problem.sampleTestCases || []).forEach((_: any, i: any) => (tstates[i] = "not_run"));
@@ -104,8 +160,13 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
   // Reset handler
   const handleReset = () => {
     if (!problem) return;
-    setCode(problem.starterCode?.[language.name] ?? "");
+    // Use backend starter code if available, otherwise use default templates
+    const backendStarterCode = problem.starterCode?.[language.name];
+    const defaultStarterCode = STARTER_CODE[language.name] || "";
+    setCode(backendStarterCode || defaultStarterCode);
+    
     setOutput("");
+    setTestCaseResults([]);
     // reset testcase states
     const tstates: Record<number, "not_run" | "running" | "passed" | "failed"> = {};
     (problem.sampleTestCases || []).forEach((_: any, i: any) => (tstates[i] = "not_run"));
@@ -114,12 +175,24 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
     setError(null);
   };
 
+  // Sync scroll between textarea and syntax highlighter
+  const handleScroll = () => {
+    if (textareaRef.current && highlightRef.current && lineNumbersRef.current) {
+      const scrollTop = textareaRef.current.scrollTop;
+      const scrollLeft = textareaRef.current.scrollLeft;
+      highlightRef.current.scrollTop = scrollTop;
+      highlightRef.current.scrollLeft = scrollLeft;
+      lineNumbersRef.current.scrollTop = scrollTop;
+    }
+  };
+
   // Run handler (mode = run)
   const handleRun = async () => {
     if (!problem) return;
     setLoadingAction(true);
     setError(null);
     setOutput("");
+    setTestCaseResults([]);
 
     try {
       const json = await post(`/submissions`, { problem_id: problem.id, language, code, mode: "run" });
@@ -127,19 +200,39 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
       // assume backend returns immediate result for run mode
       if (json.success && json.data) {
         const result = json.data.result;
-        setOutput(result?.stdout ?? result?.output ?? "(no output)");
+        
+        // Set output
+        let displayOutput = result?.output || result?.stdout || "";
+        if (result?.status === 'COMPILE_ERROR' && result?.error) {
+          displayOutput = `Compilation Error:\n${result.error}`;
+        } else if (result?.error) {
+          displayOutput += `\n\nError: ${result.error}`;
+        }
+        setOutput(displayOutput || "(no output)");
 
         // if result contains test case results, map them
-        if (Array.isArray(result?.test_cases)) {
+        if (Array.isArray(result?.test_cases) && result.test_cases.length > 0) {
+          setTestCaseResults(result.test_cases);
           const tstates: Record<number, "not_run" | "running" | "passed" | "failed"> = {};
-          result.test_cases.forEach((tc: TestCaseResult, i: number) => (tstates[i] = tc.passed ? "passed" : "failed"));
+          result.test_cases.forEach((tc: any, i: number) => {
+            tstates[i] = tc.passed ? "passed" : "failed";
+          });
           setTestCaseStates(tstates);
+          
+          // Show test summary in output
+          const passedCount = result.test_cases.filter((tc: any) => tc.passed).length;
+          const totalCount = result.test_cases.length;
+          setOutput(prev => `${prev}\n\n✓ Test Cases: ${passedCount}/${totalCount} passed`);
+          
+          // Auto-switch to test cases tab
+          setActiveTab("testcases");
         }
 
         // optional AI review provided by backend
         if (result?.ai_review) setAiReview(result.ai_review as string);
       } else {
         setOutput(json.message ?? "Run failed");
+        setError(json.error || "Run failed");
       }
     } catch (err: any) {
       console.error(err);
@@ -156,11 +249,13 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
     setLoadingAction(true);
     setError(null);
     setOutput("");
+    setTestCaseResults([]);
 
     try {
       const json = await post(`/submissions`, { problem_id: problem.id, language, code });
       if (!json.success || !json.data) {
         setOutput(json.message ?? "Submission failed");
+        setError(json.error || "Submission failed");
         setLoadingAction(false);
         return;
       }
@@ -173,14 +268,45 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
       // Check if result is immediately available (synchronous execution)
       if (responseData.status === 'done' && responseData.result) {
         const r = responseData.result;
-        setOutput(r?.stdout ?? r?.output ?? JSON.stringify(r, null, 2));
-
-        if (Array.isArray(r?.test_cases)) {
-          const tstates: Record<number, "not_run" | "running" | "passed" | "failed"> = {};
-          r.test_cases.forEach((tc: TestCaseResult, i: number) => (tstates[i] = tc.passed ? "passed" : "failed"));
-          setTestCaseStates(tstates);
+        
+        // Set output
+        let displayOutput = r?.output || r?.stdout || "";
+        if (r?.status === 'COMPILE_ERROR' && r?.error) {
+          displayOutput = `Compilation Error:\n${r.error}`;
+        } else if (r?.error) {
+          displayOutput += `\n\nError: ${r.error}`;
         }
+        
+        if (Array.isArray(r?.test_cases) && r.test_cases.length > 0) {
+          setTestCaseResults(r.test_cases);
+          const tstates: Record<number, "not_run" | "running" | "passed" | "failed"> = {};
+          r.test_cases.forEach((tc: any, i: number) => {
+            tstates[i] = tc.passed ? "passed" : "failed";
+          });
+          setTestCaseStates(tstates);
+          
+          // Show submission summary
+          const passedCount = r.test_cases.filter((tc: any) => tc.passed).length;
+          const totalCount = r.test_cases.length;
+          const score = r.total_points || 0;
+          const maxScore = r.max_points || 0;
+          
+          displayOutput += `\n\n✓ Test Cases: ${passedCount}/${totalCount} passed`;
+          displayOutput += `\n★ Score: ${score}/${maxScore} points`;
+          
+          if (r.passed) {
+            displayOutput += `\n\n✓ All tests passed! Submission accepted.`;
+          } else {
+            displayOutput += `\n\n✗ Some tests failed. Check the Test Cases tab for details.`;
+          }
+          
+          // Auto-switch to test cases tab
+          setActiveTab("testcases");
+        }
+        
+        setOutput(displayOutput || JSON.stringify(r, null, 2));
         if (r?.ai_review) setAiReview(r.ai_review);
+        
         // Auto-request AI review for this submission
         try {
           requestCodeReviewMutation.mutate({
@@ -216,13 +342,34 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
           if (pdata?.status === "done" || pdata?.status === "finished") {
             // show results
             const r = pdata.result;
-            setOutput(r?.stdout ?? r?.output ?? JSON.stringify(r, null, 2));
-
-            if (Array.isArray(r?.test_cases)) {
-              const tstates: Record<number, "not_run" | "running" | "passed" | "failed"> = {};
-              r.test_cases.forEach((tc:TestCaseResult, i:any) => (tstates[i] = tc.passed ? "passed" : "failed"));
-              setTestCaseStates(tstates);
+            
+            let displayOutput = r?.output || r?.stdout || "";
+            if (r?.status === 'COMPILE_ERROR' && r?.error) {
+              displayOutput = `Compilation Error:\n${r.error}`;
+            } else if (r?.error) {
+              displayOutput += `\n\nError: ${r.error}`;
             }
+            
+            if (Array.isArray(r?.test_cases) && r.test_cases.length > 0) {
+              setTestCaseResults(r.test_cases);
+              const tstates: Record<number, "not_run" | "running" | "passed" | "failed"> = {};
+              r.test_cases.forEach((tc:any, i:any) => (tstates[i] = tc.passed ? "passed" : "failed"));
+              setTestCaseStates(tstates);
+              
+              const passedCount = r.test_cases.filter((tc: any) => tc.passed).length;
+              const totalCount = r.test_cases.length;
+              const score = r.total_points || 0;
+              const maxScore = r.max_points || 0;
+              
+              displayOutput += `\n\n✓ Test Cases: ${passedCount}/${totalCount} passed`;
+              displayOutput += `\n★ Score: ${score}/${maxScore} points`;
+              
+              if (r.passed) {
+                displayOutput += `\n\n✓ All tests passed! Submission accepted.`;
+              }
+            }
+            
+            setOutput(displayOutput || JSON.stringify(r, null, 2));
             if (r?.ai_review) setAiReview(r.ai_review);
 
             // Auto-request AI review for this submission when polling finishes
@@ -426,13 +573,63 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
         {/* Right - Editor + Output */}
         <div className="flex-1 flex flex-col">
           {/* Editor area */}
-          <div className="flex-1 overflow-hidden bg-gray-900">
-            <textarea
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              spellCheck={false}
-              className="w-full h-full p-6 font-mono text-sm bg-gray-900 text-white outline-none border-0 resize-none"
-            />
+          <div className="flex-1 overflow-hidden bg-gray-900 relative">
+            {/* Code Editor with Syntax Highlighting and Line Numbers */}
+            <div className="absolute inset-0 flex">
+              {/* Line numbers */}
+              <div 
+                ref={lineNumbersRef}
+                className="bg-gray-800 text-gray-500 text-right px-4 py-6 font-mono text-sm select-none overflow-hidden"
+              >
+                {code.split('\n').map((_, i) => (
+                  <div key={i} className="leading-6">
+                    {i + 1}
+                  </div>
+                ))}
+              </div>
+              
+              {/* Code textarea with syntax highlighting overlay */}
+              <div className="flex-1 relative overflow-hidden">
+                {/* Syntax highlighted preview (non-editable, positioned behind) */}
+                <div 
+                  ref={highlightRef}
+                  className="absolute inset-0 pointer-events-none overflow-hidden"
+                >
+                  <SyntaxHighlighter
+                    language={language.name === 'cpp' ? 'cpp' : language.name}
+                    style={vscDarkPlus}
+                    customStyle={{
+                      margin: 0,
+                      padding: '1.5rem',
+                      background: 'transparent',
+                      fontSize: '0.875rem',
+                      lineHeight: '1.5rem',
+                      minHeight: '100%',
+                    }}
+                    showLineNumbers={false}
+                    wrapLines={true}
+                    lineProps={{ style: { wordBreak: 'break-all', whiteSpace: 'pre-wrap' } }}
+                  >
+                    {code}
+                  </SyntaxHighlighter>
+                </div>
+                
+                {/* Editable textarea (transparent text, positioned on top) */}
+                <textarea
+                  ref={textareaRef}
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  onScroll={handleScroll}
+                  spellCheck={false}
+                  className="absolute inset-0 w-full h-full p-6 font-mono text-sm bg-transparent outline-none border-0 resize-none overflow-auto"
+                  style={{
+                    color: 'transparent',
+                    caretColor: 'white',
+                    lineHeight: '1.5rem',
+                  }}
+                />
+              </div>
+            </div>
           </div>
 
           {/* Bottom panels */}
@@ -469,32 +666,122 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
 
               <TabsContent value="testcases" className="flex-1 overflow-auto p-6 m-0">
                 <div className="space-y-3">
-                  {(problem.sampleTestCases || []).map((tc:TestCase, i: any) => {
-                    const state = testCaseStates[i] ?? "not_run";
-                    return (
+                  {testCaseResults.length > 0 ? (
+                    // Show actual test results from execution
+                    testCaseResults.map((result: any, i: number) => (
                       <div
                         key={i}
-                        className={`flex items-start gap-3 p-3 rounded-lg border ${
-                          state === "passed"
+                        className={`flex items-start gap-3 p-4 rounded-lg border ${
+                          result.passed
                             ? "bg-green-50 border-green-200"
-                            : state === "failed"
-                            ? "bg-red-50 border-red-200"
-                            : "bg-gray-50 border-gray-200"
+                            : "bg-red-50 border-red-200"
                         }`}
                       >
-                        <div className="w-6 flex-shrink-0">
-                          {state === "passed" ? <CheckCircle2 className="w-5 h-5 text-green-600" /> : <div className="w-4 h-4 rounded-full border-2 border-gray-300" />}
+                        <div className="w-6 flex-shrink-0 pt-1">
+                          {result.passed ? (
+                            <CheckCircle2 className="w-5 h-5 text-green-600" />
+                          ) : (
+                            <div className="w-5 h-5 rounded-full border-2 border-red-400 flex items-center justify-center">
+                              <span className="text-red-600 text-xs">✗</span>
+                            </div>
+                          )}
                         </div>
-                        <div className="flex-1 text-sm">
-                          <div className="font-medium">Test case {i + 1} — {state.replace("_", " ")}</div>
-                          <div className="text-xs text-gray-600 mt-1">Input: <pre className="whitespace-pre-wrap">{tc.inputEncrypted}</pre></div>
-                          <div className="text-xs text-gray-600">Expected Output: <pre className="whitespace-pre-wrap">{tc.expectedOutputEncrypted}</pre></div>
+                        <div className="flex-1 text-sm space-y-2">
+                          <div className="flex items-center justify-between">
+                            <div className="font-semibold">{result.name || `Test Case ${i + 1}`}</div>
+                            {result.execution_time_ms && (
+                              <Badge variant="outline" className="text-xs">
+                                {result.execution_time_ms}ms
+                              </Badge>
+                            )}
+                          </div>
+                          
+                          {result.error && (
+                            <div className="text-red-700 bg-red-100 p-2 rounded text-xs">
+                              <strong>Error:</strong> {result.error}
+                            </div>
+                          )}
+                          
+                          <div className="grid grid-cols-1 gap-2 text-xs">
+                            <div>
+                              <div className="font-medium text-gray-700">Input:</div>
+                              <pre className="bg-gray-100 p-2 rounded mt-1 whitespace-pre-wrap overflow-auto max-h-24">
+                                {result.input || '[Hidden]'}
+                              </pre>
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-2">
+                              <div>
+                                <div className="font-medium text-gray-700">Expected Output:</div>
+                                <pre className="bg-gray-100 p-2 rounded mt-1 whitespace-pre-wrap overflow-auto max-h-24">
+                                  {result.expected_output || '[Hidden]'}
+                                </pre>
+                              </div>
+                              
+                              <div>
+                                <div className="font-medium text-gray-700">Your Output:</div>
+                                <pre className={`p-2 rounded mt-1 whitespace-pre-wrap overflow-auto max-h-24 ${
+                                  result.passed ? 'bg-green-100' : 'bg-red-100'
+                                }`}>
+                                  {result.actual_output || '(no output)'}
+                                </pre>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {result.points !== undefined && (
+                            <div className="text-xs text-gray-600">
+                              Points: <strong>{result.points}</strong>
+                            </div>
+                          )}
                         </div>
                       </div>
-                    );
-                  })}
+                    ))
+                  ) : (
+                    // Show sample test cases before execution
+                    (problem.sampleTestCases || []).map((tc: TestCase, i: any) => {
+                      const state = testCaseStates[i] ?? "not_run";
+                      return (
+                        <div
+                          key={i}
+                          className={`flex items-start gap-3 p-3 rounded-lg border ${
+                            state === "passed"
+                              ? "bg-green-50 border-green-200"
+                              : state === "failed"
+                              ? "bg-red-50 border-red-200"
+                              : state === "running"
+                              ? "bg-blue-50 border-blue-200"
+                              : "bg-gray-50 border-gray-200"
+                          }`}
+                        >
+                          <div className="w-6 flex-shrink-0">
+                            {state === "passed" ? (
+                              <CheckCircle2 className="w-5 h-5 text-green-600" />
+                            ) : state === "running" ? (
+                              <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
+                            ) : (
+                              <div className="w-4 h-4 rounded-full border-2 border-gray-300" />
+                            )}
+                          </div>
+                          <div className="flex-1 text-sm">
+                            <div className="font-medium">Test case {i + 1} — {state.replace("_", " ")}</div>
+                            <div className="text-xs text-gray-600 mt-1">
+                              <div>Input:</div>
+                              <pre className="whitespace-pre-wrap bg-gray-100 p-1 rounded mt-0.5">{tc.inputEncrypted}</pre>
+                            </div>
+                            <div className="text-xs text-gray-600 mt-2">
+                              <div>Expected Output:</div>
+                              <pre className="whitespace-pre-wrap bg-gray-100 p-1 rounded mt-0.5">{tc.expectedOutputEncrypted}</pre>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
 
-                  {(problem.sampleTestCases || []).length === 0 && <div className="text-sm text-gray-500">No sample test cases.</div>}
+                  {testCaseResults.length === 0 && (problem.sampleTestCases || []).length === 0 && (
+                    <div className="text-sm text-gray-500">No test cases available. Click Run or Submit to execute your code.</div>
+                  )}
                 </div>
               </TabsContent>
 

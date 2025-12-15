@@ -6,15 +6,23 @@ import { supabaseAdmin } from '../config/database';
 export const submitCode = async (req: Request, res: Response) => {
   try {
     // Accept both problemId and problem_id for compatibility
-    const { problemId, problem_id, code, language } = req.body;
+    const { problemId, problem_id, code, language, mode } = req.body;
     const userId = (req as any).user?.id || req.body.userId || null;
     
     const actualProblemId = problemId || problem_id;
+    const executionMode = mode || 'submit'; // 'run' = sample tests only, 'submit' = all tests
     
     if (!actualProblemId) {
       return res.status(400).json({ 
         success: false, 
         error: 'problem_id or problemId is required' 
+      });
+    }
+
+    if (!code) {
+      return res.status(400).json({
+        success: false,
+        error: 'code is required'
       });
     }
 
@@ -55,23 +63,61 @@ export const submitCode = async (req: Request, res: Response) => {
 
     let languageId = langData?.id || null;
 
+    // If mode is 'run', execute immediately without creating submission record
+    if (executionMode === 'run') {
+      const executionResult = await executeCode(code, languageName, actualProblemId, true);
+      
+      return res.json({ 
+        success: true, 
+        data: {
+          mode: 'run',
+          status: 'done',
+          result: executionResult
+        }
+      });
+    }
+
+    // For 'submit' mode, create submission record
     const payload = {
       problem_id: actualProblemId,
       user_id: userId,
       code,
       language_id: languageId,
-      status: 'pending',
+      status: 'PENDING',
     };
 
     const record = await submissionService.createSubmission(payload);
 
-    // Execute code (real execution with Piston API)
-    const executionResult = await executeCode(code, languageName, actualProblemId);
+    // Execute code against all test cases
+    const executionResult = await executeCode(code, languageName, actualProblemId, false);
+
+    // Store individual test case results in code_runs table
+    if (executionResult.test_cases && executionResult.test_cases.length > 0) {
+      const codeRunRecords = executionResult.test_cases.map((tc: any) => ({
+        submission_id: record.id,
+        test_case_id: tc.test_case_id,
+        status: tc.passed ? 'PASSED' : 'FAILED',
+        stdout: tc.actual_output || '',
+        stderr: tc.error || '',
+        exit_code: tc.passed ? 0 : 1,
+        execution_time_ms: tc.execution_time_ms,
+        memory_kb: 0
+      }));
+
+      const { error: runError } = await supabaseAdmin
+        .from('code_runs')
+        .insert(codeRunRecords);
+
+      if (runError) {
+        console.error('Error storing code runs:', runError);
+      }
+    }
 
     // Update submission with execution results
     const updated = await submissionService.updateSubmission(record.id, {
       status: executionResult.status || 'ACCEPTED',
       passed: executionResult.passed || false,
+      points: executionResult.total_points || 0,
       execution_summary: executionResult,
       completed_at: new Date().toISOString(),
     } as any);
@@ -80,8 +126,9 @@ export const submitCode = async (req: Request, res: Response) => {
       success: true, 
       data: {
         submission_id: record.id,
+        mode: 'submit',
         status: 'done',
-        result: executionResult // Include result in response for frontend
+        result: executionResult
       }
     });
   } catch (err: any) {
