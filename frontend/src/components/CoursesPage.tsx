@@ -131,6 +131,19 @@ export default function CoursesPage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-8 py-8 space-y-12">
+        {/* Global Search Bar (moved to top) */}
+        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+          <div className="relative max-w-2xl mx-auto">
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <Input
+              type="text"
+              placeholder="Search for courses..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-12 h-12 text-base border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+            />
+          </div>
+        </div>
         {/* My Enrolled Courses Section */}
         {enrolledCourses.length > 0 && (
           <section>
@@ -160,19 +173,7 @@ export default function CoursesPage() {
             <p className="text-gray-600 mt-1">Browse and enroll in courses to start learning</p>
           </div>
 
-          {/* Search Bar */}
-          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-            <div className="relative">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-              <Input
-                type="text"
-                placeholder="Search for courses..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-12 h-12 text-base border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-              />
-            </div>
-          </div>
+          {/* Filters */}
 
           {/* Filters */}
           <div className="bg-white rounded-lg shadow-md p-6 mb-6">
