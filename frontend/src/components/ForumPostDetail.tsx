@@ -232,9 +232,9 @@ export default function ForumPostDetail({ post, onBack, onUpdate }: ForumPostDet
 
     try {
       await voteMutation.mutateAsync({
-        votable_type: votableType,
-        votable_id: votableId,
-        vote_type: 'upvote',
+        votableType: votableType,
+        votableId: votableId,
+        voteType: 'upvote',
         postId: post.id
       });
       setError(null);
@@ -258,8 +258,8 @@ export default function ForumPostDetail({ post, onBack, onUpdate }: ForumPostDet
     try {
       await replyMutation.mutateAsync({
         postId: post.id,
-        content_markdown: content,
-        parent_reply_id: parentReplyId
+        contentMarkdown: content,
+        parentReplyId: parentReplyId
       });
       
       if (parentReplyId) {
