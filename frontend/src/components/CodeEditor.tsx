@@ -18,6 +18,8 @@ import {
   Loader2,
   Brain,
 } from "lucide-react";
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
 import { useNavigate } from "react-router-dom";
 import type { 
@@ -38,6 +40,50 @@ interface CodeEditorProps {
 // ---------- Utility helpers ----------
 const difficultyText = (d: number) => (d === 1 ? "Easy" : d === 2 ? "Medium" : "Hard");
 const difficultyColor = (d: number) => (d === 1 ? "green" : d === 2 ? "yellow" : "red");
+
+// ---------- Starter Code Templates ----------
+const STARTER_CODE: Record<string, string> = {
+  python: `# Write your solution here
+def solution():
+    """
+    Your code implementation goes here
+    """
+    pass
+
+# Test your code
+if __name__ == "__main__":
+    result = solution()
+    print(result)
+`,
+  java: `public class Solution {
+    /**
+     * Your code implementation goes here
+     */
+    public static void main(String[] args) {
+        Solution solution = new Solution();
+        // Test your code here
+        System.out.println("Result: ");
+    }
+    
+    // Add your methods here
+}
+`,
+  cpp: `#include <iostream>
+#include <vector>
+#include <string>
+
+using namespace std;
+
+/**
+ * Your code implementation goes here
+ */
+int main() {
+    // Test your code here
+    cout << "Result: " << endl;
+    return 0;
+}
+`,
+};
 
 // ---------- Component ----------
 export default function CodeEditor({ apiBase }: CodeEditorProps) {
@@ -69,6 +115,11 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
 
   // submission polling
   const pollRef = useRef<number | null>(null);
+  
+  // Refs for scroll synchronization
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const highlightRef = useRef<HTMLDivElement>(null);
+  const lineNumbersRef = useRef<HTMLDivElement>(null);
 
   // API client for submission (still needed for complex operations)
   const { get, post } = useApi();
@@ -93,7 +144,11 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
   // Update code when problem or language changes
   useEffect(() => {
     if (problem) {
-      setCode(problem.starterCode?.[language.name] ?? "");
+      // Use backend starter code if available, otherwise use default templates
+      const backendStarterCode = problem.starterCode?.[language.name];
+      const defaultStarterCode = STARTER_CODE[language.name] || "";
+      setCode(backendStarterCode || defaultStarterCode);
+      
       // initialize test case states
       const tstates: Record<number, "not_run" | "running" | "passed" | "failed"> = {};
       (problem.sampleTestCases || []).forEach((_: any, i: any) => (tstates[i] = "not_run"));
@@ -104,7 +159,11 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
   // Reset handler
   const handleReset = () => {
     if (!problem) return;
-    setCode(problem.starterCode?.[language.name] ?? "");
+    // Use backend starter code if available, otherwise use default templates
+    const backendStarterCode = problem.starterCode?.[language.name];
+    const defaultStarterCode = STARTER_CODE[language.name] || "";
+    setCode(backendStarterCode || defaultStarterCode);
+    
     setOutput("");
     // reset testcase states
     const tstates: Record<number, "not_run" | "running" | "passed" | "failed"> = {};
@@ -112,6 +171,17 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
     setTestCaseStates(tstates);
     setAiReview(null);
     setError(null);
+  };
+
+  // Sync scroll between textarea and syntax highlighter
+  const handleScroll = () => {
+    if (textareaRef.current && highlightRef.current && lineNumbersRef.current) {
+      const scrollTop = textareaRef.current.scrollTop;
+      const scrollLeft = textareaRef.current.scrollLeft;
+      highlightRef.current.scrollTop = scrollTop;
+      highlightRef.current.scrollLeft = scrollLeft;
+      lineNumbersRef.current.scrollTop = scrollTop;
+    }
   };
 
   // Run handler (mode = run)
@@ -426,13 +496,63 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
         {/* Right - Editor + Output */}
         <div className="flex-1 flex flex-col">
           {/* Editor area */}
-          <div className="flex-1 overflow-hidden bg-gray-900">
-            <textarea
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              spellCheck={false}
-              className="w-full h-full p-6 font-mono text-sm bg-gray-900 text-white outline-none border-0 resize-none"
-            />
+          <div className="flex-1 overflow-hidden bg-gray-900 relative">
+            {/* Code Editor with Syntax Highlighting and Line Numbers */}
+            <div className="absolute inset-0 flex">
+              {/* Line numbers */}
+              <div 
+                ref={lineNumbersRef}
+                className="bg-gray-800 text-gray-500 text-right px-4 py-6 font-mono text-sm select-none overflow-hidden"
+              >
+                {code.split('\n').map((_, i) => (
+                  <div key={i} className="leading-6">
+                    {i + 1}
+                  </div>
+                ))}
+              </div>
+              
+              {/* Code textarea with syntax highlighting overlay */}
+              <div className="flex-1 relative overflow-hidden">
+                {/* Syntax highlighted preview (non-editable, positioned behind) */}
+                <div 
+                  ref={highlightRef}
+                  className="absolute inset-0 pointer-events-none overflow-hidden"
+                >
+                  <SyntaxHighlighter
+                    language={language.name === 'cpp' ? 'cpp' : language.name}
+                    style={vscDarkPlus}
+                    customStyle={{
+                      margin: 0,
+                      padding: '1.5rem',
+                      background: 'transparent',
+                      fontSize: '0.875rem',
+                      lineHeight: '1.5rem',
+                      minHeight: '100%',
+                    }}
+                    showLineNumbers={false}
+                    wrapLines={true}
+                    lineProps={{ style: { wordBreak: 'break-all', whiteSpace: 'pre-wrap' } }}
+                  >
+                    {code}
+                  </SyntaxHighlighter>
+                </div>
+                
+                {/* Editable textarea (transparent text, positioned on top) */}
+                <textarea
+                  ref={textareaRef}
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  onScroll={handleScroll}
+                  spellCheck={false}
+                  className="absolute inset-0 w-full h-full p-6 font-mono text-sm bg-transparent outline-none border-0 resize-none overflow-auto"
+                  style={{
+                    color: 'transparent',
+                    caretColor: 'white',
+                    lineHeight: '1.5rem',
+                  }}
+                />
+              </div>
+            </div>
           </div>
 
           {/* Bottom panels */}
