@@ -11,9 +11,9 @@ export default function TopicsPage() {
   const { data: topicsData, isLoading } = useTopics();
 
   // Filter topics by courseId if provided
-  const topics = courseId 
+  const topics = courseId
     ? (topicsData || []).filter((t: any) => t.course_id === courseId)
-    : (topicsData || []);
+    : topicsData || [];
 
   if (isLoading) {
     return (
@@ -37,7 +37,7 @@ export default function TopicsPage() {
           </button>
         )}
         <h2 className="text-3xl font-bold">
-          {courseId ? 'Course Topics' : 'All Topics'}
+          {courseId ? "Course Topics" : "All Topics"}
         </h2>
         <p className="text-muted-foreground mt-2">
           Select a topic to view its lessons
@@ -50,16 +50,24 @@ export default function TopicsPage() {
           <BookOpen className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
           <h3 className="text-xl font-semibold mb-2">No topics available</h3>
           <p className="text-muted-foreground">
-            {courseId ? 'This course has no topics yet.' : 'No topics found in the system.'}
+            {courseId
+              ? "This course has no topics yet."
+              : "No topics found in the system."}
           </p>
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {topics.map((topic: any) => (
-            <Card 
+            <Card
               key={topic.id}
               className="p-6 hover:shadow-lg transition-shadow cursor-pointer"
-              onClick={() => navigate(courseId ? `/courses/${courseId}/lessons/${topic.id}` : `/lessons/${topic.id}`)}
+              onClick={() =>
+                navigate(
+                  courseId
+                    ? `/courses/${courseId}/topics/${topic.id}/lessons`
+                    : `/topics/${topic.id}/lessons`
+                )
+              }
             >
               {/* Topic Icon */}
               <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
@@ -71,7 +79,7 @@ export default function TopicsPage() {
                 {topic.title}
               </h3>
               <p className="text-sm text-muted-foreground line-clamp-3 mb-4">
-                {topic.description || 'No description available'}
+                {topic.description || "No description available"}
               </p>
 
               {/* Stats */}

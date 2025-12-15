@@ -1,12 +1,12 @@
 // Lesson Mappers - Convert DB models sang DTOs
 
-import { Lesson, LessonCompletion } from '../models/Lesson';
-import { 
-  LessonDTO, 
+import { Lesson, LessonCompletion } from "../models/Lesson";
+import {
+  LessonDTO,
   LessonSummaryDTO,
   LessonWithProgressDTO,
-  LessonCompletionDTO
-} from '../dtos/lesson.dto';
+  LessonCompletionDTO,
+} from "../dtos/lesson.dto";
 
 export function mapLessonToDTO(lesson: Lesson): LessonDTO {
   return {
@@ -19,7 +19,8 @@ export function mapLessonToDTO(lesson: Lesson): LessonDTO {
     estimatedTimeMin: lesson.estimated_time_min,
     displayOrder: lesson.display_order || 0,
     isPublished: lesson.is_published || false,
-    createdAt: lesson.created_at
+    createdAt: lesson.created_at,
+    metadata: lesson.metadata,
   };
 }
 
@@ -30,27 +31,29 @@ export function mapLessonToSummaryDTO(lesson: Lesson): LessonSummaryDTO {
     slug: lesson.slug,
     difficulty: lesson.difficulty,
     estimatedTimeMin: lesson.estimated_time_min,
-    displayOrder: lesson.display_order || 0
+    displayOrder: lesson.display_order || 0,
   };
 }
 
 export function mapLessonWithProgressToDTO(
-  lesson: Lesson, 
+  lesson: Lesson,
   completion?: LessonCompletion
 ): LessonWithProgressDTO {
   return {
     ...mapLessonToDTO(lesson),
     isCompleted: !!completion,
     timeSpentSec: completion?.time_spent_sec,
-    completedAt: completion?.completed_at
+    completedAt: completion?.completed_at,
   };
 }
 
-export function mapCompletionToDTO(completion: LessonCompletion): LessonCompletionDTO {
+export function mapCompletionToDTO(
+  completion: LessonCompletion
+): LessonCompletionDTO {
   return {
     userId: completion.user_id,
     lessonId: completion.lesson_id,
     timeSpentSec: completion.time_spent_sec || 0,
-    completedAt: completion.completed_at || new Date().toISOString()
+    completedAt: completion.completed_at || new Date().toISOString(),
   };
 }

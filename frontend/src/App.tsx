@@ -16,6 +16,8 @@ import CourseEnrollPage from "./components/CourseEnrollPage";
 import CourseDetailPage from "./components/CourseDetailPage";
 import TopicsPage from "./components/TopicsPage";
 import LessonPage from "./components/LessonPage";
+import LessonDetailPage from "./components/LessonDetailPage";
+import CertificatePage from "./components/CertificatePage";
 import CodeEditor from "./components/CodeEditor";
 import ForumPage from "./components/ForumPage";
 import NotebookPage from "./components/NotebookPage";
@@ -302,7 +304,23 @@ function AppContent() {
         }
       />
       <Route
-        path="/lessons/:topicId"
+        path="/lessons/:lessonId"
+        element={
+          <DashboardRoute>
+            <LessonDetailPage />
+          </DashboardRoute>
+        }
+      />
+      <Route
+        path="/certificate/:certificateId"
+        element={
+          <ProtectedRoute>
+            <CertificatePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/topics/:topicId/lessons"
         element={
           <ProtectedRoute>
             <LessonPage />
@@ -310,10 +328,18 @@ function AppContent() {
         }
       />
       <Route
-        path="/courses/:courseId/lessons/:topicId"
+        path="/courses/:courseId/topics/:topicId/lessons"
         element={
           <ProtectedRoute>
             <LessonPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/courses/:courseId/topics/:topicId/lessons/:lessonId"
+        element={
+          <ProtectedRoute>
+            <LessonDetailPage />
           </ProtectedRoute>
         }
       />

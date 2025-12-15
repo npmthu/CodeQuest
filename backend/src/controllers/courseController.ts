@@ -1,6 +1,7 @@
-import { Request, Response } from 'express';
-import { AuthRequest } from '../middleware/auth';
-import { supabaseAdmin } from '../config/database';
+import { Request, Response } from "express";
+import { AuthRequest } from "../middleware/auth";
+import { supabaseAdmin } from "../config/database";
+import * as lessonService from "../services/lessonService";
 
 /**
  * List all courses
@@ -9,12 +10,12 @@ import { supabaseAdmin } from '../config/database';
 export async function listCoursesHandler(req: Request, res: Response) {
   try {
     const { data: courses, error } = await supabaseAdmin
-      .from('courses')
-      .select('*')
-      .order('created_at', { ascending: false });
+      .from("courses")
+      .select("*")
+      .order("created_at", { ascending: false });
 
     if (error) {
-      console.error('Error fetching courses:', error);
+      console.error("Error fetching courses:", error);
       throw error;
     }
 
@@ -22,13 +23,13 @@ export async function listCoursesHandler(req: Request, res: Response) {
     const enrichedCourses = await Promise.all(
       (courses || []).map(async (course: any) => {
         const { count } = await supabaseAdmin
-          .from('topics')
-          .select('*', { count: 'exact', head: true })
-          .eq('course_id', course.id);
+          .from("topics")
+          .select("*", { count: "exact", head: true })
+          .eq("course_id", course.id);
 
         return {
           ...course,
-          topic_count: count || 0
+          topic_count: count || 0,
         };
       })
     );
@@ -46,16 +47,18 @@ export async function listCoursesHandler(req: Request, res: Response) {
 export async function getCourseHandler(req: AuthRequest, res: Response) {
   try {
     const user = req.user;
-    
+
     const { data: course, error } = await supabaseAdmin
-      .from('courses')
-      .select('*')
-      .eq('id', req.params.id)
+      .from("courses")
+      .select("*")
+      .eq("id", req.params.id)
       .single();
 
     if (error) {
-      if (error.code === 'PGRST116') {
-        return res.status(404).json({ success: false, error: 'Course not found' });
+      if (error.code === "PGRST116") {
+        return res
+          .status(404)
+          .json({ success: false, error: "Course not found" });
       }
       throw error;
     }
@@ -64,12 +67,12 @@ export async function getCourseHandler(req: AuthRequest, res: Response) {
     let isEnrolled = false;
     if (user) {
       const { data: enrollment } = await supabaseAdmin
-        .from('enrollments')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('course_id', course.id)
+        .from("enrollments")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("course_id", course.id)
         .single();
-      
+
       isEnrolled = !!enrollment;
     }
 
@@ -77,22 +80,50 @@ export async function getCourseHandler(req: AuthRequest, res: Response) {
     let topics = [];
     if (isEnrolled) {
       const { data: topicsData } = await supabaseAdmin
-        .from('topics')
-        .select('*')
-        .eq('course_id', course.id)
-        .order('created_at', { ascending: true });
-      
+        .from("topics")
+        .select("*")
+        .eq("course_id", course.id)
+        .order("created_at", { ascending: true });
+
       topics = topicsData || [];
     }
 
-    return res.json({ 
-      success: true, 
+    return res.json({
+      success: true,
       data: {
         ...course,
         topics,
-        isEnrolled
-      }
+        isEnrolled,
+      },
     });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+}
+
+/**
+ * Get course progress for authenticated user
+ * GET /api/courses/:id/progress
+ */
+export async function getCourseProgressHandler(
+  req: AuthRequest,
+  res: Response
+) {
+  try {
+    const user = req.user;
+    if (!user) {
+      return res
+        .status(401)
+        .json({ success: false, error: "Authentication required" });
+    }
+
+    const courseId = req.params.id;
+    const stats = await lessonService.getCourseCompletionStats(
+      user.id,
+      courseId
+    );
+
+    return res.json({ success: true, data: stats });
   } catch (error: any) {
     return res.status(500).json({ success: false, error: error.message });
   }
