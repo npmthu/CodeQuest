@@ -9,10 +9,13 @@ import {
   Sparkles,
   Calendar,
   MessageSquare,
-  X
+  X,
+  Brain,
+  GitBranch
 } from "lucide-react";
-import { useNotebookAssist } from "../hooks/useApi";
+import { useNotebookAssist, useGenerateSummary, useGenerateMindmap, useUpdateNote } from "../hooks/useApi";
 import type { Note } from "../interfaces";
+import type { MindmapResponse } from "../interfaces/ai.interface";
 
 interface NotebookDetailPlaceholderProps {
   notebook: Note;
@@ -25,7 +28,15 @@ export default function NotebookDetailPlaceholder({ notebook, onBack }: Notebook
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(notebook.title || '');
   const [editContent, setEditContent] = useState(notebook.contentMarkdown || '');
+  const [summary, setSummary] = useState<string | null>(null);
+  const [mindmap, setMindmap] = useState<MindmapResponse | null>(null);
+  const [showSummary, setShowSummary] = useState(false);
+  const [showMindmap, setShowMindmap] = useState(false);
+  
   const assistMutation = useNotebookAssist();
+  const summaryMutation = useGenerateSummary();
+  const mindmapMutation = useGenerateMindmap();
+  const updateNoteMutation = useUpdateNote(notebook.id);
 
   const handleAskAI = async () => {
     if (!aiQuestion.trim()) return;
@@ -42,10 +53,86 @@ export default function NotebookDetailPlaceholder({ notebook, onBack }: Notebook
     }
   };
 
-  const handleSaveEdit = () => {
-    // TODO: Call API to save edited notebook
-    console.log('Save edit:', { editTitle, editContent });
-    setIsEditing(false);
+  const handleGenerateSummary = async () => {
+    const content = editContent || notebook.contentMarkdown || '';
+    if (!content.trim()) {
+      alert('Please add some content to your notebook before generating a summary');
+      return;
+    }
+
+    try {
+      const result = await summaryMutation.mutateAsync(content);
+      setSummary(result.summary);
+      setShowSummary(true);
+    } catch (error: any) {
+      console.error('Summary generation error:', error);
+      alert(`Failed to generate summary: ${error.message}`);
+    }
+  };
+
+  const handleGenerateMindmap = async () => {
+    const content = editContent || notebook.contentMarkdown || '';
+    if (!content.trim()) {
+      alert('Please add some content to your notebook before generating a mindmap');
+      return;
+    }
+
+    try {
+      const result = await mindmapMutation.mutateAsync(content);
+      setMindmap(result);
+      setShowMindmap(true);
+    } catch (error: any) {
+      console.error('Mindmap generation error:', error);
+      alert(`Failed to generate mindmap: ${error.message}`);
+    }
+  };
+
+  const renderMindmapNode = (node: { label: string; children: any[] }, level: number = 0, index: number = 0): JSX.Element => {
+    const indent = level * 24;
+    const key = `${node.label}-${level}-${index}`;
+    return (
+      <div key={key} style={{ marginLeft: `${indent}px`, marginTop: level > 0 ? '8px' : '0' }}>
+        <div className="flex items-center gap-2">
+          <div className="w-2 h-2 rounded-full bg-blue-600"></div>
+          <span className="font-medium text-sm">{node.label}</span>
+        </div>
+        {node.children && node.children.length > 0 && (
+          <div className="mt-2">
+            {node.children.map((child, idx) => renderMindmapNode(child, level + 1, idx))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const handleSaveEdit = async () => {
+    try {
+      const response = await updateNoteMutation.mutateAsync({
+        title: editTitle,
+        contentMarkdown: editContent,
+      });
+      
+      // Extract the note data from the API response
+      const updatedNote = response.data || response;
+      
+      // Update local state with the saved values
+      // This ensures the UI reflects the saved content immediately
+      if (updatedNote.title !== undefined) {
+        setEditTitle(updatedNote.title || '');
+      }
+      if (updatedNote.contentMarkdown !== undefined) {
+        setEditContent(updatedNote.contentMarkdown || '');
+      }
+      
+      // Exit edit mode on success
+      setIsEditing(false);
+      
+      // Optionally show success message
+      // You could use a toast library here if available
+    } catch (error: any) {
+      console.error('Error saving note:', error);
+      alert(`Failed to save changes: ${error.message || 'Unknown error'}`);
+    }
   };
 
   // Generate unique placeholder content based on notebook id
@@ -96,6 +183,26 @@ This notebook contains your personal learning notes. You can:
               <Button 
                 variant="outline" 
                 size="sm"
+                onClick={handleGenerateSummary}
+                disabled={summaryMutation.isPending}
+                title="Generate a concise summary of your notebook content"
+              >
+                <Brain className="w-4 h-4 mr-2" />
+                {summaryMutation.isPending ? 'Generating...' : 'Generate Summary'}
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={handleGenerateMindmap}
+                disabled={mindmapMutation.isPending}
+                title="Generate a mindmap structure from your notebook content"
+              >
+                <GitBranch className="w-4 h-4 mr-2" />
+                {mindmapMutation.isPending ? 'Generating...' : 'Generate Mindmap'}
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
                 onClick={() => setShowAIAssistant(!showAIAssistant)}
               >
                 <Sparkles className="w-4 h-4 mr-2" />
@@ -135,17 +242,24 @@ This notebook contains your personal learning notes. You can:
               <div className="flex gap-2">
                 <Button 
                   onClick={handleSaveEdit}
+                  disabled={updateNoteMutation.isPending}
                   className="bg-green-600 hover:bg-green-700"
                 >
-                  Save Changes
+                  {updateNoteMutation.isPending ? 'Saving...' : 'Save Changes'}
                 </Button>
                 <Button 
                   variant="outline"
                   onClick={() => setIsEditing(false)}
+                  disabled={updateNoteMutation.isPending}
                 >
                   Cancel
                 </Button>
               </div>
+              {updateNoteMutation.isError && (
+                <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800">
+                  Error: {updateNoteMutation.error?.message || 'Failed to save changes'}
+                </div>
+              )}
             </div>
           </Card>
         ) : (
@@ -212,6 +326,114 @@ This notebook contains your personal learning notes. You can:
                       </div>
                     </div>
                   )}
+                </div>
+              </Card>
+            )}
+
+            {/* Generated Summary */}
+            {showSummary && summary && (
+              <Card className="p-6 mb-6 bg-gradient-to-br from-green-50 to-emerald-50 border-green-200">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
+                      <Brain className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold">Generated Summary</h4>
+                      <p className="text-sm text-muted-foreground">
+                        AI-generated summary of your notebook content
+                      </p>
+                    </div>
+                  </div>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => {
+                      setShowSummary(false);
+                      setSummary(null);
+                    }}
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+                <div className="prose prose-sm max-w-none">
+                  <div className="whitespace-pre-wrap text-gray-700" 
+                    dangerouslySetInnerHTML={{ 
+                      __html: summary
+                        .split('\n')
+                        .map((line) => {
+                          const trimmed = line.trim();
+                          if (trimmed.startsWith('# ')) {
+                            return `<h1 class="text-xl font-bold mt-4 mb-2">${trimmed.slice(2)}</h1>`;
+                          }
+                          if (trimmed.startsWith('## ')) {
+                            return `<h2 class="text-lg font-semibold mt-3 mb-2">${trimmed.slice(3)}</h2>`;
+                          }
+                          if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
+                            return `<li class="ml-4 mb-1">${trimmed.slice(2)}</li>`;
+                          }
+                          if (trimmed === '') {
+                            return '<br/>';
+                          }
+                          return `<p class="mb-2">${line}</p>`;
+                        })
+                        .join('')
+                    }} 
+                  />
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="mt-4"
+                  onClick={() => {
+                    const newContent = editContent + '\n\n## AI Summary\n\n' + summary;
+                    setEditContent(newContent);
+                    setShowSummary(false);
+                  }}
+                >
+                  Add to Notebook
+                </Button>
+              </Card>
+            )}
+
+            {/* Generated Mindmap */}
+            {showMindmap && mindmap && (
+              <Card className="p-6 mb-6 bg-gradient-to-br from-purple-50 to-indigo-50 border-purple-200">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center">
+                      <GitBranch className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold">Generated Mindmap</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Hierarchical structure of your notebook content
+                      </p>
+                    </div>
+                  </div>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => {
+                      setShowMindmap(false);
+                      setMindmap(null);
+                    }}
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+                <div className="bg-white rounded-lg p-4 border border-purple-200">
+                  <div className="mb-4 pb-3 border-b border-purple-200">
+                    <h3 className="text-lg font-bold text-purple-900">{mindmap.root}</h3>
+                  </div>
+                  <div className="space-y-2">
+                    {mindmap.children.map((child, idx) => renderMindmapNode(child, 0, idx))}
+                  </div>
+                </div>
+                <div className="mt-4 p-3 bg-purple-50 rounded-lg">
+                  <p className="text-xs text-purple-700">
+                    💡 Tip: This mindmap shows the hierarchical structure. You can use this to better organize your notes!
+                  </p>
                 </div>
               </Card>
             )}

@@ -8,6 +8,7 @@ import {
   forumService,
   submissionService,
   userService,
+  aiService,
 } from "../services";
 
 const API_BASE =
@@ -1227,6 +1228,24 @@ export function useNotebookAssist() {
         body: JSON.stringify({ question, context, sourceType, sourceId }),
       });
       return result.data;
+    },
+  });
+}
+
+// Generate summary from notebook content
+export function useGenerateSummary() {
+  return useMutation({
+    mutationFn: async (content: string) => {
+      return aiService.generateSummary({ content });
+    },
+  });
+}
+
+// Generate mindmap from notebook content
+export function useGenerateMindmap() {
+  return useMutation({
+    mutationFn: async (content: string) => {
+      return aiService.generateMindmap({ content });
     },
   });
 }

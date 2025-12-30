@@ -222,6 +222,143 @@ export class AIController {
       });
     }
   }
+
+  /**
+   * POST /api/ai/summary - Generate AI summary from notebook content
+   */
+  async generateSummary(req: AuthRequest, res: Response) {
+    try {
+      const user = req.user;
+      if (!user) {
+        return res.status(401).json({ success: false, error: 'Authentication required' });
+      }
+
+      const { content } = req.body;
+
+      // Validate request body
+      if (!content || typeof content !== 'string' || content.trim().length === 0) {
+        console.warn('❌ Invalid summary request - missing or empty content');
+        return res.status(400).json({ 
+          success: false,
+          error: 'Content is required and cannot be empty' 
+        });
+      }
+
+      console.log('📝 Summary generation request:', {
+        userId: user.id,
+        contentLength: content.length,
+        contentPreview: content.substring(0, 100) + '...'
+      });
+
+      const summary = await aiService.generateSummary(content);
+
+      console.log('✅ Summary generated successfully:', {
+        summaryLength: summary.length,
+        summaryPreview: summary.substring(0, 100) + '...'
+      });
+
+      res.json({
+        success: true,
+        data: {
+          summary
+        }
+      });
+    } catch (error: any) {
+      // Detailed error logging for debugging
+      console.error('❌ Error generating summary:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+        userId: req.user?.id,
+        contentLength: req.body?.content?.length || 0
+      });
+
+      // Determine error type and provide appropriate response
+      const errorMessage = error.message || 'Unknown error occurred';
+      const isConfigurationError = errorMessage.includes('GEMINI_API_KEY') || errorMessage.includes('not configured');
+      const isApiError = errorMessage.includes('API') || errorMessage.includes('Gemini');
+      
+      res.status(500).json({ 
+        success: false,
+        error: isConfigurationError 
+          ? 'AI service is not configured. Please check server configuration.'
+          : isApiError
+          ? 'AI service error. Please try again later.'
+          : 'Failed to generate summary',
+        message: process.env.NODE_ENV === 'development' ? errorMessage : 'An error occurred while generating the summary'
+      });
+    }
+  }
+
+  /**
+   * POST /api/ai/mindmap - Generate AI mindmap from notebook content
+   */
+  async generateMindmap(req: AuthRequest, res: Response) {
+    try {
+      const user = req.user;
+      if (!user) {
+        return res.status(401).json({ success: false, error: 'Authentication required' });
+      }
+
+      const { content } = req.body;
+
+      // Validate request body
+      if (!content || typeof content !== 'string' || content.trim().length === 0) {
+        console.warn('❌ Invalid mindmap request - missing or empty content');
+        return res.status(400).json({ 
+          success: false,
+          error: 'Content is required and cannot be empty' 
+        });
+      }
+
+      console.log('🗺️  Mindmap generation request:', {
+        userId: user.id,
+        contentLength: content.length,
+        contentPreview: content.substring(0, 100) + '...'
+      });
+
+      const mindmap = await aiService.generateMindmap(content);
+
+      console.log('✅ Mindmap generated successfully:', {
+        root: mindmap?.root || 'N/A',
+        childrenCount: mindmap?.children?.length || 0
+      });
+
+      res.json({
+        success: true,
+        data: {
+          mindmap
+        }
+      });
+    } catch (error: any) {
+      // Detailed error logging for debugging
+      console.error('❌ Error generating mindmap:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+        userId: req.user?.id,
+        contentLength: req.body?.content?.length || 0
+      });
+
+      // Determine error type and provide appropriate response
+      const errorMessage = error.message || 'Unknown error occurred';
+      const isConfigurationError = errorMessage.includes('GEMINI_API_KEY') || errorMessage.includes('not configured');
+      const isApiError = errorMessage.includes('API') || errorMessage.includes('Gemini');
+      const isParseError = errorMessage.includes('parse') || errorMessage.includes('JSON');
+      
+      res.status(500).json({ 
+        success: false,
+        error: isConfigurationError 
+          ? 'AI service is not configured. Please check server configuration.'
+          : isParseError
+          ? 'Failed to parse AI response. The content may be too complex.'
+          : isApiError
+          ? 'AI service error. Please try again later.'
+          : 'Failed to generate mindmap',
+        message: process.env.NODE_ENV === 'development' ? errorMessage : 'An error occurred while generating the mindmap'
+      });
+    }
+  }
 }
 
 export default new AIController();

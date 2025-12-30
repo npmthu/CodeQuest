@@ -151,11 +151,12 @@ export async function getCourseCompletionStats(
   userId: string,
   courseId: string
 ) {
-  // Get all lessons for this course with their topic_id
+  // Get all published lessons for this course with their topic_id
   const { data: lessons, error: lessonsError } = await supabaseAdmin
     .from("lessons")
     .select("id, topic_id")
-    .eq("course_id", courseId);
+    .eq("course_id", courseId)
+    .eq("is_published", true);
 
   if (lessonsError) throw lessonsError;
 

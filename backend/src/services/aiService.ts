@@ -264,6 +264,148 @@ Question: ${question}
 Provide a clear, educational answer. If providing code examples, use markdown code blocks. Keep the explanation beginner-friendly but technically accurate.`;
   }
 
+  /**
+   * Generate a concise summary from notebook content
+   */
+  async generateSummary(content: string): Promise<string> {
+    // Check configuration first
+    if (!this.isConfigured || !this.model) {
+      const apiKey = process.env.GEMINI_API_KEY || process.env.AI_API_KEY;
+      console.error('❌ AI Service not configured:', {
+        hasApiKey: !!apiKey,
+        isConfigured: this.isConfigured,
+        hasModel: !!this.model,
+        envVars: {
+          GEMINI_API_KEY: apiKey ? '***' + apiKey.slice(-4) : 'NOT SET',
+          AI_API_KEY: process.env.AI_API_KEY ? 'SET' : 'NOT SET'
+        }
+      });
+      throw new Error('AI Service not configured - check GEMINI_API_KEY environment variable');
+    }
+
+    if (!content || content.trim().length === 0) {
+      throw new Error('Content cannot be empty');
+    }
+
+    const prompt = this.buildSummaryPrompt(content);
+
+    try {
+      console.log('🤖 Calling Gemini API for summary generation...');
+      const result = await this.model.generateContent(prompt);
+      const response = await result.response;
+      
+      // Check if response is valid
+      if (!response) {
+        throw new Error('Empty response from Gemini API');
+      }
+      
+      const text = response.text();
+      
+      if (!text || text.trim().length === 0) {
+        throw new Error('Empty text response from Gemini API');
+      }
+      
+      console.log('✅ Summary generated successfully, length:', text.length);
+      return text.trim();
+    } catch (error: any) {
+      // Enhanced error logging
+      console.error('❌ Gemini API error in generateSummary:', {
+        message: error.message,
+        name: error.name,
+        stack: error.stack,
+        errorDetails: error.cause || error.details || 'No additional details',
+        promptLength: prompt.length
+      });
+
+      // Provide more specific error messages
+      if (error.message?.includes('API_KEY')) {
+        throw new Error('Invalid or missing Gemini API key. Please check GEMINI_API_KEY environment variable.');
+      }
+      if (error.message?.includes('quota') || error.message?.includes('rate limit')) {
+        throw new Error('API quota exceeded or rate limit reached. Please try again later.');
+      }
+      if (error.message?.includes('timeout') || error.message?.includes('network')) {
+        throw new Error('Network error or timeout while calling AI service. Please try again.');
+      }
+      
+      throw new Error(`AI summary generation failed: ${error.message || 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Generate a mindmap JSON structure from notebook content
+   */
+  async generateMindmap(content: string): Promise<any> {
+    // Check configuration first
+    if (!this.isConfigured || !this.model) {
+      const apiKey = process.env.GEMINI_API_KEY || process.env.AI_API_KEY;
+      console.error('❌ AI Service not configured:', {
+        hasApiKey: !!apiKey,
+        isConfigured: this.isConfigured,
+        hasModel: !!this.model,
+        envVars: {
+          GEMINI_API_KEY: apiKey ? '***' + apiKey.slice(-4) : 'NOT SET',
+          AI_API_KEY: process.env.AI_API_KEY ? 'SET' : 'NOT SET'
+        }
+      });
+      throw new Error('AI Service not configured - check GEMINI_API_KEY environment variable');
+    }
+
+    if (!content || content.trim().length === 0) {
+      throw new Error('Content cannot be empty');
+    }
+
+    const prompt = this.buildMindmapPrompt(content);
+
+    try {
+      console.log('🤖 Calling Gemini API for mindmap generation...');
+      const result = await this.model.generateContent(prompt);
+      const response = await result.response;
+      
+      // Check if response is valid
+      if (!response) {
+        throw new Error('Empty response from Gemini API');
+      }
+      
+      const text = response.text();
+      
+      if (!text || text.trim().length === 0) {
+        throw new Error('Empty text response from Gemini API');
+      }
+      
+      console.log('✅ Mindmap response received, parsing JSON...');
+      const parsed = this.parseMindmapResponse(text);
+      console.log('✅ Mindmap parsed successfully');
+      return parsed;
+    } catch (error: any) {
+      // Enhanced error logging
+      console.error('❌ Gemini API error in generateMindmap:', {
+        message: error.message,
+        name: error.name,
+        stack: error.stack,
+        errorDetails: error.cause || error.details || 'No additional details',
+        promptLength: prompt.length,
+        isParseError: error.message?.includes('parse') || error.message?.includes('JSON')
+      });
+
+      // Provide more specific error messages
+      if (error.message?.includes('API_KEY')) {
+        throw new Error('Invalid or missing Gemini API key. Please check GEMINI_API_KEY environment variable.');
+      }
+      if (error.message?.includes('quota') || error.message?.includes('rate limit')) {
+        throw new Error('API quota exceeded or rate limit reached. Please try again later.');
+      }
+      if (error.message?.includes('timeout') || error.message?.includes('network')) {
+        throw new Error('Network error or timeout while calling AI service. Please try again.');
+      }
+      if (error.message?.includes('parse') || error.message?.includes('JSON')) {
+        throw new Error(`Failed to parse mindmap JSON: ${error.message}. The AI response may not be in the expected format.`);
+      }
+      
+      throw new Error(`AI mindmap generation failed: ${error.message || 'Unknown error'}`);
+    }
+  }
+
   private parseCodeReviewResponse(responseText: string): CodeReviewResult {
     try {
       // Remove markdown code blocks if present
@@ -299,6 +441,142 @@ Provide a clear, educational answer. If providing code examples, use markdown co
         suggestions: [],
         qualityRating: 3,
       };
+    }
+  }
+
+  private buildSummaryPrompt(content: string): string {
+    return `You are an expert note-taker and educator. Summarize the following notebook content into clear, concise bullet points with a main takeaway.
+
+Content:
+${content}
+
+Instructions:
+- Provide a brief main takeaway (1-2 sentences) at the beginning
+- Follow with key bullet points (5-10 points maximum)
+- Use clear, concise language
+- Focus on the most important concepts and information
+- Format your response in markdown
+
+Return ONLY the markdown summary, no additional text or explanation.`;
+  }
+
+  private buildMindmapPrompt(content: string): string {
+    return `You are an expert at creating knowledge structures. Analyze the following notebook content and create a hierarchical mindmap structure.
+
+Content:
+${content}
+
+Create a mindmap that represents the main topics, subtopics, and relationships in the content.
+
+CRITICAL: You MUST return ONLY valid JSON in the following exact structure:
+{
+  "root": "Main Topic Name",
+  "children": [
+    {
+      "label": "Subtopic 1",
+      "children": [
+        {
+          "label": "Detail 1.1",
+          "children": []
+        },
+        {
+          "label": "Detail 1.2",
+          "children": []
+        }
+      ]
+    },
+    {
+      "label": "Subtopic 2",
+      "children": [
+        {
+          "label": "Detail 2.1",
+          "children": []
+        }
+      ]
+    }
+  ]
+}
+
+Rules:
+- The "root" should be the main topic/concept from the content
+- Each node has a "label" (string) and "children" (array of nodes)
+- Create 3-7 main subtopics (children of root)
+- Each subtopic can have 0-5 child nodes for details
+- Keep labels concise (3-8 words)
+- Do NOT include any text before or after the JSON
+- Do NOT wrap the JSON in markdown code blocks
+- Return ONLY the JSON object, nothing else`;
+  }
+
+  private parseMindmapResponse(responseText: string): any {
+    try {
+      console.log('🔍 Parsing mindmap response, length:', responseText.length);
+      
+      // Remove markdown code blocks if present
+      let cleanText = responseText.trim();
+      if (cleanText.startsWith('```json')) {
+        cleanText = cleanText.replace(/^```json\s*/, '').replace(/```\s*$/, '');
+        console.log('📝 Removed markdown code block wrapper');
+      } else if (cleanText.startsWith('```')) {
+        cleanText = cleanText.replace(/^```\s*/, '').replace(/```\s*$/, '');
+        console.log('📝 Removed code block wrapper');
+      }
+
+      // Try to extract JSON if there's text before/after
+      const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        cleanText = jsonMatch[0];
+        console.log('📝 Extracted JSON from surrounding text');
+      }
+
+      console.log('🔍 Attempting to parse JSON, preview:', cleanText.substring(0, 200));
+      const parsed = JSON.parse(cleanText);
+      
+      // Validate structure
+      if (!parsed.root || typeof parsed.root !== 'string') {
+        console.error('❌ Invalid mindmap structure - missing root:', parsed);
+        throw new Error('Invalid mindmap structure: missing or invalid root field');
+      }
+      
+      if (!Array.isArray(parsed.children)) {
+        console.warn('⚠️  Mindmap children is not an array, initializing empty array');
+        parsed.children = [];
+      }
+
+      // Validate children structure recursively
+      const validateNode = (node: any, path: string = 'root'): boolean => {
+        if (!node || typeof node !== 'object') {
+          console.error(`❌ Invalid node at ${path}: not an object`, node);
+          return false;
+        }
+        if (!node.label || typeof node.label !== 'string') {
+          console.error(`❌ Invalid node at ${path}: missing or invalid label`, node);
+          return false;
+        }
+        if (!Array.isArray(node.children)) {
+          console.warn(`⚠️  Node children at ${path} is not an array, initializing empty array`);
+          node.children = [];
+        }
+        return node.children.every((child: any, index: number) => 
+          validateNode(child, `${path}.children[${index}]`)
+        );
+      };
+
+      parsed.children.forEach((child: any, index: number) => {
+        if (!validateNode(child, `children[${index}]`)) {
+          throw new Error(`Invalid mindmap structure: invalid child node at index ${index}`);
+        }
+      });
+
+      console.log('✅ Mindmap structure validated successfully');
+      return parsed;
+    } catch (error: any) {
+      console.error('❌ Failed to parse mindmap response as JSON:', {
+        error: error.message,
+        responsePreview: responseText.substring(0, 500),
+        responseLength: responseText.length
+      });
+      throw new Error(`Failed to parse mindmap JSON: ${error.message}. Raw response preview: ${responseText.substring(0, 200)}...`);
     }
   }
 }

@@ -30,3 +30,25 @@ export interface NotebookAssistResponse {
   response: string;
   suggestions?: string[];
 }
+
+export interface SummaryResponse {
+  summary: string;
+}
+
+export interface MindmapNode {
+  label: string;
+  children: MindmapNode[];
+}
+
+export interface MindmapResponse {
+  root: string;
+  children: MindmapNode[];
+}
+
+export interface GenerateSummaryRequest {
+  content: string;
+}
+
+export interface GenerateMindmapRequest {
+  content: string;
+}

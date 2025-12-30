@@ -335,14 +335,7 @@ function AppContent() {
           </ProtectedRoute>
         }
       />
-      <Route
-        path="/courses/:courseId/topics/:topicId/lessons/:lessonId"
-        element={
-          <ProtectedRoute>
-            <LessonDetailPage />
-          </ProtectedRoute>
-        }
-      />
+
       <Route
         path="/instructor/courses/create"
         element={

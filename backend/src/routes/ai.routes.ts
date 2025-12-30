@@ -17,4 +17,8 @@ router.get('/code-review/:submissionId', aiController.getCodeReview);
 // Notebook assistant endpoint
 router.post('/notebook-assist', aiController.notebookAssist);
 
+// Notebook AI features
+router.post('/summary', aiController.generateSummary);
+router.post('/mindmap', aiController.generateMindmap);
+
 export default router;
