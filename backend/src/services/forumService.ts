@@ -20,7 +20,7 @@ export async function listForumPosts(limit = 50): Promise<any[]> {
       tags,
       created_at,
       updated_at,
-      author:users!author_id(id, display_name, avatar_url, reputation, level),
+      author:users!author_id(id, display_name, avatar_url, reputation, level, email),
       problem:problems!related_problem_id(id, title, slug, difficulty)
     `)
     .order('is_pinned', { ascending: false })
@@ -55,7 +55,7 @@ export async function getForumPost(id: string): Promise<any | null> {
       tags,
       created_at,
       updated_at,
-      author:users!author_id(id, display_name, avatar_url, reputation, level),
+      author:users!author_id(id, display_name, avatar_url, reputation, level, email),
       problem:problems!related_problem_id(id, title, slug, difficulty)
     `)
     .eq('id', id)
@@ -82,7 +82,7 @@ export async function getForumPost(id: string): Promise<any | null> {
       created_at,
       updated_at,
       parent_reply_id,
-      author:users!author_id(id, display_name, avatar_url, reputation, level)
+      author:users!author_id(id, display_name, avatar_url, reputation, level, email)
     `)
     .eq('post_id', id)
     .order('is_accepted_answer', { ascending: false })
@@ -106,7 +106,22 @@ export async function createForumPost(payload: Partial<ForumPost>): Promise<Foru
   const { data: post, error } = await supabaseAdmin
     .from('forum_posts')
     .insert([payload])
-    .select()
+    .select(`
+      id,
+      author_id,
+      title,
+      content_markdown,
+      related_problem_id,
+      upvotes,
+      reply_count,
+      has_accepted_answer,
+      is_pinned,
+      tags,
+      created_at,
+      updated_at,
+      author:users!author_id(id, display_name, avatar_url, reputation, level, email),
+      problem:problems!related_problem_id(id, title, slug, difficulty)
+    `)
     .single();
 
   if (error) {
@@ -124,7 +139,19 @@ export async function createReply(payload: Partial<ForumReply>, postId: string):
   const { data: reply, error } = await supabaseAdmin
     .from('forum_replies')
     .insert([payload])
-    .select()
+    .select(`
+      id,
+      post_id,
+      author_id,
+      parent_reply_id,
+      content_markdown,
+      code_snippet,
+      upvotes,
+      is_accepted_answer,
+      created_at,
+      updated_at,
+      author:users!author_id(id, display_name, avatar_url, reputation, level, email)
+    `)
     .single();
 
   if (error) {

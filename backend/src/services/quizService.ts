@@ -189,9 +189,9 @@ export class QuizService {
       .from("quiz_results")
       .select(
         `
-        *,
-        user:users(id, full_name, email)
-      `
+          *,
+          user:users(id, display_name, email)
+        `
       )
       .eq("quiz_id", quizId)
       .order("submitted_at", { ascending: false });

@@ -485,21 +485,21 @@ export function useCreateForumReply() {
   return useMutation({
     mutationFn: async ({
       postId,
-      content_markdown,
-      code_snippet,
-      parent_reply_id,
+      contentMarkdown,
+      codeSnippet,
+      parentReplyId,
     }: {
       postId: string;
-      content_markdown: string;
-      code_snippet?: any;
-      parent_reply_id?: string;
+      contentMarkdown: string;
+      codeSnippet?: any;
+      parentReplyId?: string;
     }) => {
       return apiFetch(`/forum/posts/${postId}/replies`, {
         method: "POST",
         body: JSON.stringify({
-          content_markdown,
-          code_snippet,
-          parent_reply_id,
+          contentMarkdown,
+          codeSnippet,
+          parentReplyId,
         }),
       });
     },
@@ -527,9 +527,9 @@ export function useCreateForumReply() {
           display_name: "You",
           avatar_url: null,
         },
-        parent_reply_id: variables.parent_reply_id ?? null,
-        content_markdown: variables.content_markdown,
-        code_snippet: variables.code_snippet ?? null,
+        parent_reply_id: variables.parentReplyId ?? null,
+        content_markdown: variables.contentMarkdown,
+        code_snippet: variables.codeSnippet ?? null,
         upvotes: 0,
         is_accepted_answer: false,
         created_at: new Date().toISOString(),
@@ -615,24 +615,24 @@ export function useVoteForumItem() {
 
   return useMutation({
     mutationFn: async ({
-      votable_type,
-      votable_id,
-      vote_type,
+      votableType,
+      votableId,
+      voteType,
       postId,
     }: {
-      votable_type: "post" | "reply";
-      votable_id: string;
-      vote_type: "upvote" | "downvote";
+      votableType: "post" | "reply";
+      votableId: string;
+      voteType: "upvote" | "downvote";
       postId: string; // needed to update userVotes cache
     }) => {
       return apiFetch("/forum/vote", {
         method: "POST",
-        body: JSON.stringify({ votable_type, votable_id, vote_type }),
+        body: JSON.stringify({ votableType, votableId, voteType }),
       });
     },
 
     onMutate: async (variables) => {
-      const { votable_type, votable_id, vote_type, postId } = variables;
+      const { votableType, votableId, voteType, postId } = variables;
 
       // Cancel outgoing refetches
       await queryClient.cancelQueries({ queryKey: ["forumPost", postId] });
@@ -649,15 +649,15 @@ export function useVoteForumItem() {
 
       // Determine if this is toggling off or changing vote
       const currentVote =
-        votable_type === "post"
+        votableType === "post"
           ? previousVotes?.postVote
-          : previousVotes?.replyVotes?.[votable_id];
+          : previousVotes?.replyVotes?.[votableId];
 
-      const isToggleOff = currentVote === vote_type;
+      const isToggleOff = currentVote === voteType;
       const delta = isToggleOff ? -1 : currentVote ? 0 : 1;
 
       // Optimistically update post/reply upvotes
-      if (votable_type === "post") {
+      if (votableType === "post") {
         queryClient.setQueryData(["forumPost", postId], (old: any) => {
           if (!old) return old;
           return {
@@ -669,7 +669,7 @@ export function useVoteForumItem() {
         queryClient.setQueryData(["forumPosts"], (old: any[]) => {
           if (!old) return old;
           return old.map((p) =>
-            p.id === votable_id
+            p.id === votableId
               ? { ...p, upvotes: Math.max(0, (p.upvotes ?? 0) + delta) }
               : p
           );
@@ -682,7 +682,7 @@ export function useVoteForumItem() {
             ...old,
             replies:
               old.replies?.map((r: any) =>
-                r.id === votable_id
+                r.id === votableId
                   ? { ...r, upvotes: Math.max(0, (r.upvotes ?? 0) + delta) }
                   : r
               ) || [],
@@ -693,17 +693,17 @@ export function useVoteForumItem() {
       // Update user votes cache
       queryClient.setQueryData(["userVotes", postId], (old: any) => {
         if (!old) return old;
-        if (votable_type === "post") {
+        if (votableType === "post") {
           return {
             ...old,
-            postVote: isToggleOff ? null : vote_type,
+            postVote: isToggleOff ? null : voteType,
           };
         } else {
           return {
             ...old,
             replyVotes: {
               ...old.replyVotes,
-              [votable_id]: isToggleOff ? undefined : vote_type,
+              [votableId]: isToggleOff ? undefined : voteType,
             },
           };
         }

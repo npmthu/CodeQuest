@@ -2,6 +2,10 @@ import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import * as forumService from '../services/forumService';
 import { mapCreateForumPostDTOToEntity, mapCreateForumReplyDTOToEntity } from '../mappers/forum.mapper.request';
+import {
+  mapForumPostWithAuthorToDTO,
+  mapForumReplyWithAuthorToDTO
+} from '../mappers/forum.mapper';
 import type { CreateForumPostDTO, CreateForumReplyDTO } from '../dtos/forum.dto';
 
 /**
@@ -11,7 +15,10 @@ import type { CreateForumPostDTO, CreateForumReplyDTO } from '../dtos/forum.dto'
 export const listForumPosts = async (req: AuthRequest, res: Response) => {
   try {
     const posts = await forumService.listForumPosts();
-    return res.json({ success: true, data: posts });
+    const mapped = (posts || []).map((p: any) =>
+      mapForumPostWithAuthorToDTO(p, (p as any).author, (p as any).problem)
+    );
+    return res.json({ success: true, data: mapped });
   } catch (error: any) {
     console.error('Error listing forum posts:', error);
     return res.status(500).json({ success: false, error: error.message });
@@ -31,7 +38,12 @@ export const getForumPost = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ success: false, error: 'Post not found' });
     }
 
-    return res.json({ success: true, data: post });
+    const mappedPost = mapForumPostWithAuthorToDTO(post, post.author, post.problem);
+    const mappedReplies = (post.replies || []).map((r: any) =>
+      mapForumReplyWithAuthorToDTO(r, r.author)
+    );
+
+    return res.json({ success: true, data: { ...mappedPost, replies: mappedReplies } });
   } catch (error: any) {
     console.error('Error getting forum post:', error);
     return res.status(500).json({ success: false, error: error.message });
@@ -66,7 +78,8 @@ export const createForumPost = async (req: AuthRequest, res: Response) => {
 
     const post = await forumService.createForumPost(entityData);
 
-    return res.status(201).json({ success: true, data: post });
+    const mapped = mapForumPostWithAuthorToDTO(post, (post as any).author, (post as any).problem);
+    return res.status(201).json({ success: true, data: mapped });
   } catch (error: any) {
     console.error('Error creating forum post:', error);
     return res.status(500).json({ success: false, error: error.message });
@@ -105,7 +118,8 @@ export const createReply = async (req: AuthRequest, res: Response) => {
     // Increment reply count
     await forumService.incrementReplyCount(postId);
 
-    return res.status(201).json({ success: true, data: reply });
+    const mapped = mapForumReplyWithAuthorToDTO(reply, (reply as any).author);
+    return res.status(201).json({ success: true, data: mapped });
   } catch (error: any) {
     console.error('Error creating reply:', error);
     return res.status(500).json({ success: false, error: error.message });

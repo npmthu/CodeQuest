@@ -71,7 +71,7 @@ export function mapForumReplyWithAuthorToDTO(
 export function mapUserToAuthorDTO(user: User): AuthorDTO {
   return {
     id: user.id,
-    displayName: user.display_name || 'Anonymous',
+    displayName: user.display_name || (user as any).email || `User ${user.id?.toString().slice(0,6)}`,
     avatarUrl: user.avatar_url,
     reputation: user.reputation || 0,
     level: user.level
