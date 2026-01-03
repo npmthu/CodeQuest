@@ -188,26 +188,25 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
       console.log('👋 User left:', data);
       setParticipants(prev => prev.filter(p => p.userId !== data.userId));
       
-      // Clean up peer connection
+      // Cleanup peer connection for disconnected user
       const peer = peersRef.current.get(data.userId);
       if (peer) {
+        console.log('🔌 Destroying peer connection for user who left:', data.userId);
         peer.destroy();
         peersRef.current.delete(data.userId);
+        initiatedCallsRef.current.delete(data.userId);
       }
       
-      // Clean up tracking
-      initiatedCallsRef.current.delete(data.userId);
-      
-      // Clean up remote stream
-      const remoteStream = remoteStreams.get(data.userId);
-      if (remoteStream) {
-        remoteStream.getTracks().forEach(track => track.stop());
-        setRemoteStreams(prev => {
-          const newStreams = new Map(prev);
-          newStreams.delete(data.userId);
-          return newStreams;
-        });
-      }
+      // Remove from remote streams
+      setRemoteStreams(prev => {
+        const newMap = new Map(prev);
+        const stream = newMap.get(data.userId);
+        if (stream) {
+          stream.getTracks().forEach(track => track.stop());
+          newMap.delete(data.userId);
+        }
+        return newMap;
+      });
     });
 
     newSocket.on('incoming-call', async (data) => {
@@ -280,6 +279,9 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
     newSocket.on('disconnect', () => {
       console.log('🔌 Disconnected from signaling server');
       setIsConnecting(true);
+      
+      // Cleanup peer connections on disconnect
+      cleanup();
       
       // Attempt automatic reconnection
       if (!sessionEnded && reconnectAttempts.current < maxReconnectAttempts) {
@@ -854,8 +856,9 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
     });
     peersRef.current.clear();
     
-    // Clear tracking
+    // Clear all tracking refs
     initiatedCallsRef.current.clear();
+    pendingCallsRef.current = [];
 
     // Clear remote streams and stop their tracks
     remoteStreams.forEach((stream, userId) => {
