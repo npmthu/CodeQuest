@@ -23,24 +23,33 @@ export class FeedbackController {
         });
       }
 
-      // Check if user is an instructor
-      if (user.role !== 'instructor' && user.role !== 'business_partner') {
-        return res.status(403).json({ 
-          success: false, 
-          error: 'Only instructors can provide feedback' 
-        });
-      }
+      // Both instructors and learners can provide feedback
+      // Instructors provide feedback for learners
+      // Learners provide feedback for instructors/system
+      const userRole = user.role;
+      const isInstructor = userRole === 'instructor' || userRole === 'business_partner';
+      const isLearner = userRole === 'learner';
 
       const feedbackData = req.body;
       
-      // Validate required fields
-      const requiredFields = ['booking_id', 'overall_rating', 'technical_rating', 'communication_rating', 'problem_solving_rating'];
-      const missingFields = requiredFields.filter(field => feedbackData[field] === undefined || feedbackData[field] === null);
+      // Validate required fields based on role
+      // Instructors need booking_id to provide feedback for learner
+      // Learners can provide feedback about system/session without strict booking requirement
+      const requiredRatings = ['overall_rating', 'technical_rating', 'communication_rating', 'problem_solving_rating'];
+      const missingFields = requiredRatings.filter(field => feedbackData[field] === undefined || feedbackData[field] === null);
       
       if (missingFields.length > 0) {
         return res.status(400).json({
           success: false,
           error: `Missing required fields: ${missingFields.join(', ')}`
+        });
+      }
+
+      // Instructors must provide booking_id
+      if (isInstructor && !feedbackData.booking_id) {
+        return res.status(400).json({
+          success: false,
+          error: 'Instructors must provide booking_id'
         });
       }
 
