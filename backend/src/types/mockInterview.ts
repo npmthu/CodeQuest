@@ -108,6 +108,7 @@ export interface CreateSessionRequest {
 export interface BookSessionRequest {
   session_id: string;
   notes?: string;
+  cardNumber?: string; // For mock payment processing - Fixes TC_PAY_03
 }
 
 export interface CreateFeedbackRequest {

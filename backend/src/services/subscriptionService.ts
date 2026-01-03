@@ -301,19 +301,136 @@ export class SubscriptionService {
       const subscription = await this.getUserSubscription(userId);
       
       if (!subscription) {
-        return 0;
+        const freePlan = await this.getPlanBySlug('free');
+        return freePlan?.features[featureName] || 0;
       }
 
       const featureValue = subscription.plan.features[featureName];
-      
-      if (typeof featureValue === 'number') {
-        return featureValue;
-      }
-      
-      return typeof featureValue === 'boolean' && featureValue ? -1 : 0;
+      return typeof featureValue === 'number' ? featureValue : 0;
     } catch (error) {
       console.error('Error in getFeatureLimit:', error);
       return 0;
+    }
+  }
+
+  // Admin methods - Fixes TC_ADMIN_SUB_01, TC_ADMIN_SUB_02, TC_ADMIN_SUB_05
+  async createPlan(planData: any): Promise<SubscriptionPlan> {
+    try {
+      const { data, error } = await supabaseAdmin
+        .from('subscription_plans')
+        .insert({
+          ...planData,
+          is_active: planData.is_active !== false, // Default to true
+          created_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error: any) {
+      console.error('Error creating plan:', error);
+      throw new Error(`Failed to create plan: ${error.message}`);
+    }
+  }
+
+  async adminCancelSubscription(userId: string): Promise<{ message: string }> {
+    try {
+      const subscription = await this.getUserSubscription(userId);
+      
+      if (!subscription) {
+        throw new Error('No active subscription found for this user');
+      }
+
+      // Check if already expired - Fixes TC_ADMIN_SUB_05
+      const currentDate = new Date();
+      const periodEnd = new Date(subscription.current_period_end || '');
+      
+      if (periodEnd < currentDate) {
+        throw new Error('Subscription is already expired');
+      }
+
+      // Check if already canceled
+      if (subscription.cancel_at_period_end) {
+        throw new Error('Subscription is already canceled');
+      }
+
+      // Set cancel_at_period_end to true - Fixes TC_ADMIN_SUB_02
+      const { error } = await supabaseAdmin
+        .from('subscriptions')
+        .update({
+          cancel_at_period_end: true,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', subscription.id);
+
+      if (error) throw error;
+
+      return {
+        message: 'Subscription canceled successfully. Access will end at the current period end.'
+      };
+    } catch (error: any) {
+      console.error('Error canceling subscription:', error);
+      throw error;
+    }
+  }
+
+  async updatePlan(planId: string, updateData: any): Promise<SubscriptionPlan> {
+    try {
+      const { data, error } = await supabaseAdmin
+        .from('subscription_plans')
+        .update({
+          ...updateData,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', planId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error: any) {
+      console.error('Error updating plan:', error);
+      throw new Error(`Failed to update plan: ${error.message}`);
+    }
+  }
+
+  async extendSubscription(userId: string, days: number): Promise<{ subscription: SubscriptionWithPlan }> {
+    try {
+      const subscription = await this.getUserSubscription(userId);
+      
+      if (!subscription) {
+        throw new Error('No active subscription found for this user');
+      }
+
+      // Calculate new end date
+      const currentEnd = new Date(subscription.current_period_end || '');
+      const newEnd = new Date(currentEnd);
+      newEnd.setDate(newEnd.getDate() + days);
+
+      // Update subscription
+      const { data, error } = await supabaseAdmin
+        .from('subscriptions')
+        .update({
+          current_period_end: newEnd.toISOString(),
+          cancel_at_period_end: false, // Remove cancellation if any
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', subscription.id)
+        .select(`
+          *,
+          plan:subscription_plans(*)
+        `)
+        .single();
+
+      if (error) throw error;
+
+      return {
+        subscription: data as SubscriptionWithPlan
+      };
+    } catch (error: any) {
+      console.error('Error extending subscription:', error);
+      throw error;
     }
   }
 }
