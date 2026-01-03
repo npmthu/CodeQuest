@@ -607,4 +607,73 @@ export class MockInterviewService {
       throw new Error('Failed to end interview session');
     }
   }
+
+  async cancelSession(sessionId: string, instructorId: string, cancelReason: string): Promise<void> {
+    try {
+      // Verify the instructor owns this session
+      const { data: session, error: sessionError } = await supabase
+        .from('mock_interview_sessions')
+        .select('instructor_id, status')
+        .eq('id', sessionId)
+        .single();
+
+      if (sessionError) throw new Error('Session not found');
+      if (session.instructor_id !== instructorId) {
+        throw new Error('Unauthorized: You can only cancel your own sessions');
+      }
+      if (session.status === 'cancelled') {
+        throw new Error('Session is already cancelled');
+      }
+
+      // Get all bookings for this session
+      const { data: bookings, error: bookingsError } = await supabase
+        .from('interview_bookings')
+        .select('id, learner_id, booking_status, payment_status')
+        .eq('session_id', sessionId)
+        .in('booking_status', ['confirmed', 'pending']);
+
+      if (bookingsError) throw bookingsError;
+
+      // Update session status
+      const { error: updateError } = await supabase
+        .from('mock_interview_sessions')
+        .update({
+          status: 'cancelled',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', sessionId);
+
+      if (updateError) throw updateError;
+
+      // Process refunds for all active bookings
+      if (bookings && bookings.length > 0) {
+        const refundPromises = bookings.map(async (booking) => {
+          // Update booking to cancelled and refunded
+          const { error } = await supabase
+            .from('interview_bookings')
+            .update({
+              booking_status: 'cancelled',
+              payment_status: 'refunded',
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', booking.id);
+
+          if (error) {
+            console.error(`Failed to refund booking ${booking.id}:`, error);
+          }
+
+          // TODO: Send notification to learner
+          // await this.sendCancellationNotification(booking.learner_id, sessionId, cancelReason);
+          
+          console.log(`✅ Refunded booking ${booking.id} for learner ${booking.learner_id}`);
+        });
+
+        await Promise.all(refundPromises);
+        console.log(`🚫 Session ${sessionId} cancelled. ${bookings.length} bookings refunded.`);
+      }
+    } catch (error: any) {
+      console.error('Error cancelling session:', error);
+      throw new Error(error.message || 'Failed to cancel session');
+    }
+  }
 }

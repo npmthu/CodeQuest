@@ -503,4 +503,57 @@ export class MockInterviewController {
       });
     }
   }
+
+  /**
+   * POST /api/mock-interviews/sessions/:id/cancel
+   * Cancel a session and refund all bookings (Instructor only)
+   */
+  async cancelSession(req: AuthRequest, res: Response) {
+    try {
+      const user = req.user;
+      if (!user) {
+        return res.status(401).json({ 
+          success: false, 
+          error: 'Authentication required' 
+        });
+      }
+
+      // Check if user is an instructor
+      if (user.role !== 'instructor' && user.role !== 'business_partner') {
+        return res.status(403).json({ 
+          success: false, 
+          error: 'Only instructors can cancel sessions' 
+        });
+      }
+
+      const { id: sessionId } = req.params;
+      const { cancel_reason } = req.body;
+
+      if (!cancel_reason || cancel_reason.trim().length === 0) {
+        return res.status(400).json({
+          success: false,
+          error: 'Cancel reason is required'
+        });
+      }
+
+      await this.interviewService.cancelSession(sessionId, user.id, cancel_reason);
+
+      console.log('🚫 Session cancelled:', {
+        sessionId,
+        instructorId: user.id,
+        reason: cancel_reason
+      });
+
+      res.json({
+        success: true,
+        message: 'Session cancelled and refunds processed'
+      });
+    } catch (error: any) {
+      console.error('❌ Error cancelling session:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message || 'Failed to cancel session'
+      });
+    }
+  }
 }

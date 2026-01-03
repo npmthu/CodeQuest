@@ -24,6 +24,7 @@ router.get('/my-bookings', supabaseAuth, interviewController.getMyBookings.bind(
 router.post('/start-session', supabaseAuth, interviewController.startSession.bind(interviewController));
 router.post('/join-session', supabaseAuth, interviewController.joinSession.bind(interviewController));
 router.post('/sessions/:id/end', supabaseAuth, interviewController.endSession.bind(interviewController)); // Fixes TC_CONDUCT_04
+router.post('/sessions/:id/cancel', supabaseAuth, interviewController.cancelSession.bind(interviewController)); // TC-06-05
 router.post('/report-no-show', supabaseAuth, interviewController.reportNoShow.bind(interviewController));
 
 // Feedback Routes
