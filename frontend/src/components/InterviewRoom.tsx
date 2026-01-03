@@ -13,12 +13,15 @@ import {
   VideoOff, 
   Mic, 
   MicOff, 
-  Phone, 
+  Phone,
+  PhoneOff,
   Users, 
   AlertCircle,
   Loader2,
   Crown,
-  User
+  User,
+  RefreshCw,
+  WifiOff
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
@@ -57,12 +60,18 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
   const [isConnecting, setIsConnecting] = useState(true);
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const [remoteStreams, setRemoteStreams] = useState<Map<string, MediaStream>>(new Map());
+  const [sessionEnded, setSessionEnded] = useState(false);
+  const [sessionEndReason, setSessionEndReason] = useState<string | null>(null);
+  const [isReconnecting, setIsReconnecting] = useState(false);
+  const [disconnectedUsers, setDisconnectedUsers] = useState<Set<string>>(new Set());
   
   // Refs
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const peersRef = useRef<Map<string, InstanceType<typeof Peer>>>(new Map());
   const socketRef = useRef<Socket | null>(null);
+  const reconnectAttempts = useRef(0);
+  const maxReconnectAttempts = 5;
 
   // Initialize socket connection
   useEffect(() => {
@@ -170,9 +179,65 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
       ));
     });
 
+    // Handle session ended by instructor
+    newSocket.on('session-ended', (data) => {
+      console.log('🏁 Session ended:', data);
+      setSessionEnded(true);
+      setSessionEndReason(data.message || 'Session has ended');
+      toast.info(data.message || 'The interview session has ended');
+      cleanup();
+    });
+
+    // Handle user temporarily disconnected (may reconnect)
+    newSocket.on('user-disconnected', (data) => {
+      console.log('⚠️ User disconnected (may reconnect):', data);
+      setDisconnectedUsers(prev => new Set(prev).add(data.userId));
+      toast.warning(`${data.userId === user?.id ? 'You' : 'A participant'} lost connection. Waiting for reconnection...`);
+    });
+
+    // Handle reconnection events
+    newSocket.on('reconnect-success', (data) => {
+      console.log('🔄 Reconnected successfully:', data);
+      setIsReconnecting(false);
+      setIsConnecting(false);
+      reconnectAttempts.current = 0;
+      toast.success('Reconnected to session successfully!');
+    });
+
+    newSocket.on('reconnect-failed', (data) => {
+      console.log('❌ Reconnection failed:', data);
+      setIsReconnecting(false);
+      if (data.status === 'completed' || data.status === 'cancelled') {
+        setSessionEnded(true);
+        setSessionEndReason('Session has ended');
+      } else {
+        setConnectionError(data.error || 'Failed to reconnect');
+      }
+    });
+
     newSocket.on('disconnect', () => {
       console.log('🔌 Disconnected from signaling server');
       setIsConnecting(true);
+      
+      // Attempt automatic reconnection
+      if (!sessionEnded && reconnectAttempts.current < maxReconnectAttempts) {
+        setIsReconnecting(true);
+        reconnectAttempts.current += 1;
+        console.log(`🔄 Attempting reconnection (${reconnectAttempts.current}/${maxReconnectAttempts})...`);
+        
+        setTimeout(() => {
+          if (socketRef.current?.connected) return;
+          socketRef.current?.connect();
+        }, 2000 * reconnectAttempts.current); // Exponential backoff
+      }
+    });
+
+    newSocket.on('connect', () => {
+      console.log('🔌 Connected to signaling server');
+      // If this is a reconnection, request to rejoin room
+      if (isReconnecting && sessionId) {
+        newSocket.emit('reconnect-request', { sessionId });
+      }
     });
 
     newSocket.on('connect_error', (error) => {
@@ -578,6 +643,56 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
     navigate('/dashboard');
   }, [navigate]);
 
+  // End session - instructor only
+  const endSession = useCallback(async () => {
+    if (userRole !== 'instructor') {
+      toast.error('Only instructor can end the session');
+      return;
+    }
+
+    // Confirm before ending
+    if (!window.confirm('Are you sure you want to end this interview session? This will disconnect all participants.')) {
+      return;
+    }
+
+    try {
+      // Emit end-session event via socket
+      socketRef.current?.emit('end-session');
+      
+      // Also call API to update database
+      const response = await fetch(`${import.meta.env.VITE_API_BASE}/mock-interviews/sessions/${sessionId}/end`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authSession?.access_token}`
+        }
+      });
+
+      if (!response.ok) {
+        console.warn('API call to end session failed, but socket event was sent');
+      }
+
+      toast.success('Session ended successfully');
+    } catch (error) {
+      console.error('Error ending session:', error);
+      toast.error('Failed to end session');
+    }
+  }, [userRole, sessionId, authSession?.access_token]);
+
+  // Manual reconnect attempt
+  const attemptReconnect = useCallback(() => {
+    if (!sessionId || sessionEnded) return;
+    
+    setIsReconnecting(true);
+    reconnectAttempts.current = 0;
+    
+    if (socketRef.current?.disconnected) {
+      socketRef.current.connect();
+    } else if (socketRef.current?.connected) {
+      socketRef.current.emit('reconnect-request', { sessionId });
+    }
+  }, [sessionId, sessionEnded]);
+
   const cleanup = useCallback(() => {
     // Stop local stream
     if (localStream) {
@@ -599,6 +714,40 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
   const mainRemoteStream = remoteStreams.size > 0 
     ? Array.from(remoteStreams.values())[0] 
     : null;
+
+  // Session ended screen
+  if (sessionEnded) {
+    return (
+      <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
+        <Card className="bg-gray-800 border-gray-700 p-8 text-center max-w-md">
+          <div className="mb-6">
+            <div className="w-16 h-16 mx-auto bg-gray-700 rounded-full flex items-center justify-center mb-4">
+              <PhoneOff className="w-8 h-8 text-red-400" />
+            </div>
+            <h2 className="text-2xl font-bold mb-2">Session Ended</h2>
+            <p className="text-gray-400">{sessionEndReason || 'The interview session has ended.'}</p>
+          </div>
+          <div className="space-y-3">
+            <Button 
+              onClick={() => navigate('/dashboard')}
+              className="w-full"
+            >
+              Return to Dashboard
+            </Button>
+            {userRole === 'learner' && (
+              <Button 
+                variant="outline"
+                onClick={() => navigate('/interviews')}
+                className="w-full"
+              >
+                View More Sessions
+              </Button>
+            )}
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
@@ -668,6 +817,47 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
               >
                 Retry
               </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Reconnecting Status Banner */}
+        {isReconnecting && (
+          <div className="mb-4 p-3 bg-blue-900 border border-blue-700 rounded-lg flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Loader2 className="w-5 h-5 animate-spin text-blue-400" />
+              <div>
+                <p className="text-blue-200 font-medium">Reconnecting to session...</p>
+                <p className="text-sm text-blue-300">
+                  Attempt {reconnectAttempts.current} of {maxReconnectAttempts}
+                </p>
+              </div>
+            </div>
+            <Button 
+              onClick={attemptReconnect} 
+              size="sm"
+              variant="outline"
+              className="text-blue-200 border-blue-500"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Retry Now
+            </Button>
+          </div>
+        )}
+
+        {/* Disconnected Users Indicator */}
+        {disconnectedUsers.size > 0 && (
+          <div className="mb-4 p-3 bg-orange-900 border border-orange-700 rounded-lg">
+            <div className="flex items-center gap-3 text-orange-200">
+              <WifiOff className="w-5 h-5" />
+              <div>
+                <p className="font-medium">
+                  {disconnectedUsers.size} participant(s) temporarily disconnected
+                </p>
+                <p className="text-sm text-orange-300">
+                  They may be experiencing network issues. Waiting for reconnection...
+                </p>
+              </div>
             </div>
           </div>
         )}
@@ -772,13 +962,28 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
                   </Button>
                   
                   <Button
-                    variant="destructive"
+                    variant="outline"
                     size="lg"
                     onClick={leaveRoom}
                     className="rounded-full w-12 h-12 p-0"
+                    title="Leave Room (Session continues)"
                   >
                     <Phone className="w-5 h-5" />
                   </Button>
+
+                  {/* End Session button - only for instructor */}
+                  {userRole === 'instructor' && (
+                    <Button
+                      variant="destructive"
+                      size="lg"
+                      onClick={endSession}
+                      className="flex items-center gap-2 px-4"
+                      title="End Session for All"
+                    >
+                      <PhoneOff className="w-5 h-5" />
+                      <span className="hidden sm:inline">End Session</span>
+                    </Button>
+                  )}
                 </div>
               </Card>
             </div>

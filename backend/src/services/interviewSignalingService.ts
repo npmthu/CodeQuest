@@ -115,6 +115,16 @@ export class InterviewSignalingService {
       socket.on('leave-room', () => {
         this.handleLeaveRoom(socket);
       });
+
+      // End session (instructor only)
+      socket.on('end-session', async () => {
+        await this.handleEndSession(socket);
+      });
+
+      // Request reconnection
+      socket.on('reconnect-request', async (data: { sessionId: string }) => {
+        await this.handleReconnectRequest(socket, data.sessionId);
+      });
     });
   }
 
@@ -298,10 +308,116 @@ export class InterviewSignalingService {
   private handleDisconnect(socket: AuthenticatedSocket) {
     const room = this.findUserRoom(socket.userId!);
     if (room) {
-      this.handleLeaveRoom(socket);
+      // Don't fully remove - mark as temporarily disconnected for reconnect
+      const participant = room.participants.get(socket.userId!);
+      if (participant) {
+        // Notify others that user disconnected (but may reconnect)
+        socket.to(room.sessionId).emit('user-disconnected', {
+          userId: socket.userId,
+          participantCount: room.participants.size - 1,
+          mayReconnect: true
+        });
+        
+        // Remove from room after short delay if no reconnect
+        setTimeout(() => {
+          const currentRoom = this.rooms.get(room.sessionId);
+          const currentParticipant = currentRoom?.participants.get(socket.userId!);
+          // Only remove if socket ID is still the old one (no reconnect happened)
+          if (currentParticipant && currentParticipant.socketId === socket.id) {
+            this.handleLeaveRoom(socket);
+          }
+        }, 30000); // 30 seconds grace period for reconnect
+      }
     }
 
     console.log(`👋 User disconnected: ${socket.userId}`);
+  }
+
+  private async handleEndSession(socket: AuthenticatedSocket) {
+    const room = this.findUserRoom(socket.userId!);
+    if (!room) return;
+
+    // Only instructor can end session
+    if (socket.userRole !== 'instructor' && socket.userRole !== 'business_partner') {
+      socket.emit('end-session-error', { error: 'Only instructor can end the session' });
+      return;
+    }
+
+    try {
+      // Update session status in database
+      await supabaseAdmin
+        .from('mock_interview_sessions')
+        .update({
+          status: 'completed',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', room.sessionId);
+
+      // Notify all participants that session ended
+      this.io.to(room.sessionId).emit('session-ended', {
+        sessionId: room.sessionId,
+        endedBy: socket.userId,
+        reason: 'instructor_ended',
+        message: 'The interview session has been ended by the instructor.'
+      });
+
+      // Disconnect all participants
+      for (const participant of room.participants.values()) {
+        const participantSocket = this.io.sockets.sockets.get(participant.socketId);
+        if (participantSocket) {
+          participantSocket.leave(room.sessionId);
+        }
+      }
+
+      // Remove room
+      this.rooms.delete(room.sessionId);
+
+      console.log(`🏁 Session ended by instructor: ${room.sessionId}`);
+    } catch (error) {
+      console.error('Error ending session:', error);
+      socket.emit('end-session-error', { error: 'Failed to end session' });
+    }
+  }
+
+  private async handleReconnectRequest(socket: AuthenticatedSocket, sessionId: string) {
+    try {
+      // Validate access again
+      const hasAccess = await this.validateSessionAccess(socket.userId!, socket.userRole!, sessionId);
+      
+      if (!hasAccess) {
+        socket.emit('reconnect-failed', { error: 'Access denied' });
+        return;
+      }
+
+      // Check if session is still active
+      const { data: session } = await supabaseAdmin
+        .from('mock_interview_sessions')
+        .select('status')
+        .eq('id', sessionId)
+        .single();
+
+      if (!session || session.status === 'completed' || session.status === 'cancelled') {
+        socket.emit('reconnect-failed', { 
+          error: 'Session has ended',
+          status: session?.status || 'unknown'
+        });
+        return;
+      }
+
+      // Rejoin the room
+      await this.handleJoinRoom(socket, sessionId);
+
+      // Emit reconnect success
+      socket.emit('reconnect-success', {
+        sessionId,
+        message: 'Successfully reconnected to session'
+      });
+
+      console.log(`🔄 User ${socket.userId} reconnected to session ${sessionId}`);
+    } catch (error) {
+      console.error('Error handling reconnect:', error);
+      socket.emit('reconnect-failed', { error: 'Reconnection failed' });
+    }
   }
 
   private findUserRoom(userId: string): RoomInfo | undefined {
