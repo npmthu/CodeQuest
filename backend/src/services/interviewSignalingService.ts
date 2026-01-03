@@ -193,13 +193,13 @@ export class InterviewSignalingService {
 
         return session?.instructor_id === userId;
       } else {
-        // Check if learner has a confirmed booking for this session
+        // Check if learner has a confirmed or pending booking for this session
         const { data: booking } = await supabaseAdmin
           .from('interview_bookings')
           .select('id')
           .eq('learner_id', userId)
           .eq('session_id', sessionId)
-          .eq('booking_status', 'confirmed')
+          .in('booking_status', ['confirmed', 'pending'])
           .single();
 
         return !!booking;

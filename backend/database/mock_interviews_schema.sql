@@ -103,31 +103,82 @@ ALTER TABLE ai_suggestion_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE session_join_logs ENABLE ROW LEVEL SECURITY;
 
 -- Sample data for testing (optional)
+-- Insert sample sessions using real instructor from users table
 INSERT INTO mock_interview_sessions (
     instructor_id, title, description, topic, difficulty_level, 
     session_date, duration_minutes, price, max_slots, slots_available
-) VALUES 
-(
-    gen_random_uuid(), -- Replace with actual instructor ID
+)
+SELECT
+    u.id,
     'JavaScript Fundamentals Interview',
     'Practice basic JavaScript concepts and problem-solving',
     'JavaScript Basics',
-    'beginner',
-    NOW() + interval '2 days',
+    'beginner'::varchar,
+    NOW() + INTERVAL '2 days',
     60,
     29.99,
     5,
     5
-),
-(
-    gen_random_uuid(), -- Replace with actual instructor ID
+FROM users u
+WHERE u.role IN ('instructor', 'admin')
+LIMIT 1;
+
+INSERT INTO mock_interview_sessions (
+    instructor_id, title, description, topic, difficulty_level, 
+    session_date, duration_minutes, price, max_slots, slots_available
+)
+SELECT
+    u.id,
     'Advanced React & System Design',
     'Deep dive into React patterns and system architecture',
     'React & System Design',
-    'advanced',
-    NOW() + interval '3 days',
+    'advanced'::varchar,
+    NOW() + INTERVAL '3 days',
     90,
     49.99,
     3,
     3
-);
+FROM users u
+WHERE u.role IN ('instructor', 'admin')
+LIMIT 1;
+-- Testing waiting room scenario (scheduled status - need instructor to start)
+INSERT INTO mock_interview_sessions (
+    instructor_id, title, description, topic, difficulty_level, 
+    session_date, duration_minutes, price, max_slots, slots_available, status
+)
+SELECT
+    u.id,
+    'Data Structures & Algorithms Deep Dive',
+    'Comprehensive session on DSA concepts and coding problems',
+    'Data Structures & Algorithms',
+    'intermediate'::varchar,
+    NOW(),
+    75,
+    39.99,
+    2,
+    2,
+    'scheduled'::varchar
+FROM users u
+WHERE u.role IN ('instructor', 'admin') 
+LIMIT 1;
+
+-- Testing JOIN SESSION scenario (already in progress - student can join immediately)
+INSERT INTO mock_interview_sessions (
+    instructor_id, title, description, topic, difficulty_level, 
+    session_date, duration_minutes, price, max_slots, slots_available, status
+)
+SELECT
+    u.id,
+    'Live Mock Interview - Join Now',
+    'Active session ready for students to join and test the lobby/room flow',
+    'System Design & Coding',
+    'advanced'::varchar,
+    NOW(),
+    60,
+    0.00,
+    3,
+    3,
+    'in_progress'::varchar
+FROM users u
+WHERE u.role IN ('instructor', 'admin') 
+LIMIT 1;

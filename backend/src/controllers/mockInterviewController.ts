@@ -327,7 +327,7 @@ export class MockInterviewController {
 
   /**
    * POST /api/mock-interviews/join-session
-   * Join an interview session (Learner with valid booking)
+   * Join an interview session (Learner with valid booking or Instructor who owns the session)
    */
   async joinSession(req: AuthRequest, res: Response) {
     try {
@@ -348,12 +348,12 @@ export class MockInterviewController {
         });
       }
 
-      const result = await this.interviewService.joinSession(user.id, { session_id });
+      const result = await this.interviewService.joinSession(user.id, { session_id }, user.role);
 
       console.log('👋 User joined mock interview session:', {
         sessionId: session_id,
         userId: user.id,
-        role: 'learner'
+        role: user.role
       });
 
       res.json({
@@ -369,7 +369,7 @@ export class MockInterviewController {
     } catch (error: any) {
       console.error('❌ Error joining session:', error);
       
-      if (error.message.includes('No confirmed booking')) {
+      if (error.message.includes('No confirmed booking') || error.message.includes('Only the instructor')) {
         return res.status(403).json({
           success: false,
           error: error.message,

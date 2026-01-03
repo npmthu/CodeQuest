@@ -17,12 +17,14 @@ export async function supabaseAuth(
   try {
     const header = String(req.headers.authorization || "");
     const token = header.startsWith("Bearer ") ? header.slice(7) : undefined;
-    if (!token)
+    
+    if (!token || token === 'null' || token === 'undefined')
       return res.status(401).json({ success: false, error: "Missing token" });
 
     const { data, error } = await supabaseAdmin.auth.getUser(token);
-    if (error || !data?.user)
+    if (error || !data?.user) {
       return res.status(401).json({ success: false, error: "Invalid token" });
+    }
 
     // Fetch user role from database (source of truth)
     const { data: profile } = await supabaseAdmin

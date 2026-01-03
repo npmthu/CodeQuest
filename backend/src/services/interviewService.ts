@@ -9,7 +9,7 @@ import type {
  */
 export async function listInterviewSessions(userId: string, limit = 50): Promise<any[]> {
   const { data: sessions, error } = await supabaseAdmin
-    .from('interview_sessions')
+    .from('mock_interview_sessions')
     .select(`
       id,
       interview_type,
@@ -43,7 +43,7 @@ export async function listInterviewSessions(userId: string, limit = 50): Promise
  */
 export async function getInterviewSession(sessionId: string): Promise<any | null> {
   const { data: session, error } = await supabaseAdmin
-    .from('interview_sessions')
+    .from('mock_interview_sessions')
     .select(`
       id,
       interview_type,
@@ -121,7 +121,7 @@ export async function isSessionParticipant(sessionId: string, userId: string): P
  */
 export async function createInterviewSession(payload: Partial<InterviewSession>): Promise<InterviewSession> {
   const { data: session, error } = await supabaseAdmin
-    .from('interview_sessions')
+    .from('mock_interview_sessions')
     .insert([payload])
     .select()
     .single();
@@ -152,7 +152,7 @@ export async function updateInterviewSession(
   }
 
   const { data: session, error } = await supabaseAdmin
-    .from('interview_sessions')
+    .from('mock_interview_sessions')
     .update(updateData)
     .eq('id', sessionId)
     .select()

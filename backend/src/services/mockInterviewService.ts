@@ -51,7 +51,7 @@ export class MockInterviewService {
         .from('mock_interview_sessions')
         .select(`
           *,
-          instructor:users(id, name, email, avatar_url)
+          instructor:users!mock_interview_sessions_instructor_id_fkey(id, display_name, email, avatar_url)
         `, { count: 'exact' });
 
       // Apply filters
@@ -103,7 +103,7 @@ export class MockInterviewService {
         .from('mock_interview_sessions')
         .select(`
           *,
-          instructor:users(id, name, email, avatar_url)
+          instructor:users!mock_interview_sessions_instructor_id_fkey(id, display_name, email, avatar_url)
         `)
         .eq('id', sessionId)
         .single();
@@ -210,8 +210,8 @@ export class MockInterviewService {
         .from('interview_bookings')
         .select(`
           *,
-          session:mock_interview_sessions(*, instructor:users(id, name, email, avatar_url)),
-          learner:users(id, name, email, avatar_url)
+          session:mock_interview_sessions(*, instructor:users!mock_interview_sessions_instructor_id_fkey(id, display_name, email, avatar_url)),
+          learner:users(id, display_name, email, avatar_url)
         `, { count: 'exact' });
 
       if (role === 'learner') {
@@ -288,35 +288,49 @@ export class MockInterviewService {
     }
   }
 
-  async joinSession(userId: string, sessionData: JoinSessionRequest): Promise<{ session: MockInterviewSession; joinUrl: string }> {
+  async joinSession(userId: string, sessionData: JoinSessionRequest, userRole?: string): Promise<{ session: MockInterviewSession; joinUrl: string }> {
     try {
-      // Verify user has a confirmed booking
-      const { data: booking, error: bookingError } = await supabase
-        .from('interview_bookings')
-        .select(`
-          *,
-          session:mock_interview_sessions(*)
-        `)
-        .eq('session_id', sessionData.session_id)
-        .eq('learner_id', userId)
-        .eq('booking_status', 'confirmed')
+      // Get session data
+      const { data: session, error: sessionError } = await supabase
+        .from('mock_interview_sessions')
+        .select('*')
+        .eq('id', sessionData.session_id)
         .single();
 
-      if (bookingError || !booking) {
-        throw new Error('No confirmed booking found for this session');
-      }
-
-      const session = booking.session;
-      if (!session) {
+      if (sessionError || !session) {
         throw new Error('Session not found');
       }
 
-      if (session.status !== 'in_progress') {
-        throw new Error('Session is not currently active');
+      // Verify access based on role
+      if (userRole === 'instructor' || userRole === 'business_partner') {
+        // Instructor must be the session owner
+        if (session.instructor_id !== userId) {
+          throw new Error('Only the instructor of this session can join');
+        }
+      } else {
+        // Learner must have a confirmed or pending booking
+        const { data: booking, error: bookingError } = await supabase
+          .from('interview_bookings')
+          .select('id')
+          .eq('session_id', sessionData.session_id)
+          .eq('learner_id', userId)
+          .in('booking_status', ['confirmed', 'pending'])
+          .single();
+
+        if (bookingError || !booking) {
+          throw new Error('No confirmed booking found for this session');
+        }
       }
 
-      // Log learner join
-      await this.logSessionJoin(sessionData.session_id, userId, 'learner');
+      // Allow joining if session is scheduled or in_progress
+      // Only prevent joining if session is completed or cancelled
+      if (session.status === 'completed' || session.status === 'cancelled') {
+        throw new Error(`Cannot join: Session has ${session.status}`);
+      }
+
+      // Log join
+      const role = userRole === 'instructor' || userRole === 'business_partner' ? 'instructor' : 'learner';
+      await this.logSessionJoin(sessionData.session_id, userId, role);
 
       return {
         session,
@@ -404,7 +418,7 @@ export class MockInterviewService {
         .select(`
           *,
           booking:interview_bookings(*, session:mock_interview_sessions(*)),
-          instructor:users(id, name, email, avatar_url)
+          instructor:users!mock_interview_sessions_instructor_id_fkey(id, display_name, email, avatar_url)
         `, { count: 'exact' })
         .eq('learner_id', learnerId);
 

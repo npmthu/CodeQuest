@@ -123,8 +123,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        // If error is auth session missing, that's fine - user is already logged out
+        if (error.message?.includes('Auth session missing')) {
+          console.log('Session already cleared');
+          setSession(null);
+          setUser(null);
+          setProfile(null);
+          return;
+        }
+        throw error;
+      }
+    } catch (err: any) {
+      // Handle unexpected errors gracefully
+      console.error('Sign out error:', err);
+      // Clear local state anyway to ensure logout completes
+      setSession(null);
+      setUser(null);
+      setProfile(null);
+      // Re-throw only if it's not a session missing error
+      if (!err.message?.includes('Auth session missing')) {
+        throw err;
+      }
+    }
   };
 
   const value = {
