@@ -117,7 +117,7 @@ export class MockInterviewService {
   }
 
   // Booking Management
-  async bookSession(learnerId: string, bookingData: BookSessionRequest): Promise<InterviewBooking> {
+  async bookSession(learnerId: string, bookingData: BookSessionRequest): Promise<InterviewBooking | { success: boolean; message: string; booking: InterviewBooking }> {
     const client = supabase; // In production, use transaction
 
     try {
@@ -136,16 +136,22 @@ export class MockInterviewService {
         throw new Error('No slots available for this session');
       }
 
-      // Step 2: Check if user already booked this session
+      // Step 2: Check if user already booked this session (excluding cancelled)
       const { data: existingBooking } = await client
         .from('interview_bookings')
         .select('*')
         .eq('session_id', bookingData.session_id)
         .eq('learner_id', learnerId)
-        .single();
+        .in('booking_status', ['pending', 'confirmed', 'completed'])
+        .maybeSingle();
 
+      // If already booked (and not cancelled), just return success (idempotent)
       if (existingBooking) {
-        throw new Error('You have already booked this session');
+        return {
+          success: true,
+          message: 'Already booked for this session',
+          booking: existingBooking
+        };
       }
 
       // Step 3: Create booking with PENDING status
@@ -194,8 +200,29 @@ export class MockInterviewService {
       if (slotError) throw slotError;
 
       return confirmedBooking;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error booking session:', error);
+      
+      // Handle unique constraint violation (duplicate booking)
+      if (error.code === '23505' || error.message?.includes('duplicate key')) {
+        // Race condition: Another request booked at the same time
+        // Fetch the existing booking to return it
+        const { data: existingBooking } = await client
+          .from('interview_bookings')
+          .select('*')
+          .eq('session_id', bookingData.session_id)
+          .eq('learner_id', learnerId)
+          .single();
+        
+        if (existingBooking) {
+          return {
+            success: true,
+            message: 'Already booked for this session',
+            booking: existingBooking
+          };
+        }
+      }
+      
       throw error;
     }
   }

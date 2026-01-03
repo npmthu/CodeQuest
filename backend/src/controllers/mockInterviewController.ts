@@ -179,11 +179,14 @@ export class MockInterviewController {
 
       const booking = await this.interviewService.bookSession(user.id, bookingData);
 
+      // Handle union return type
+      const bookingData_result = 'booking_status' in booking ? booking : booking.booking;
+
       console.log('🎯 Mock interview session booked:', {
-        bookingId: booking.id,
-        sessionId: booking.session_id,
+        bookingId: bookingData_result.id,
+        sessionId: bookingData_result.session_id,
         learnerId: user.id,
-        status: booking.booking_status
+        status: bookingData_result.booking_status
       });
 
       res.status(201).json({
