@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { io, Socket } from 'socket.io-client';
-import Peer from 'simple-peer';
+import SimplePeer from 'simple-peer';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
@@ -39,11 +39,14 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
   const sessionId = propSessionId || urlSessionId;
   
   const navigate = useNavigate();
-  const { user, session: authSession } = useAuth();
+  const { user, session: authSession, profile } = useAuth();
+  
+  // Get user role from profile
+  const userRole = profile?.role || 'learner';
   
   // Socket and WebRTC state
   const [socket, setSocket] = useState<Socket | null>(null);
-  const [peers, setPeers] = useState<Map<string, Peer.Instance>>(new Map());
+  const [peers, setPeers] = useState<Map<string, InstanceType<typeof SimplePeer>>>(new Map());
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   
   // UI state
@@ -57,14 +60,15 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
   // Refs
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
-  const peersRef = useRef<Map<string, Peer.Instance>>(new Map());
+  const peersRef = useRef<Map<string, InstanceType<typeof SimplePeer>>>(new Map());
   const socketRef = useRef<Socket | null>(null);
 
   // Initialize socket connection
   useEffect(() => {
     if (!sessionId || !authSession?.access_token) return;
 
-    const newSocket = io(process.env.REACT_APP_API_URL || 'http://localhost:3000', {
+    const API_URL = import.meta.env.VITE_API_BASE?.replace('/api', '') || 'http://localhost:3000';
+    const newSocket = io(API_URL, {
       auth: {
         token: authSession.access_token
       },
@@ -97,16 +101,19 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
 
     newSocket.on('user-joined', (data) => {
       console.log('👋 User joined:', data);
-      setParticipants(prev => [...prev, {
-        userId: data.userId,
-        role: data.role,
-        joinedAt: new Date().toISOString()
-      }]);
+      setParticipants(prev => {
+        // Avoid duplicates
+        if (prev.some(p => p.userId === data.userId)) {
+          return prev;
+        }
+        return [...prev, {
+          userId: data.userId,
+          role: data.role,
+          joinedAt: new Date().toISOString()
+        }];
+      });
       
-      // If we're the instructor, initiate call with new user
-      if (user?.role === 'instructor' && data.userId !== user.id) {
-        initiateCall(data.userId);
-      }
+      // Note: Call initiation will happen in a separate useEffect when localStream is ready
     });
 
     newSocket.on('user-left', (data) => {
@@ -155,7 +162,8 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
           ? { 
               ...p, 
               mediaState: {
-                ...p.mediaState,
+                audioEnabled: p.mediaState?.audioEnabled ?? true,
+                videoEnabled: p.mediaState?.videoEnabled ?? true,
                 [data.mediaType]: data.isEnabled
               }
             }
@@ -178,16 +186,49 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
       newSocket.close();
       cleanup();
     };
-  }, [sessionId, authSession?.access_token, user?.role]);
+  }, [sessionId, authSession?.access_token, userRole]);
 
   // Initialize local media stream
   useEffect(() => {
+    let mounted = true;
+
     const initializeMedia = async () => {
       try {
+        console.log('🎥 Requesting camera/microphone access...');
+        
+        // Check if permissions are already granted
+        if (navigator.permissions) {
+          try {
+            const cameraPermission = await navigator.permissions.query({ name: 'camera' as PermissionName });
+            const micPermission = await navigator.permissions.query({ name: 'microphone' as PermissionName });
+            console.log('📋 Permissions:', {
+              camera: cameraPermission.state,
+              microphone: micPermission.state
+            });
+          } catch (err) {
+            console.log('⚠️ Permission API not fully supported, proceeding anyway');
+          }
+        }
+
+        // Request media with constraints
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: true,
-          audio: true
+          video: {
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+            facingMode: 'user'
+          },
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true
+          }
         });
+
+        if (!mounted) {
+          // Component unmounted, stop tracks
+          stream.getTracks().forEach(track => track.stop());
+          return;
+        }
 
         setLocalStream(stream);
         
@@ -195,24 +236,92 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
           localVideoRef.current.srcObject = stream;
         }
 
-        console.log('📹 Local media stream initialized');
-      } catch (error) {
+        console.log('✅ Local media stream initialized:', {
+          video: stream.getVideoTracks().length > 0,
+          audio: stream.getAudioTracks().length > 0
+        });
+
+        setConnectionError(null);
+      } catch (error: any) {
+        if (!mounted) return;
+
         console.error('❌ Failed to get media stream:', error);
-        setConnectionError('Failed to access camera/microphone');
-        toast.error('Failed to access camera/microphone. Please check permissions.');
+        
+        // More detailed error messages
+        let errorMessage = 'Failed to access camera/microphone. ';
+        
+        if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+          errorMessage += 'Please allow camera and microphone permissions in your browser.';
+        } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
+          errorMessage += 'No camera or microphone found. Please connect a device.';
+        } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
+          errorMessage += 'Camera or microphone is already in use by another application. Please close other apps using the camera.';
+        } else if (error.name === 'OverconstrainedError') {
+          errorMessage += 'Could not satisfy video/audio constraints. Trying with basic settings...';
+          
+          // Retry with minimal constraints
+          try {
+            const basicStream = await navigator.mediaDevices.getUserMedia({
+              video: true,
+              audio: true
+            });
+            
+            if (mounted) {
+              setLocalStream(basicStream);
+              if (localVideoRef.current) {
+                localVideoRef.current.srcObject = basicStream;
+              }
+              console.log('✅ Initialized with basic settings');
+              return;
+            }
+          } catch (retryError) {
+            console.error('❌ Retry also failed:', retryError);
+          }
+        } else {
+          errorMessage += `Error: ${error.message || 'Unknown error'}`;
+        }
+        
+        setConnectionError(errorMessage);
+        toast.error(errorMessage, { duration: 8000 });
       }
     };
 
     initializeMedia();
 
     return () => {
-      cleanup();
+      mounted = false;
+      // Don't cleanup stream here, let cleanup() handle it
     };
   }, []);
 
+  // Ensure video element is updated when localStream changes
+  useEffect(() => {
+    if (localStream && localVideoRef.current) {
+      console.log('🎥 Setting localVideoRef.srcObject');
+      localVideoRef.current.srcObject = localStream;
+      // Force play
+      localVideoRef.current.play().catch(err => {
+        console.warn('Auto-play prevented:', err);
+      });
+    }
+  }, [localStream]);
+
+  // Ensure remote video element is updated when remoteStreams changes
+  useEffect(() => {
+    if (remoteStreams.size > 0 && remoteVideoRef.current) {
+      const stream = Array.from(remoteStreams.values())[0];
+      console.log('🎥 Setting remoteVideoRef.srcObject', stream);
+      remoteVideoRef.current.srcObject = stream;
+      // Force play
+      remoteVideoRef.current.play().catch(err => {
+        console.warn('Auto-play prevented for remote video:', err);
+      });
+    }
+  }, [remoteStreams]);
+
   // WebRTC Functions
-  const createPeer = useCallback((userId: string, initiator: boolean): Peer.Instance => {
-    const peer = new Peer({
+  const createPeer = useCallback((userId: string, initiator: boolean): InstanceType<typeof SimplePeer> => {
+    const peer = new SimplePeer({
       initiator,
       trickle: true,
       stream: localStream || undefined,
@@ -224,7 +333,7 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
       }
     });
 
-    peer.on('signal', (data) => {
+    peer.on('signal', (data: any) => {
       if (data.type === 'offer') {
         socketRef.current?.emit('call-user', {
           targetUserId: userId,
@@ -243,7 +352,7 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
       }
     });
 
-    peer.on('stream', (stream) => {
+    peer.on('stream', (stream: any) => {
       console.log('📹 Received remote stream from:', userId);
       setRemoteStreams(prev => new Map(prev.set(userId, stream)));
       
@@ -261,7 +370,7 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
       console.log('🔌 Peer connection closed:', userId);
     });
 
-    peer.on('error', (error) => {
+    peer.on('error', (error: any) => {
       console.error('❌ Peer connection error:', error);
     });
 
@@ -277,6 +386,64 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
     peersRef.current.set(targetUserId, peer);
     setPeers(new Map(peersRef.current));
   }, [createPeer, localStream]);
+
+  // Initiate calls to participants when localStream becomes available (for instructor)
+  useEffect(() => {
+    if (!localStream || !socketRef.current) return;
+    
+    // If we're the instructor, initiate calls to all existing participants
+    if (userRole === 'instructor') {
+      participants.forEach(participant => {
+        // Only call if we haven't already established a peer connection
+        if (participant.userId !== user?.id && !peersRef.current.has(participant.userId)) {
+          console.log('📞 Initiating call to participant:', participant.userId);
+          
+          // Create peer inline to avoid dependency issues
+          const peer = new SimplePeer({
+            initiator: true,
+            trickle: true,
+            stream: localStream,
+            config: {
+              iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' }
+              ]
+            }
+          });
+
+          peer.on('signal', (data: any) => {
+            if (data.type === 'offer') {
+              socketRef.current?.emit('call-user', {
+                targetUserId: participant.userId,
+                offer: data
+              });
+            } else if (data.candidate) {
+              socketRef.current?.emit('ice-candidate', {
+                targetUserId: participant.userId,
+                candidate: data.candidate
+              });
+            }
+          });
+
+          peer.on('stream', (stream: any) => {
+            console.log('📹 Received remote stream from:', participant.userId);
+            setRemoteStreams(prev => new Map(prev.set(participant.userId, stream)));
+          });
+
+          peer.on('connect', () => {
+            console.log('🤝 Peer connected:', participant.userId);
+          });
+
+          peer.on('error', (error: any) => {
+            console.error('❌ Peer connection error:', error);
+          });
+
+          peersRef.current.set(participant.userId, peer);
+          setPeers(new Map(peersRef.current));
+        }
+      });
+    }
+  }, [localStream, participants, userRole, user?.id]);
 
   const handleIncomingCall = useCallback(async (callerUserId: string, offer: any) => {
     if (!localStream) return;
@@ -389,8 +556,8 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
               <Users className="w-4 h-4" />
               <span className="text-sm">{participants.length + 1} participants</span>
             </div>
-            <Badge variant={user?.role === 'instructor' ? 'default' : 'secondary'}>
-              {user?.role === 'instructor' ? (
+            <Badge variant={userRole === 'instructor' ? 'default' : 'secondary'}>
+              {userRole === 'instructor' ? (
                 <>
                   <Crown className="w-3 h-3 mr-1" />
                   Instructor
@@ -408,38 +575,36 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
 
       {/* Main Content */}
       <div className="flex-1 p-4">
+        {/* Connection Status Banner */}
         {isConnecting && (
-          <div className="flex items-center justify-center h-96">
-            <div className="text-center">
-              <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
-              <p className="text-gray-400">Connecting to interview room...</p>
-            </div>
+          <div className="mb-4 p-3 bg-yellow-900 border border-yellow-700 rounded-lg flex items-center gap-3">
+            <Loader2 className="w-5 h-5 animate-spin text-yellow-400" />
+            <p className="text-yellow-200">Connecting to interview room...</p>
           </div>
         )}
 
         {connectionError && (
-          <div className="flex items-center justify-center h-96">
-            <Card className="p-6 bg-red-900 border-red-700 max-w-md">
-              <div className="flex items-center gap-3 text-red-200">
-                <AlertCircle className="w-5 h-5" />
-                <div>
-                  <h3 className="font-semibold">Connection Error</h3>
-                  <p className="text-sm text-red-300">{connectionError}</p>
-                </div>
+          <div className="mb-4 p-3 bg-red-900 border border-red-700 rounded-lg">
+            <div className="flex items-center gap-3 text-red-200">
+              <AlertCircle className="w-5 h-5" />
+              <div className="flex-1">
+                <h3 className="font-semibold">Connection Error</h3>
+                <p className="text-sm text-red-300">{connectionError}</p>
               </div>
               <Button 
                 onClick={() => window.location.reload()} 
-                className="w-full mt-4"
+                size="sm"
                 variant="outline"
+                className="text-red-200 border-red-500"
               >
                 Retry
               </Button>
-            </Card>
+            </div>
           </div>
         )}
 
-        {!isConnecting && !connectionError && (
-          <div className="max-w-7xl mx-auto">
+        {/* Always show video grid */}
+        <div className="max-w-7xl mx-auto">
             {/* Video Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
               {/* Remote Video (Main) */}
@@ -495,7 +660,7 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
                 {/* Local User Info */}
                 <div className="absolute top-4 left-4 bg-black bg-opacity-50 px-3 py-2 rounded-lg">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm">You ({user?.role})</span>
+                    <span className="text-sm text-white">You ({userRole})</span>
                   </div>
                 </div>
 
@@ -552,20 +717,20 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
             {/* Participants List */}
             {participants.length > 0 && (
               <Card className="mt-4 bg-gray-800 border-gray-700 p-4">
-                <h3 className="font-semibold mb-3 flex items-center gap-2">
+                <h3 className="font-semibold text-white mb-3 flex items-center gap-2">
                   <Users className="w-4 h-4" />
                   Participants ({participants.length + 1})
                 </h3>
-                <div className="space-y-2">
+                <div className="space-y-2 text-white">
                   {/* Self */}
-                  <div className="flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-between text-sm text-white">
+                    <div className="flex items-center gap-2 text-white">
                       <span className="font-medium">You</span>
-                      <Badge variant="outline" className="text-xs">
-                        {user?.role}
+                      <Badge variant="outline" className="text-xs text-white">
+                        {userRole}
                       </Badge>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 text-white">
                       {isAudioEnabled ? <Mic className="w-3 h-3 text-green-500" /> : <MicOff className="w-3 h-3 text-red-500" />}
                       {isVideoEnabled ? <Video className="w-3 h-3 text-green-500" /> : <VideoOff className="w-3 h-3 text-red-500" />}
                     </div>
@@ -573,10 +738,10 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
                   
                   {/* Other participants */}
                   {participants.map((participant) => (
-                    <div key={participant.userId} className="flex items-center justify-between text-sm">
+                    <div key={participant.userId} className="flex items-center justify-between text-sm text-white">
                       <div className="flex items-center gap-2">
                         <span>{participant.role === 'instructor' ? 'Instructor' : 'Learner'}</span>
-                        <Badge variant="outline" className="text-xs">
+                        <Badge variant="outline" className="text-xs text-white">
                           {participant.role}
                         </Badge>
                       </div>
@@ -590,7 +755,6 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
               </Card>
             )}
           </div>
-        )}
       </div>
     </div>
   );
