@@ -59,9 +59,17 @@ export default function InstructorInterviews() {
   const fetchSessions = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('sb-access-token');
+      const { supabase } = await import('../../lib/supabaseClient');
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
       
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3000'}/api/mock-interviews/sessions?instructor_id=${user?.id}`, {
+      if (!token) {
+        throw new Error('Session expired. Please login again.');
+      }
+      
+      const API_URL = import.meta.env.VITE_API_BASE || 'http://localhost:3000';
+      
+      const response = await fetch(`${API_URL}/mock-interviews/sessions?instructor_id=${user?.id}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -84,32 +92,8 @@ export default function InstructorInterviews() {
   };
 
   const startSession = async (sessionId: string) => {
-    try {
-      const token = localStorage.getItem('sb-access-token');
-      
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3000'}/api/mock-interviews/start-session`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ session_id: sessionId })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to start session');
-      }
-
-      const result = await response.json();
-      
-      // Navigate to interview room
-      if (result.data?.interview_url) {
-        navigate(result.data.interview_url);
-      }
-    } catch (error: any) {
-      console.error('Error starting session:', error);
-      toast.error(error.message || 'Failed to start session');
-    }
+    // Navigate to lobby/waiting room instead of starting directly
+    navigate(`/interview/lobby/${sessionId}`);
   };
 
   const filteredSessions = sessions.filter(session => {
@@ -322,7 +306,7 @@ export default function InstructorInterviews() {
                   
                   {session.status === 'in_progress' && (
                     <Button 
-                      onClick={() => navigate(`/interview/${session.id}`)}
+                      onClick={() => navigate(`/interview/lobby/${session.id}`)}
                       className="flex items-center gap-2"
                     >
                       <Video className="w-4 h-4" />

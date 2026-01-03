@@ -72,18 +72,40 @@ export default function StudentInterviews() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('sb-access-token');
       
-      // Fetch available sessions
-      const sessionsResponse = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3000'}/api/mock-interviews/sessions`, {
+      // Get token from useAuth context instead of localStorage
+      if (!user) {
+        throw new Error('Not authenticated. Please login first.');
+      }
+      
+      // Get fresh session token from Supabase
+      const { supabase } = await import('../../lib/supabaseClient');
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session?.access_token) {
+        console.error('Session error:', sessionError);
+        throw new Error('Session expired. Please login again.');
+      }
+      
+      const token = session.access_token;
+      const API_URL = import.meta.env.VITE_API_BASE || 'http://localhost:3000';
+      
+      console.log('📌 Using token for API call:', {
+        userId: user.id,
+        tokenLength: token?.length,
+        hasToken: !!token
+      });
+      
+      // Fetch available sessions (no /api prefix - already in VITE_API_BASE)
+      const sessionsResponse = await fetch(`${API_URL}/mock-interviews/sessions`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
 
-      // Fetch user bookings
-      const bookingsResponse = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3000'}/api/mock-interviews/my-bookings`, {
+      // Fetch user bookings (no /api prefix - already in VITE_API_BASE)
+      const bookingsResponse = await fetch(`${API_URL}/mock-interviews/my-bookings`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -93,11 +115,15 @@ export default function StudentInterviews() {
       if (sessionsResponse.ok) {
         const sessionsResult = await sessionsResponse.json();
         setAvailableSessions(sessionsResult.data?.sessions || []);
+      } else {
+        console.error('Sessions response error:', sessionsResponse.status, await sessionsResponse.text());
       }
 
       if (bookingsResponse.ok) {
         const bookingsResult = await bookingsResponse.json();
         setMyBookings(bookingsResult.data?.bookings || []);
+      } else {
+        console.error('Bookings response error:', bookingsResponse.status, await bookingsResponse.text());
       }
     } catch (error: any) {
       console.error('Error fetching data:', error);
@@ -110,9 +136,28 @@ export default function StudentInterviews() {
 
   const bookSession = async (sessionId: string) => {
     try {
-      const token = localStorage.getItem('sb-access-token');
+      if (!user) {
+        throw new Error('Not authenticated. Please login first.');
+      }
       
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3000'}/api/mock-interviews/book`, {
+      // Get fresh session token from Supabase
+      const { supabase } = await import('../../lib/supabaseClient');
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session?.access_token) {
+        console.error('Session error:', sessionError);
+        throw new Error('Session expired. Please login again.');
+      }
+      
+      const token = session.access_token;
+      const API_URL = import.meta.env.VITE_API_BASE || 'http://localhost:3000';
+      
+      console.log('🔑 Booking with token:', {
+        tokenLength: token?.length,
+        tokenStart: token?.substring(0, 30)
+      });
+      
+      const response = await fetch(`${API_URL}/mock-interviews/book`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -141,32 +186,8 @@ export default function StudentInterviews() {
   };
 
   const joinSession = async (sessionId: string) => {
-    try {
-      const token = localStorage.getItem('sb-access-token');
-      
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3000'}/api/mock-interviews/join-session`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ session_id: sessionId })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to join session');
-      }
-
-      const result = await response.json();
-      
-      // Navigate to interview room
-      if (result.data?.interview_url) {
-        navigate(result.data.interview_url);
-      }
-    } catch (error: any) {
-      console.error('Error joining session:', error);
-      toast.error(error.message || 'Failed to join session');
-    }
+    // Navigate to lobby/waiting room instead of directly joining
+    navigate(`/interview/lobby/${sessionId}`);
   };
 
   const filteredSessions = availableSessions.filter(session => {

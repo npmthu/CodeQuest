@@ -42,6 +42,7 @@ import InterviewRoom from "./components/InterviewRoom";
 import InstructorInterviews from "./components/InstructorInterviews";
 import StudentInterviews from "./components/StudentInterviews";
 import CreateSession from "./components/CreateSession";
+import InterviewLobbyPage from "./components/InterviewLobbyPage";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { SubscriptionProvider } from "./contexts/SubscriptionContext";
 
@@ -375,9 +376,19 @@ function AppContent() {
         }
       />
 
+      {/* Interview Lobby (Waiting Room) */}
+      <Route
+        path="/interview/lobby/:sessionId"
+        element={
+          <ProtectedRoute>
+            <InterviewLobbyPage />
+          </ProtectedRoute>
+        }
+      />
+
       {/* Interview Room Route */}
       <Route
-        path="/interview/:sessionId"
+        path="/interview/room/:sessionId"
         element={
           <ProtectedRoute>
             <InterviewRoom />
