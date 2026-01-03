@@ -226,11 +226,13 @@ export class InterviewSignalingService {
 
     const targetParticipant = room.participants.get(data.targetUserId);
     if (!targetParticipant) {
+      console.log(`❌ Target user ${data.targetUserId} not found. Room participants:`, Array.from(room.participants.keys()));
       socket.emit('call-error', { error: 'Target user not found in room' });
       return;
     }
 
     // Relay the offer to the target user
+    console.log(`📞 Relaying call to ${data.targetUserId} on socket ${targetParticipant.socketId}`);
     this.io.to(targetParticipant.socketId).emit('incoming-call', {
       callerUserId: socket.userId,
       callerRole: socket.userRole,
