@@ -21,10 +21,12 @@ import {
   Crown,
   User,
   RefreshCw,
-  WifiOff
+  WifiOff,
+  MessageSquare
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
+import InterviewFeedbackModal from './InterviewFeedbackModal';
 
 interface Participant {
   userId: string;
@@ -65,13 +67,72 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
   const [isReconnecting, setIsReconnecting] = useState(false);
   const [disconnectedUsers, setDisconnectedUsers] = useState<Set<string>>(new Set());
   
+  // Session details for feedback
+  const [bookingId, setBookingId] = useState<string | null>(null);
+  const [instructorName, setInstructorName] = useState<string>('Instructor');
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  
   // Refs
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const peersRef = useRef<Map<string, InstanceType<typeof Peer>>>(new Map());
   const socketRef = useRef<Socket | null>(null);
   const reconnectAttempts = useRef(0);
+  const initiatedCallsRef = useRef<Set<string>>(new Set()); // Track initiated calls to prevent duplicates
+  const pendingCallsRef = useRef<Array<{callerUserId: string, offer: any}>>([]); // Store pending incoming calls
   const maxReconnectAttempts = 5;
+
+  // Fetch session and booking details
+  useEffect(() => {
+    const fetchSessionDetails = async () => {
+      if (!sessionId || !authSession?.access_token) return;
+
+      try {
+        // Fetch session details
+        const sessionResponse = await fetch(
+          `${import.meta.env.VITE_API_BASE}/mock-interviews/sessions/${sessionId}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${authSession.access_token}`
+            }
+          }
+        );
+
+        if (sessionResponse.ok) {
+          const sessionData = await sessionResponse.json();
+          if (sessionData.data?.instructor?.name) {
+            setInstructorName(sessionData.data.instructor.name);
+          }
+        }
+
+        // Fetch booking details (for learners only)
+        if (userRole === 'learner') {
+          const bookingsResponse = await fetch(
+            `${import.meta.env.VITE_API_BASE}/mock-interviews/my-bookings`,
+            {
+              headers: {
+                'Authorization': `Bearer ${authSession.access_token}`
+              }
+            }
+          );
+
+          if (bookingsResponse.ok) {
+            const bookingsData = await bookingsResponse.json();
+            const booking = bookingsData.data?.bookings?.find(
+              (b: any) => b.session_id === sessionId
+            );
+            if (booking?.id) {
+              setBookingId(booking.id);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching session details:', error);
+      }
+    };
+
+    fetchSessionDetails();
+  }, [sessionId, authSession?.access_token, userRole]);
 
   // Initialize socket connection
   useEffect(() => {
@@ -121,8 +182,6 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
           joinedAt: new Date().toISOString()
         }];
       });
-      
-      // Note: Call initiation will happen in a separate useEffect when localStream is ready
     });
 
     newSocket.on('user-left', (data) => {
@@ -135,6 +194,9 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
         peer.destroy();
         peersRef.current.delete(data.userId);
       }
+      
+      // Clean up tracking
+      initiatedCallsRef.current.delete(data.userId);
       
       // Clean up remote stream
       const remoteStream = remoteStreams.get(data.userId);
@@ -149,7 +211,7 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
     });
 
     newSocket.on('incoming-call', async (data) => {
-      console.log('📞 Incoming call from:', data);
+      console.log('📞 [SOCKET] Incoming call event received from:', data.callerUserId);
       // Will be handled by separate useEffect
     });
 
@@ -372,14 +434,19 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
 
   // Ensure remote video element is updated when remoteStreams changes
   useEffect(() => {
+    console.log('🎥 [useEffect] Remote streams changed, size:', remoteStreams.size);
+    
     if (remoteStreams.size > 0 && remoteVideoRef.current) {
       const stream = Array.from(remoteStreams.values())[0];
-      console.log('🎥 Setting remoteVideoRef.srcObject', stream);
+      console.log('🎥 Setting remoteVideoRef.srcObject, stream tracks:', stream.getTracks().length);
       remoteVideoRef.current.srcObject = stream;
       // Force play
       remoteVideoRef.current.play().catch(err => {
         console.warn('Auto-play prevented for remote video:', err);
       });
+    } else if (remoteStreams.size === 0 && remoteVideoRef.current) {
+      console.log('🎥 No remote streams, clearing video');
+      remoteVideoRef.current.srcObject = null;
     }
   }, [remoteStreams]);
 
@@ -428,13 +495,13 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
     });
 
     peer.on('stream', (stream: any) => {
-      console.log('📹 [createPeer] Received remote stream from:', userId);
-      setRemoteStreams(prev => new Map(prev.set(userId, stream)));
-      
-      // Set the first remote stream to the main video element
-      if (remoteVideoRef.current && !remoteVideoRef.current.srcObject) {
-        remoteVideoRef.current.srcObject = stream;
-      }
+      console.log('📹 [createPeer] Received remote stream from:', userId, 'tracks:', stream.getTracks().length);
+      setRemoteStreams(prev => {
+        const newMap = new Map(prev);
+        newMap.set(userId, stream);
+        console.log('📹 [createPeer] Updated remoteStreams Map, size:', newMap.size);
+        return newMap;
+      });
     });
 
     peer.on('connect', () => {
@@ -452,86 +519,128 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
     return peer;
   }, [localStream]);
 
+  // Helper function to initiate call to a specific user
+  const initiateCallToUser = useCallback((targetUserId: string, targetRole: string) => {
+    if (!localStream || !socketRef.current || !user?.id) {
+      console.log('⏳ Cannot initiate call: missing localStream, socket or user');
+      return;
+    }
 
+    // Check if already connected or already initiated
+    if (peersRef.current.has(targetUserId) || initiatedCallsRef.current.has(targetUserId)) {
+      console.log('ℹ️ Already have peer connection or initiated call with:', targetUserId);
+      return;
+    }
 
-  // Initiate calls to participants when localStream becomes available (for instructor)
-  useEffect(() => {
-    console.log('📞 useEffect triggered: localStream=', !!localStream, 'socket=', !!socketRef.current, 'role=', userRole, 'participants=', participants.length);
+    // Role-based: Instructor always initiates to learner
+    let shouldInitiate = false;
+    if (userRole === 'instructor' && targetRole === 'learner') {
+      shouldInitiate = true;
+    } else if (userRole === 'learner' && targetRole === 'instructor') {
+      shouldInitiate = false; // Wait for instructor
+    } else {
+      // Same role - use user ID comparison as fallback
+      shouldInitiate = user.id < targetUserId;
+    }
+
+    if (!shouldInitiate) {
+      console.log(`⏳ Not initiating to ${targetRole} (waiting for them to initiate)`);
+      return;
+    }
+
+    console.log('📞 Initiating call to:', targetUserId, 'role:', targetRole);
     
-    if (!localStream || !socketRef.current) {
-      console.log('⏳ Missing localStream or socket, returning...');
+    // Mark as initiated to prevent duplicates
+    initiatedCallsRef.current.add(targetUserId);
+    
+    try {
+      const peer = new Peer({
+        initiator: true,
+        trickle: true,
+        stream: localStream,
+        config: {
+          iceServers: [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' }
+          ]
+        }
+      });
+
+      peer.on('signal', (data: any) => {
+        if (data.type === 'offer') {
+          console.log('📤 Emitting call-user to:', targetUserId);
+          socketRef.current?.emit('call-user', {
+            targetUserId: targetUserId,
+            offer: data
+          });
+        } else if (data.candidate) {
+          console.log('🧊 Emitting ice-candidate to:', targetUserId);
+          socketRef.current?.emit('ice-candidate', {
+            targetUserId: targetUserId,
+            candidate: data
+          });
+        }
+      });
+
+      peer.on('stream', (stream: any) => {
+        console.log('📹 [initiateCallToUser] Received remote stream from:', targetUserId, 'tracks:', stream.getTracks().length);
+        setRemoteStreams(prev => {
+          const newMap = new Map(prev);
+          newMap.set(targetUserId, stream);
+          console.log('📹 Updated remoteStreams Map, size:', newMap.size);
+          return newMap;
+        });
+      });
+
+      peer.on('error', (error: any) => {
+        console.error('❌ Peer connection error:', error);
+        peersRef.current.delete(targetUserId);
+        initiatedCallsRef.current.delete(targetUserId); // Allow retry
+      });
+
+      peer.on('close', () => {
+        console.log('🔌 Peer connection closed:', targetUserId);
+        peersRef.current.delete(targetUserId);
+        initiatedCallsRef.current.delete(targetUserId); // Allow reconnect
+      });
+
+      peersRef.current.set(targetUserId, peer);
+    } catch (err) {
+      console.error('❌ Error creating peer connection:', err);
+      initiatedCallsRef.current.delete(targetUserId); // Allow retry
+    }
+  }, [localStream, userRole, user?.id]);
+
+  // Initiate calls to participants when localStream becomes available
+  useEffect(() => {
+    console.log('📞 Call initiation effect: localStream=', !!localStream, 'socket=', !!socketRef.current, 'participants=', participants.length);
+    
+    if (!localStream || !socketRef.current || !user?.id) {
       return;
     }
     
     // Check if localStream has tracks ready
     if (localStream.getTracks().length === 0) {
-      console.log('⏳ Local stream has no tracks yet, waiting...');
+      console.log('⏳ Local stream has no tracks yet');
       return;
     }
     
-    // If we're the instructor, initiate calls to all existing participants
-    if (userRole === 'instructor') {
-      console.log('👨‍🏫 Instructor mode - initiating calls to', participants.length, 'participants');
-      participants.forEach(participant => {
-        // Only call if we haven't already established a peer connection
-        if (participant.userId !== user?.id && !peersRef.current.has(participant.userId)) {
-          console.log('📞 Initiating call to participant:', participant.userId);
-          
-          try {
-            // Create peer inline to avoid dependency issues
-            const peer = new Peer({
-              initiator: true,
-              trickle: true,
-              stream: localStream,
-              config: {
-                iceServers: [
-                  { urls: 'stun:stun.l.google.com:19302' },
-                  { urls: 'stun:stun1.l.google.com:19302' }
-                ]
-              }
-            });
-
-            peer.on('signal', (data: any) => {
-              if (data.type === 'offer') {
-                console.log('📤 Emitting call-user to:', participant.userId, 'offer:', data);
-                socketRef.current?.emit('call-user', {
-                  targetUserId: participant.userId,
-                  offer: data
-                });
-              } else if (data.candidate) {
-                console.log('🧊 Emitting ice-candidate to:', participant.userId);
-                socketRef.current?.emit('ice-candidate', {
-                  targetUserId: participant.userId,
-                  candidate: data
-                });
-              }
-            });
-
-            peer.on('stream', (stream: any) => {
-              console.log('📹 [inline] Received remote stream from:', participant.userId);
-              setRemoteStreams(prev => new Map(prev.set(participant.userId, stream)));
-            });
-
-            peer.on('connect', () => {
-              console.log('🤝 [inline] Peer connected:', participant.userId);
-            });
-
-            peer.on('error', (error: any) => {
-              console.error('❌ [inline] Peer connection error:', error);
-            });
-
-            peersRef.current.set(participant.userId, peer);
-          } catch (err) {
-            console.error('❌ Error creating peer connection:', err);
-          }
-        }
-      });
-    }
-  }, [localStream, participants, userRole, user?.id]);
-
+    // Initiate calls to all participants
+    participants.forEach(participant => {
+      if (participant.userId !== user.id) {
+        initiateCallToUser(participant.userId, participant.role);
+      }
+    });
+  }, [localStream, participants, user?.id, initiateCallToUser]);
+  // Remove old complex logic below
+  // [Old useEffect removed]
   const handleIncomingCall = useCallback(async (callerUserId: string, offer: any) => {
+    console.log('📞 [handleIncomingCall] Called from:', callerUserId, 'localStream ready?', !!localStream);
+    
     if (!localStream) {
-      console.warn('⚠️ Cannot handle incoming call: localStream not ready');
+      console.warn('⚠️ Cannot handle incoming call: localStream not ready. Storing for later processing.');
+      // Store this call to process later when localStream is ready
+      pendingCallsRef.current.push({ callerUserId, offer });
       return;
     }
 
@@ -606,6 +715,24 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
       socketRef.current?.off('ice-candidate', handleIceCandidateWrapper);
     };
   }, [handleIncomingCall, handleCallAnswered, handleIceCandidate]);
+
+  // Process pending incoming calls when localStream becomes ready
+  useEffect(() => {
+    if (!localStream || pendingCallsRef.current.length === 0) {
+      return;
+    }
+
+    console.log('📞 Processing', pendingCallsRef.current.length, 'pending incoming calls');
+    
+    const pending = [...pendingCallsRef.current];
+    pendingCallsRef.current = []; // Clear the queue
+    
+    pending.forEach(({ callerUserId, offer }) => {
+      console.log('📞 Processing pending call from:', callerUserId);
+      handleIncomingCall(callerUserId, offer);
+    });
+  }, [localStream, handleIncomingCall]);
+
   // Media control functions
   const toggleAudio = useCallback(() => {
     if (!localStream) return;
@@ -694,20 +821,53 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
   }, [sessionId, sessionEnded]);
 
   const cleanup = useCallback(() => {
-    // Stop local stream
+    console.log('🧹 Cleaning up media streams and peer connections...');
+    
+    // Stop local stream tracks
     if (localStream) {
-      localStream.getTracks().forEach(track => track.stop());
+      console.log('🛑 Stopping', localStream.getTracks().length, 'local tracks');
+      localStream.getTracks().forEach(track => {
+        track.stop();
+        console.log('  ✓ Stopped', track.kind, 'track');
+      });
+    }
+    setLocalStream(null);
+
+    // Stop local video element
+    if (localVideoRef.current && localVideoRef.current.srcObject) {
+      const tracks = (localVideoRef.current.srcObject as MediaStream).getTracks();
+      tracks.forEach(track => track.stop());
+      localVideoRef.current.srcObject = null;
+    }
+
+    // Stop remote video element
+    if (remoteVideoRef.current && remoteVideoRef.current.srcObject) {
+      const tracks = (remoteVideoRef.current.srcObject as MediaStream).getTracks();
+      tracks.forEach(track => track.stop());
+      remoteVideoRef.current.srcObject = null;
     }
 
     // Destroy all peer connections
-    peersRef.current.forEach(peer => peer.destroy());
+    peersRef.current.forEach((peer, userId) => {
+      console.log('🔌 Destroying peer connection:', userId);
+      peer.destroy();
+    });
     peersRef.current.clear();
+    
+    // Clear tracking
+    initiatedCallsRef.current.clear();
 
-    // Clear remote streams
-    remoteStreams.forEach(stream => {
-      stream.getTracks().forEach(track => track.stop());
+    // Clear remote streams and stop their tracks
+    remoteStreams.forEach((stream, userId) => {
+      console.log('🛑 Stopping remote stream from:', userId);
+      stream.getTracks().forEach(track => {
+        track.stop();
+        console.log('🛑 Stopped remote track:', track.kind);
+      });
     });
     setRemoteStreams(new Map());
+    
+    console.log('✅ Cleanup complete');
   }, [localStream, remoteStreams]);
 
   // Get the main remote stream (first available)
@@ -722,21 +882,33 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
         <Card className="bg-gray-800 border-gray-700 p-8 text-center max-w-md">
           <div className="mb-6">
             <div className="w-16 h-16 mx-auto bg-gray-700 rounded-full flex items-center justify-center mb-4">
-              <PhoneOff className="w-8 h-8 text-red-400" />
+              <PhoneOff className="w-8 h-8 text-white" />
             </div>
-            <h2 className="text-2xl font-bold mb-2">Session Ended</h2>
+            <h2 className="text-2xl text-white font-bold mb-2">Session Ended</h2>
             <p className="text-gray-400">{sessionEndReason || 'The interview session has ended.'}</p>
           </div>
           <div className="space-y-3">
+            {/* Feedback button for both learner and instructor */}
+            <Button 
+              onClick={() => setShowFeedbackModal(true)}
+              className="w-full"
+              variant="default"
+            >
+              <MessageSquare className="w-4 h-4 mr-2" />
+              {userRole === 'instructor' ? 'Rate System' : 'Leave Feedback'}
+            </Button>
+            
             <Button 
               onClick={() => navigate('/dashboard')}
               className="w-full"
+              variant={userRole === 'learner' ? 'outline' : 'default'}
             >
               Return to Dashboard
             </Button>
+            
             {userRole === 'learner' && (
               <Button 
-                variant="outline"
+                variant="ghost"
                 onClick={() => navigate('/interviews')}
                 className="w-full"
               >
@@ -745,6 +917,18 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
             )}
           </div>
         </Card>
+
+        {/* Feedback Modal */}
+        <InterviewFeedbackModal
+          isOpen={showFeedbackModal}
+          onClose={() => {
+            setShowFeedbackModal(false);
+          }}
+          sessionId={sessionId!}
+          bookingId={bookingId || undefined}
+          instructorName={instructorName}
+          userRole={userRole as 'instructor' | 'learner'}
+        />
       </div>
     );
   }
