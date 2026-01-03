@@ -1,7 +1,10 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { io, Socket } from 'socket.io-client';
-import SimplePeer from 'simple-peer';
+import Peer from 'simple-peer/simplepeer.min.js';
+// @ts-ignore
+declare module 'simple-peer/simplepeer.min.js';
+
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
@@ -45,8 +48,6 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
   const userRole = profile?.role || 'learner';
   
   // Socket and WebRTC state
-  const [socket, setSocket] = useState<Socket | null>(null);
-  const [peers, setPeers] = useState<Map<string, InstanceType<typeof SimplePeer>>>(new Map());
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   
   // UI state
@@ -60,7 +61,7 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
   // Refs
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
-  const peersRef = useRef<Map<string, InstanceType<typeof SimplePeer>>>(new Map());
+  const peersRef = useRef<Map<string, InstanceType<typeof Peer>>>(new Map());
   const socketRef = useRef<Socket | null>(null);
 
   // Initialize socket connection
@@ -76,7 +77,6 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
     });
 
     socketRef.current = newSocket;
-    setSocket(newSocket);
 
     // Socket event handlers
     newSocket.on('connect', () => {
@@ -125,7 +125,6 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
       if (peer) {
         peer.destroy();
         peersRef.current.delete(data.userId);
-        setPeers(new Map(peersRef.current));
       }
       
       // Clean up remote stream
@@ -142,17 +141,17 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
 
     newSocket.on('incoming-call', async (data) => {
       console.log('📞 Incoming call from:', data);
-      await handleIncomingCall(data.callerUserId, data.offer);
+      // Will be handled by separate useEffect
     });
 
     newSocket.on('call-answered', async (data) => {
       console.log('✅ Call answered:', data);
-      await handleCallAnswered(data.answererUserId, data.answer);
+      // Will be handled by separate useEffect
     });
 
     newSocket.on('ice-candidate', async (data) => {
       console.log('🧊 ICE candidate from:', data);
-      await handleIceCandidate(data.fromUserId, data.candidate);
+      // Will be handled by separate useEffect
     });
 
     newSocket.on('media-toggled', (data) => {
@@ -320,11 +319,19 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
   }, [remoteStreams]);
 
   // WebRTC Functions
-  const createPeer = useCallback((userId: string, initiator: boolean): InstanceType<typeof SimplePeer> => {
-    const peer = new SimplePeer({
+  const createPeer = useCallback((userId: string, initiator: boolean): InstanceType<typeof Peer> => {
+    if (!localStream) {
+      throw new Error('Local stream is not available');
+    }
+    
+    if (localStream.getTracks().length === 0) {
+      throw new Error('Local stream has no tracks');
+    }
+    
+    const peer = new Peer({
       initiator,
       trickle: true,
-      stream: localStream || undefined,
+      stream: localStream,
       config: {
         iceServers: [
           { urls: 'stun:stun.l.google.com:19302' },
@@ -335,25 +342,28 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
 
     peer.on('signal', (data: any) => {
       if (data.type === 'offer') {
+        console.log('📤 [createPeer] Emitting call-user to:', userId);
         socketRef.current?.emit('call-user', {
           targetUserId: userId,
           offer: data
         });
       } else if (data.type === 'answer') {
+        console.log('📤 [createPeer] Emitting answer-call to:', userId);
         socketRef.current?.emit('answer-call', {
           callerUserId: userId,
           answer: data
         });
       } else if (data.candidate) {
+        console.log('🧊 [createPeer] Emitting ice-candidate to:', userId);
         socketRef.current?.emit('ice-candidate', {
           targetUserId: userId,
-          candidate: data.candidate
+          candidate: data
         });
       }
     });
 
     peer.on('stream', (stream: any) => {
-      console.log('📹 Received remote stream from:', userId);
+      console.log('📹 [createPeer] Received remote stream from:', userId);
       setRemoteStreams(prev => new Map(prev.set(userId, stream)));
       
       // Set the first remote stream to the main video element
@@ -363,114 +373,174 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
     });
 
     peer.on('connect', () => {
-      console.log('🤝 Peer connected:', userId);
+      console.log('🤝 [createPeer] Peer connected:', userId);
     });
 
     peer.on('close', () => {
-      console.log('🔌 Peer connection closed:', userId);
+      console.log('🔌 [createPeer] Peer connection closed:', userId);
     });
 
     peer.on('error', (error: any) => {
-      console.error('❌ Peer connection error:', error);
+      console.error('❌ [createPeer] Peer connection error:', error);
     });
 
     return peer;
   }, [localStream]);
 
-  const initiateCall = useCallback(async (targetUserId: string) => {
-    if (!localStream) return;
 
-    console.log('📞 Initiating call to:', targetUserId);
-    
-    const peer = createPeer(targetUserId, true);
-    peersRef.current.set(targetUserId, peer);
-    setPeers(new Map(peersRef.current));
-  }, [createPeer, localStream]);
 
   // Initiate calls to participants when localStream becomes available (for instructor)
   useEffect(() => {
-    if (!localStream || !socketRef.current) return;
+    console.log('📞 useEffect triggered: localStream=', !!localStream, 'socket=', !!socketRef.current, 'role=', userRole, 'participants=', participants.length);
+    
+    if (!localStream || !socketRef.current) {
+      console.log('⏳ Missing localStream or socket, returning...');
+      return;
+    }
+    
+    // Check if localStream has tracks ready
+    if (localStream.getTracks().length === 0) {
+      console.log('⏳ Local stream has no tracks yet, waiting...');
+      return;
+    }
     
     // If we're the instructor, initiate calls to all existing participants
     if (userRole === 'instructor') {
+      console.log('👨‍🏫 Instructor mode - initiating calls to', participants.length, 'participants');
       participants.forEach(participant => {
         // Only call if we haven't already established a peer connection
         if (participant.userId !== user?.id && !peersRef.current.has(participant.userId)) {
           console.log('📞 Initiating call to participant:', participant.userId);
           
-          // Create peer inline to avoid dependency issues
-          const peer = new SimplePeer({
-            initiator: true,
-            trickle: true,
-            stream: localStream,
-            config: {
-              iceServers: [
-                { urls: 'stun:stun.l.google.com:19302' },
-                { urls: 'stun:stun1.l.google.com:19302' }
-              ]
-            }
-          });
+          try {
+            // Create peer inline to avoid dependency issues
+            const peer = new Peer({
+              initiator: true,
+              trickle: true,
+              stream: localStream,
+              config: {
+                iceServers: [
+                  { urls: 'stun:stun.l.google.com:19302' },
+                  { urls: 'stun:stun1.l.google.com:19302' }
+                ]
+              }
+            });
 
-          peer.on('signal', (data: any) => {
-            if (data.type === 'offer') {
-              socketRef.current?.emit('call-user', {
-                targetUserId: participant.userId,
-                offer: data
-              });
-            } else if (data.candidate) {
-              socketRef.current?.emit('ice-candidate', {
-                targetUserId: participant.userId,
-                candidate: data.candidate
-              });
-            }
-          });
+            peer.on('signal', (data: any) => {
+              if (data.type === 'offer') {
+                console.log('📤 Emitting call-user to:', participant.userId, 'offer:', data);
+                socketRef.current?.emit('call-user', {
+                  targetUserId: participant.userId,
+                  offer: data
+                });
+              } else if (data.candidate) {
+                console.log('🧊 Emitting ice-candidate to:', participant.userId);
+                socketRef.current?.emit('ice-candidate', {
+                  targetUserId: participant.userId,
+                  candidate: data
+                });
+              }
+            });
 
-          peer.on('stream', (stream: any) => {
-            console.log('📹 Received remote stream from:', participant.userId);
-            setRemoteStreams(prev => new Map(prev.set(participant.userId, stream)));
-          });
+            peer.on('stream', (stream: any) => {
+              console.log('📹 [inline] Received remote stream from:', participant.userId);
+              setRemoteStreams(prev => new Map(prev.set(participant.userId, stream)));
+            });
 
-          peer.on('connect', () => {
-            console.log('🤝 Peer connected:', participant.userId);
-          });
+            peer.on('connect', () => {
+              console.log('🤝 [inline] Peer connected:', participant.userId);
+            });
 
-          peer.on('error', (error: any) => {
-            console.error('❌ Peer connection error:', error);
-          });
+            peer.on('error', (error: any) => {
+              console.error('❌ [inline] Peer connection error:', error);
+            });
 
-          peersRef.current.set(participant.userId, peer);
-          setPeers(new Map(peersRef.current));
+            peersRef.current.set(participant.userId, peer);
+          } catch (err) {
+            console.error('❌ Error creating peer connection:', err);
+          }
         }
       });
     }
   }, [localStream, participants, userRole, user?.id]);
 
   const handleIncomingCall = useCallback(async (callerUserId: string, offer: any) => {
-    if (!localStream) return;
+    if (!localStream) {
+      console.warn('⚠️ Cannot handle incoming call: localStream not ready');
+      return;
+    }
 
     console.log('📞 Handling incoming call from:', callerUserId);
     
-    const peer = createPeer(callerUserId, false);
-    peersRef.current.set(callerUserId, peer);
-    setPeers(new Map(peersRef.current));
-    
-    peer.signal(offer);
+    try {
+      const peer = createPeer(callerUserId, false);
+      peersRef.current.set(callerUserId, peer);
+      
+      peer.signal(offer);
+    } catch (err) {
+      console.error('❌ Error handling incoming call:', err);
+    }
   }, [createPeer, localStream]);
 
   const handleCallAnswered = useCallback(async (answererUserId: string, answer: any) => {
+    console.log('✅ [handleCallAnswered] Received answer from:', answererUserId);
     const peer = peersRef.current.get(answererUserId);
-    if (peer) {
-      peer.signal(answer);
+    if (peer && !peer.destroyed) {
+      try {
+        peer.signal(answer);
+      } catch (err) {
+        console.warn('⚠️ Failed to signal answer (peer may be destroyed):', err);
+      }
     }
   }, []);
 
   const handleIceCandidate = useCallback(async (fromUserId: string, candidate: any) => {
+    console.log('🧊 [handleIceCandidate] Received ICE candidate from:', fromUserId);
     const peer = peersRef.current.get(fromUserId);
-    if (peer) {
-      peer.signal(candidate);
+    if (peer && !peer.destroyed) {
+      try {
+        peer.signal(candidate);
+      } catch (err) {
+        console.warn('⚠️ Failed to signal ICE candidate (peer may be destroyed):', err);
+      }
     }
   }, []);
 
+  // Setup socket event handlers with proper dependencies
+  useEffect(() => {
+    if (!socketRef.current) return;
+
+    // Store previous handlers to clean them up
+    const handleIncomingCallWrapper = async (data: any) => {
+      console.log('📞 Handling incoming call wrapper from:', data.callerUserId);
+      await handleIncomingCall(data.callerUserId, data.offer);
+    };
+
+    const handleCallAnsweredWrapper = async (data: any) => {
+      console.log('✅ Call answered wrapper from:', data.answererUserId);
+      await handleCallAnswered(data.answererUserId, data.answer);
+    };
+
+    const handleIceCandidateWrapper = async (data: any) => {
+      console.log('🧊 ICE candidate wrapper from:', data.fromUserId);
+      await handleIceCandidate(data.fromUserId, data.candidate);
+    };
+
+    // Register handlers
+    socketRef.current.off('incoming-call');
+    socketRef.current.off('call-answered');
+    socketRef.current.off('ice-candidate');
+
+    socketRef.current.on('incoming-call', handleIncomingCallWrapper);
+    socketRef.current.on('call-answered', handleCallAnsweredWrapper);
+    socketRef.current.on('ice-candidate', handleIceCandidateWrapper);
+
+    return () => {
+      socketRef.current?.off('incoming-call', handleIncomingCallWrapper);
+      socketRef.current?.off('call-answered', handleCallAnsweredWrapper);
+      socketRef.current?.off('ice-candidate', handleIceCandidateWrapper);
+    };
+  }, [handleIncomingCall, handleCallAnswered, handleIceCandidate]);
   // Media control functions
   const toggleAudio = useCallback(() => {
     if (!localStream) return;
@@ -517,7 +587,6 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
     // Destroy all peer connections
     peersRef.current.forEach(peer => peer.destroy());
     peersRef.current.clear();
-    setPeers(new Map());
 
     // Clear remote streams
     remoteStreams.forEach(stream => {
