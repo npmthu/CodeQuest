@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import SessionLobby, { InterviewSession, UserRole } from './SessionLobby';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../../lib/supabaseClient';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { Card } from './ui/card';
-import { toast } from 'sonner';
+
 
 export default function InterviewLobbyPage() {
   const { sessionId } = useParams<{ sessionId: string }>();

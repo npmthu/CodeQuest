@@ -8,10 +8,6 @@ import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { 
   ArrowLeft,
-  Calendar,
-  Clock,
-  DollarSign,
-  Users,
   Video,
   Plus,
   Loader2
@@ -75,7 +71,7 @@ export default function CreateSession() {
     try {
       setLoading(true);
       const { supabase } = await import('../../lib/supabaseClient');
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
       
       if (!token) {
@@ -101,7 +97,7 @@ export default function CreateSession() {
         throw new Error(error.error || 'Failed to create session');
       }
 
-      const result = await response.json();
+      await response.json();
       
       toast.success('Interview session created successfully!');
       navigate('/instructor/interviews');

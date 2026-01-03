@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
@@ -6,7 +6,6 @@ import { Badge } from './ui/badge';
 import { Input } from './ui/input';
 import { 
   Video, 
-  VideoOff, 
   Users, 
   Calendar, 
   Clock, 
@@ -15,9 +14,7 @@ import {
   Search,
   Filter,
   ChevronRight,
-  Loader2,
-  Crown,
-  Star
+  Loader2
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
@@ -48,7 +45,7 @@ export default function InstructorInterviews() {
   const { user } = useAuth();
   const [sessions, setSessions] = useState<MockInterviewSession[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
@@ -84,7 +81,6 @@ export default function InstructorInterviews() {
       setSessions(result.data?.sessions || []);
     } catch (error: any) {
       console.error('Error fetching sessions:', error);
-      setError(error.message);
       toast.error('Failed to load interview sessions');
     } finally {
       setLoading(false);

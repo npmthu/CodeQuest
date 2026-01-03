@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
@@ -6,20 +6,16 @@ import { Badge } from './ui/badge';
 import { Input } from './ui/input';
 import { 
   Video, 
-  Calendar, 
-  Clock, 
+  Calendar,
+  Clock,
   DollarSign,
   Search,
-  Filter,
   ChevronRight,
   Loader2,
   User,
   Crown,
-  Star,
-  VideoOff,
-  Mic,
-  MicOff,
-  Users
+  Users,
+  VideoOff
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
@@ -61,7 +57,7 @@ export default function StudentInterviews() {
   const [availableSessions, setAvailableSessions] = useState<MockInterviewSession[]>([]);
   const [myBookings, setMyBookings] = useState<InterviewBooking[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState<'available' | 'my-bookings'>('available');
 
@@ -127,7 +123,6 @@ export default function StudentInterviews() {
       }
     } catch (error: any) {
       console.error('Error fetching data:', error);
-      setError(error.message);
       toast.error('Failed to load interview data');
     } finally {
       setLoading(false);
@@ -174,7 +169,7 @@ export default function StudentInterviews() {
         throw new Error(error.error || 'Failed to book session');
       }
 
-      const result = await response.json();
+      await response.json();
       toast.success('Session booked successfully!');
       
       // Refresh data

@@ -8,13 +8,12 @@ import {
   Calendar,
   Users,
   Clock,
-  Play,
+
   Pencil,
   Plus,
   TrendingUp,
   Award,
-  Target,
-  CheckCircle
+
 } from "lucide-react";
 import InterviewRoomPage from "./InterviewRoomPage";
 import InterviewSchedulePage from "./InterviewSchedulePage";
@@ -154,7 +153,7 @@ export default function InterviewPage() {
               </Card>
             ) : (
               upcomingInterviews.map((interview: InterviewSessionWithUsers) => {
-                const interviewee = Array.isArray(interview.interviewee) ? interview.interviewee[0] : interview.interviewee;
+
                 const interviewer = Array.isArray(interview.interviewer) ? interview.interviewer[0] : interview.interviewer;
                 
                 return (
@@ -260,7 +259,7 @@ export default function InterviewPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {pastInterviews.map((interview: InterviewSessionWithUsers) => {
               const interviewer = Array.isArray(interview.interviewer) ? interview.interviewer[0] : interview.interviewer;
-              const interviewee = Array.isArray(interview.interviewee) ? interview.interviewee[0] : interview.interviewee;
+              Array.isArray(interview.interviewee) ? interview.interviewee[0] : interview.interviewee;
               
               return (
                 <Card key={interview.id} className="p-6 hover:shadow-lg transition-all cursor-pointer">
