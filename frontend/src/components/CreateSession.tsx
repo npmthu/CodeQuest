@@ -74,9 +74,17 @@ export default function CreateSession() {
 
     try {
       setLoading(true);
-      const token = localStorage.getItem('sb-access-token');
+      const { supabase } = await import('../../lib/supabaseClient');
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      const token = session?.access_token;
       
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3000'}/api/mock-interviews/sessions`, {
+      if (!token) {
+        throw new Error('Session expired. Please login again.');
+      }
+      
+      const API_URL = import.meta.env.VITE_API_BASE || 'http://localhost:3000';
+      
+      const response = await fetch(`${API_URL}/mock-interviews/sessions`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -173,7 +181,7 @@ export default function CreateSession() {
 
               <div>
                 <Label htmlFor="topic">Topic *</Label>
-                <Select value={formData.topic} onValueChange={(value) => handleInputChange('topic', value)}>
+                <Select value={formData.topic} onValueChange={(value: string) => handleInputChange('topic', value)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select a topic" />
                   </SelectTrigger>
@@ -187,7 +195,7 @@ export default function CreateSession() {
 
               <div>
                 <Label htmlFor="difficulty_level">Difficulty Level *</Label>
-                <Select value={formData.difficulty_level} onValueChange={(value) => handleInputChange('difficulty_level', value as 'beginner' | 'intermediate' | 'advanced')}>
+                <Select value={formData.difficulty_level} onValueChange={(value: string) => handleInputChange('difficulty_level', value as 'beginner' | 'intermediate' | 'advanced')}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -324,9 +332,10 @@ export default function CreateSession() {
             {/* Actions */}
             <div className="flex gap-4">
               <Button 
-                type="button" 
+                type="submit" 
                 disabled={loading}
-                className="flex-1"
+                className="flex-1 bg-blue-600 hover:bg-indigo-500 text-white font-semibold shadow-lg hover:shadow-xl"
+                onClick={handleSubmit}
               >
                 {loading ? (
                   <>
