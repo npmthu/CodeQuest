@@ -14,10 +14,12 @@ import {
   Search,
   Filter,
   ChevronRight,
-  Loader2
+  Loader2,
+  XCircle
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
+import CancelSessionModal from './CancelSessionModal';
 
 interface MockInterviewSession {
   id: string;
@@ -48,6 +50,10 @@ export default function InstructorInterviews() {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  
+  // Cancel session modal state
+  const [cancelModalOpen, setCancelModalOpen] = useState(false);
+  const [selectedSession, setSelectedSession] = useState<MockInterviewSession | null>(null);
 
   useEffect(() => {
     fetchSessions();
@@ -90,6 +96,15 @@ export default function InstructorInterviews() {
   const startSession = async (sessionId: string) => {
     // Navigate to lobby/waiting room instead of starting directly
     navigate(`/interview/lobby/${sessionId}`);
+  };
+  
+  const openCancelModal = (session: MockInterviewSession) => {
+    setSelectedSession(session);
+    setCancelModalOpen(true);
+  };
+  
+  const handleCancelSuccess = () => {
+    fetchSessions(); // Refresh sessions list
   };
 
   const filteredSessions = sessions.filter(session => {
@@ -291,23 +306,45 @@ export default function InstructorInterviews() {
                 
                 <div className="flex items-center gap-2">
                   {session.status === 'scheduled' && (
-                    <Button 
-                      onClick={() => startSession(session.id)}
-                      className="flex items-center gap-2"
-                    >
-                      <Video className="w-4 h-4" />
-                      Start Session
-                    </Button>
+                    <>
+                      <Button 
+                        onClick={() => startSession(session.id)}
+                        className="flex items-center gap-2"
+                      >
+                        <Video className="w-4 h-4" />
+                        Start Session
+                      </Button>
+                      <Button 
+                        onClick={() => openCancelModal(session)}
+                        variant="destructive"
+                        size="sm"
+                        className="flex items-center gap-2"
+                      >
+                        <XCircle className="w-4 h-4" />
+                        Cancel
+                      </Button>
+                    </>
                   )}
                   
                   {session.status === 'in_progress' && (
-                    <Button 
-                      onClick={() => navigate(`/interview/lobby/${session.id}`)}
-                      className="flex items-center gap-2"
-                    >
-                      <Video className="w-4 h-4" />
-                      Join Room
-                    </Button>
+                    <>
+                      <Button 
+                        onClick={() => navigate(`/interview/lobby/${session.id}`)}
+                        className="flex items-center gap-2"
+                      >
+                        <Video className="w-4 h-4" />
+                        Join Room
+                      </Button>
+                      <Button 
+                        onClick={() => openCancelModal(session)}
+                        variant="destructive"
+                        size="sm"
+                        className="flex items-center gap-2"
+                      >
+                        <XCircle className="w-4 h-4" />
+                        Cancel
+                      </Button>
+                    </>
                   )}
                   
                   <Button variant="outline" size="sm">
@@ -335,6 +372,20 @@ export default function InstructorInterviews() {
           ))
         )}
       </div>
+      
+      {/* Cancel Session Modal */}
+      {selectedSession && (
+        <CancelSessionModal
+          isOpen={cancelModalOpen}
+          onClose={() => {
+            setCancelModalOpen(false);
+            setSelectedSession(null);
+          }}
+          sessionId={selectedSession.id}
+          sessionTitle={selectedSession.title}
+          onSuccess={handleCancelSuccess}
+        />
+      )}
     </div>
   );
 }
