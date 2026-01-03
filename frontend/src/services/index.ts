@@ -10,3 +10,4 @@ export * from './topic.service';
 export * from './forum.service';
 export * from './course.service';
 export * from './ai.service';
+export * from './subscription.service';

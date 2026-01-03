@@ -17,6 +17,8 @@ import notesRoutes from "./notes.routes";
 import quizRoutes from "./quiz.routes";
 import aiRoutes from "./ai.routes";
 import certificateRoutes from "./certificate.routes";
+import subscriptionRoutes from "./subscriptionRoutes";
+import mockInterviewRoutes from "./mockInterviewRoutes";
 
 const router = express.Router();
 
@@ -38,5 +40,7 @@ router.use("/notes", notesRoutes);
 router.use("/quizzes", quizRoutes);
 router.use("/ai", aiRoutes);
 router.use("/certificates", certificateRoutes);
+router.use("/subscription", subscriptionRoutes);
+router.use("/mock-interviews", mockInterviewRoutes);
 
 export default router;

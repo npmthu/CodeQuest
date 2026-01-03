@@ -1,5 +1,6 @@
 import { Card } from "./ui/card";
 import { Progress } from "./ui/progress";
+import { Button } from "./ui/button";
 import { 
   Code, 
   FileText, 
@@ -8,7 +9,11 @@ import {
   TrendingUp,
   Award,
   Target,
-  Flame
+  Flame,
+  Video,
+  Calendar,
+  Users,
+  ChevronRight
 } from "lucide-react";
 import { 
   ChartContainer, 
@@ -316,6 +321,102 @@ export default function Dashboard() {
             No leaderboard data available
           </div>
         )}
+      </Card>
+
+      {/* Mock Interviews Section */}
+      <Card className="p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h3 className="text-lg font-semibold">Mock Interviews</h3>
+            <p className="text-sm text-muted-foreground">Practice with expert instructors</p>
+          </div>
+          <Button 
+            onClick={() => window.location.href = '/interview'}
+            className="flex items-center gap-2"
+          >
+            <Video className="w-4 h-4" />
+            View All
+            <ChevronRight className="w-4 h-4" />
+          </Button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="p-4 border rounded-lg">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                <Video className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <p className="font-medium">Available Sessions</p>
+                <p className="text-sm text-muted-foreground">Book your next interview</p>
+              </div>
+            </div>
+            <Button 
+              onClick={() => window.location.href = '/interview'}
+              variant="outline" 
+              size="sm"
+              className="w-full"
+            >
+              Browse Sessions
+            </Button>
+          </div>
+
+          <div className="p-4 border rounded-lg">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                <Calendar className="w-5 h-5 text-green-600" />
+              </div>
+              <div>
+                <p className="font-medium">Upcoming Sessions</p>
+                <p className="text-sm text-muted-foreground">Your scheduled interviews</p>
+              </div>
+            </div>
+            <Button 
+              onClick={() => window.location.href = '/interview'}
+              variant="outline" 
+              size="sm"
+              className="w-full"
+            >
+              View Schedule
+            </Button>
+          </div>
+
+          <div className="p-4 border rounded-lg">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                <Users className="w-5 h-5 text-purple-600" />
+              </div>
+              <div>
+                <p className="font-medium">Interview History</p>
+                <p className="text-sm text-muted-foreground">Past sessions & feedback</p>
+              </div>
+            </div>
+            <Button 
+              onClick={() => window.location.href = '/interview'}
+              variant="outline" 
+              size="sm"
+              className="w-full"
+            >
+              View History
+            </Button>
+          </div>
+        </div>
+
+        <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="flex items-center gap-3">
+            <Video className="w-5 h-5 text-blue-600" />
+            <div>
+              <p className="font-medium text-blue-900">Ready to practice?</p>
+              <p className="text-sm text-blue-700">Book a mock interview session with expert instructors to improve your skills</p>
+            </div>
+          </div>
+          <Button 
+            onClick={() => window.location.href = '/interview'}
+            className="mt-3 w-full"
+          >
+            Book Interview Session
+          </Button>
+        </div>
       </Card>
 
     </div>

@@ -311,23 +311,52 @@ export class AIController {
         });
       }
 
+      // 🔒 SUBSCRIPTION CHECK: Verify user can access AI mindmap feature
+      const { subscriptionService } = await import('../services/subscriptionService');
+      const featureCheck = await subscriptionService.canAccessFeature(user.id, 'aiMindmap');
+      
+      if (!featureCheck.canAccess) {
+        console.warn('🚫 AI mindmap access denied:', {
+          userId: user.id,
+          reason: featureCheck.reason,
+          plan: featureCheck.plan?.name || 'No plan'
+        });
+        
+        return res.status(403).json({
+          success: false,
+          error: 'Premium feature required',
+          message: featureCheck.reason || 'AI mindmap generation requires a Pro subscription',
+          upgradeUrl: '/api/subscription/plans',
+          featureName: 'aiMindmap',
+          currentPlan: featureCheck.plan?.name || 'Free'
+        });
+      }
+
       console.log('🗺️  Mindmap generation request:', {
         userId: user.id,
         contentLength: content.length,
-        contentPreview: content.substring(0, 100) + '...'
+        contentPreview: content.substring(0, 100) + '...',
+        plan: featureCheck.plan?.name || 'Unknown'
       });
 
       const mindmap = await aiService.generateMindmap(content);
 
       console.log('✅ Mindmap generated successfully:', {
+        userId: user.id,
         root: mindmap?.root || 'N/A',
-        childrenCount: mindmap?.children?.length || 0
+        childrenCount: mindmap?.children?.length || 0,
+        plan: featureCheck.plan?.name
       });
 
       res.json({
         success: true,
         data: {
-          mindmap
+          mindmap,
+          // Optional: Include subscription info for frontend
+          subscriptionInfo: {
+            plan: featureCheck.plan?.name,
+            features: featureCheck.plan?.features
+          }
         }
       });
     } catch (error: any) {

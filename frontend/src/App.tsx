@@ -7,6 +7,7 @@ import {
   useLocation,
 } from "react-router-dom";
 import { ApiProvider } from "./api/ApiProvider";
+import { Toaster } from "sonner";
 import LoginPage from "./components/LoginPage";
 import DashboardLayout from "./components/DashboardLayout";
 import Dashboard from "./components/Dashboard";
@@ -37,7 +38,12 @@ import BusinessAnalytics from "./components/BusinessAnalytics";
 import QuizzesPage from "./components/QuizzesPage";
 import QuizDetailPage from "./components/QuizDetailPage";
 import QuizResultPage from "./components/QuizResultPage";
+import InterviewRoom from "./components/InterviewRoom";
+import InstructorInterviews from "./components/InstructorInterviews";
+import StudentInterviews from "./components/StudentInterviews";
+import CreateSession from "./components/CreateSession";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { SubscriptionProvider } from "./contexts/SubscriptionContext";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -181,7 +187,7 @@ function AppContent() {
         path="/interview"
         element={
           <DashboardRoute>
-            <InterviewPage />
+            <StudentInterviews />
           </DashboardRoute>
         }
       />
@@ -216,6 +222,22 @@ function AppContent() {
         element={
           <DashboardRoute>
             <InstructorCourseManager />
+          </DashboardRoute>
+        }
+      />
+      <Route
+        path="/instructor/interviews"
+        element={
+          <DashboardRoute>
+            <InstructorInterviews />
+          </DashboardRoute>
+        }
+      />
+      <Route
+        path="/instructor/create-session"
+        element={
+          <DashboardRoute>
+            <CreateSession />
           </DashboardRoute>
         }
       />
@@ -353,6 +375,16 @@ function AppContent() {
         }
       />
 
+      {/* Interview Room Route */}
+      <Route
+        path="/interview/:sessionId"
+        element={
+          <ProtectedRoute>
+            <InterviewRoom />
+          </ProtectedRoute>
+        }
+      />
+
       {/* Default redirect */}
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
@@ -366,7 +398,10 @@ export default function App() {
       <QueryClientProvider client={queryClient}>
         <ApiProvider>
           <AuthProvider>
-            <AppContent />
+            <SubscriptionProvider>
+              <AppContent />
+              <Toaster position="top-right" richColors />
+            </SubscriptionProvider>
           </AuthProvider>
         </ApiProvider>
       </QueryClientProvider>
