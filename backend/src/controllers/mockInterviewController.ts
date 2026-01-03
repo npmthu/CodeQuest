@@ -61,6 +61,14 @@ export class MockInterviewController {
         });
       }
 
+      // Fixes TC_SCHED_02: Prevent negative prices
+      if (sessionData.price < 0) {
+        return res.status(400).json({
+          success: false,
+          error: 'Price cannot be negative'
+        });
+      }
+
       if (sessionData.max_slots < 1 || sessionData.max_slots > 20) {
         return res.status(400).json({
           success: false,
@@ -388,6 +396,57 @@ export class MockInterviewController {
       res.status(500).json({
         success: false,
         error: error.message || 'Failed to join session'
+      });
+    }
+  }
+
+  /**
+   * POST /api/mock-interviews/sessions/:id/end
+   * End an interview session (Instructor only) - Fixes TC_CONDUCT_04
+   */
+  async endSession(req: AuthRequest, res: Response) {
+    try {
+      const user = req.user;
+      if (!user) {
+        return res.status(401).json({ 
+          success: false, 
+          error: 'Authentication required' 
+        });
+      }
+
+      // Only instructors can end sessions
+      if (user.role !== 'instructor' && user.role !== 'business_partner') {
+        return res.status(403).json({ 
+          success: false, 
+          error: 'Only instructors can end interview sessions' 
+        });
+      }
+
+      const { id: sessionId } = req.params;
+      
+      if (!sessionId) {
+        return res.status(400).json({
+          success: false,
+          error: 'Session ID is required'
+        });
+      }
+
+      await this.interviewService.endSession(sessionId, user.id);
+
+      console.log('🏁 Interview session ended:', {
+        sessionId: sessionId,
+        instructorId: user.id
+      });
+
+      res.json({
+        success: true,
+        message: 'Interview session ended successfully'
+      });
+    } catch (error: any) {
+      console.error('❌ Error ending interview session:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message || 'Failed to end interview session'
       });
     }
   }
