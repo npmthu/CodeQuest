@@ -374,7 +374,7 @@ export class MockInterviewService {
   ): Promise<{ session: MockInterviewSession; joinUrl: string }> {
     try {
       // Get session data
-      const { data: session, error: sessionError } = await supabase
+      const { data: session, error: sessionError } = await supabaseAdmin
         .from("mock_interview_sessions")
         .select("*")
         .eq("id", sessionData.session_id)
@@ -392,7 +392,7 @@ export class MockInterviewService {
         }
       } else {
         // Learner must have a confirmed or pending booking
-        const { data: booking, error: bookingError } = await supabase
+        const { data: booking, error: bookingError } = await supabaseAdmin
           .from("interview_bookings")
           .select("id")
           .eq("session_id", sessionData.session_id)

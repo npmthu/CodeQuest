@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { io, Socket } from 'socket.io-client';
-import SimplePeer from 'simple-peer';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
+import { Input } from './ui/input';
+import { ScrollArea } from './ui/scroll-area';
 import { 
   Video, 
   VideoOff, 
@@ -15,10 +16,20 @@ import {
   AlertCircle,
   Loader2,
   Crown,
-  User
+  User,
+  MessageSquare,
+  Send,
+  X
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
+
+interface Message {
+  sender: string;
+  text: string;
+  time: string;
+  isMe: boolean;
+}
 
 interface Participant {
   userId: string;
@@ -46,7 +57,7 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
   
   // Socket and WebRTC state
   const [socket, setSocket] = useState<Socket | null>(null);
-  const [peers, setPeers] = useState<Map<string, InstanceType<typeof SimplePeer>>>(new Map());
+  const [peers, setPeers] = useState<Map<string, any>>(new Map());
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   
   // UI state
@@ -57,17 +68,23 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const [remoteStreams, setRemoteStreams] = useState<Map<string, MediaStream>>(new Map());
   
+  // Chat state
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [messageInput, setMessageInput] = useState('');
+  const [unreadCount, setUnreadCount] = useState(0);
+  
   // Refs
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
-  const peersRef = useRef<Map<string, InstanceType<typeof SimplePeer>>>(new Map());
+  const peersRef = useRef<Map<string, any>>(new Map());
   const socketRef = useRef<Socket | null>(null);
 
   // Initialize socket connection
   useEffect(() => {
     if (!sessionId || !authSession?.access_token) return;
 
-    const API_URL = import.meta.env.VITE_API_BASE?.replace('/api', '') || 'http://localhost:3000';
+    const API_URL = (import.meta as any).env?.VITE_API_BASE?.replace('/api', '') || 'http://localhost:3000';
     const newSocket = io(API_URL, {
       auth: {
         token: authSession.access_token
@@ -142,7 +159,7 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
 
     newSocket.on('incoming-call', async (data) => {
       console.log('📞 Incoming call from:', data);
-      await handleIncomingCall(data.callerUserId, data.offer);
+      await handleIncomingCall(data);
     });
 
     newSocket.on('call-answered', async (data) => {
@@ -171,6 +188,24 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
       ));
     });
 
+    // Chat event handlers
+    newSocket.on('receive-message', (data) => {
+      console.log('💬 Received message:', data);
+      const newMessage: Message = {
+        sender: data.senderName || 'Unknown',
+        text: data.message,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        isMe: false
+      };
+      
+      setMessages(prev => [...prev, newMessage]);
+      
+      // Increment unread count if chat is closed
+      if (!isChatOpen) {
+        setUnreadCount(prev => prev + 1);
+      }
+    });
+
     newSocket.on('disconnect', () => {
       console.log('🔌 Disconnected from signaling server');
       setIsConnecting(true);
@@ -186,7 +221,7 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
       newSocket.close();
       cleanup();
     };
-  }, [sessionId, authSession?.access_token, userRole]);
+  }, [sessionId, authSession?.access_token, userRole, isChatOpen]);
 
   // Initialize local media stream
   useEffect(() => {
@@ -320,72 +355,98 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
   }, [remoteStreams]);
 
   // WebRTC Functions
-  const createPeer = useCallback((userId: string, initiator: boolean): InstanceType<typeof SimplePeer> => {
-    const peer = new SimplePeer({
-      initiator,
-      trickle: true,
-      stream: localStream || undefined,
-      config: {
-        iceServers: [
-          { urls: 'stun:stun.l.google.com:19302' },
-          { urls: 'stun:stun1.l.google.com:19302' }
-        ]
-      }
-    });
+  const createPeer = useCallback((userId: string, initiator: boolean): any => {
+    try {
+      // Use dynamic import with polyfills in place
+      return import('simple-peer').then(({ default: SimplePeer }) => {
+        if (!SimplePeer) {
+          console.error('❌ SimplePeer is not available');
+          return null;
+        }
 
-    peer.on('signal', (data: any) => {
-      if (data.type === 'offer') {
-        socketRef.current?.emit('call-user', {
-          targetUserId: userId,
-          offer: data
+        const peer = new SimplePeer({
+          initiator,
+          trickle: false, // Disable trickle for better compatibility
+          stream: localStream || undefined,
+          config: {
+            iceServers: [
+              { urls: 'stun:stun.l.google.com:19302' },
+              { urls: 'stun:stun1.l.google.com:19302' }
+            ]
+          }
         });
-      } else if (data.type === 'answer') {
+
+        return peer;
+      });
+    } catch (error) {
+      console.error('❌ Failed to create peer in createPeer:', error);
+      return Promise.resolve(null);
+    }
+  }, [localStream]);
+
+  // Handle incoming calls from other participants
+  const handleIncomingCall = useCallback(async (data: any) => {
+    console.log('📞 Incoming call from:', data.callerUserId);
+    
+    if (!localStream || !socketRef.current) return;
+
+    const peerPromise = createPeer(data.callerUserId, false);
+    const peer = await peerPromise;
+    if (!peer) return;
+
+    // Signal the offer
+    peer.signal(data.offer);
+
+    // Store the peer
+    peersRef.current.set(data.callerUserId, peer);
+
+    // Set up peer event handlers
+    peer.on('signal', (answerData: any) => {
+      if (answerData.type === 'answer') {
         socketRef.current?.emit('answer-call', {
-          callerUserId: userId,
-          answer: data
+          callerUserId: data.callerUserId,
+          answer: answerData
         });
-      } else if (data.candidate) {
+      } else if (answerData.candidate) {
         socketRef.current?.emit('ice-candidate', {
-          targetUserId: userId,
-          candidate: data.candidate
+          targetUserId: data.callerUserId,
+          candidate: answerData.candidate
         });
       }
     });
 
     peer.on('stream', (stream: any) => {
-      console.log('📹 Received remote stream from:', userId);
-      setRemoteStreams(prev => new Map(prev.set(userId, stream)));
+      console.log('📹 Received remote stream from:', data.callerUserId);
+      setRemoteStreams(prev => new Map(prev.set(data.callerUserId, stream)));
       
       // Set the first remote stream to the main video element
       if (remoteVideoRef.current && !remoteVideoRef.current.srcObject) {
         remoteVideoRef.current.srcObject = stream;
+        remoteVideoRef.current.play().catch(err => {
+          console.warn('Auto-play prevented for remote video:', err);
+        });
       }
     });
 
     peer.on('connect', () => {
-      console.log('🤝 Peer connected:', userId);
-    });
-
-    peer.on('close', () => {
-      console.log('🔌 Peer connection closed:', userId);
+      console.log('🤝 Peer connected:', data.callerUserId);
     });
 
     peer.on('error', (error: any) => {
       console.error('❌ Peer connection error:', error);
+      peersRef.current.delete(data.callerUserId);
     });
 
-    return peer;
-  }, [localStream]);
-
-  const initiateCall = useCallback(async (targetUserId: string) => {
-    if (!localStream) return;
-
-    console.log('📞 Initiating call to:', targetUserId);
-    
-    const peer = createPeer(targetUserId, true);
-    peersRef.current.set(targetUserId, peer);
-    setPeers(new Map(peersRef.current));
-  }, [createPeer, localStream]);
+    peer.on('close', () => {
+      console.log('📞 Peer connection closed:', data.callerUserId);
+      peersRef.current.delete(data.callerUserId);
+      setRemoteStreams(prev => {
+        const newMap = new Map(prev);
+        newMap.delete(data.callerUserId);
+        return newMap;
+      });
+    });
+  }, [localStream, createPeer]);
 
   // Initiate calls to participants when localStream becomes available (for instructor)
   useEffect(() => {
@@ -398,18 +459,14 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
         if (participant.userId !== user?.id && !peersRef.current.has(participant.userId)) {
           console.log('📞 Initiating call to participant:', participant.userId);
           
-          // Create peer inline to avoid dependency issues
-          const peer = new SimplePeer({
-            initiator: true,
-            trickle: true,
-            stream: localStream,
-            config: {
-              iceServers: [
-                { urls: 'stun:stun.l.google.com:19302' },
-                { urls: 'stun:stun1.l.google.com:19302' }
-              ]
+          // Create peer with proper error handling
+          (async () => {
+            const peerPromise = createPeer(participant.userId, true);
+            const peer = await peerPromise;
+            if (!peer) {
+              console.error('❌ Failed to create peer for participant:', participant.userId);
+              return;
             }
-          });
 
           peer.on('signal', (data: any) => {
             if (data.type === 'offer') {
@@ -440,22 +497,11 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
 
           peersRef.current.set(participant.userId, peer);
           setPeers(new Map(peersRef.current));
-        }
+        })();
+      }
       });
     }
-  }, [localStream, participants, userRole, user?.id]);
-
-  const handleIncomingCall = useCallback(async (callerUserId: string, offer: any) => {
-    if (!localStream) return;
-
-    console.log('📞 Handling incoming call from:', callerUserId);
-    
-    const peer = createPeer(callerUserId, false);
-    peersRef.current.set(callerUserId, peer);
-    setPeers(new Map(peersRef.current));
-    
-    peer.signal(offer);
-  }, [createPeer, localStream]);
+  }, [localStream, participants, userRole, user?.id, createPeer]);
 
   const handleCallAnswered = useCallback(async (answererUserId: string, answer: any) => {
     const peer = peersRef.current.get(answererUserId);
@@ -499,6 +545,49 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
       });
     }
   }, [localStream, isVideoEnabled]);
+
+  // Chat functions
+  const sendMessage = useCallback(() => {
+    if (!messageInput.trim() || !socketRef.current || !user) return;
+    
+    const message = messageInput.trim();
+    const newMessage: Message = {
+      sender: user.user_metadata?.full_name || user.email || 'Me',
+      text: message,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      isMe: true
+    };
+    
+    // Add to local state immediately
+    setMessages(prev => [...prev, newMessage]);
+    
+    // Send to server
+    socketRef.current.emit('send-message', {
+      sessionId,
+      message,
+      senderName: newMessage.sender
+    });
+    
+    // Clear input
+    setMessageInput('');
+  }, [messageInput, sessionId, user]);
+
+  const toggleChat = useCallback(() => {
+    setIsChatOpen(prev => {
+      if (prev) {
+        // Closing chat, reset unread count
+        setUnreadCount(0);
+      }
+      return !prev;
+    });
+  }, []);
+
+  const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  }, [sendMessage]);
 
   const leaveRoom = useCallback(() => {
     if (socketRef.current) {
@@ -556,6 +645,22 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
               <Users className="w-4 h-4" />
               <span className="text-sm">{participants.length + 1} participants</span>
             </div>
+            
+            {/* Chat Toggle Button */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleChat}
+              className="relative text-gray-300 hover:text-white"
+            >
+              <MessageSquare className="w-4 h-4" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                  {unreadCount}
+                </span>
+              )}
+            </Button>
+            
             <Badge variant={userRole === 'instructor' ? 'default' : 'secondary'}>
               {userRole === 'instructor' ? (
                 <>
@@ -574,38 +679,38 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 p-4">
-        {/* Connection Status Banner */}
-        {isConnecting && (
-          <div className="mb-4 p-3 bg-yellow-900 border border-yellow-700 rounded-lg flex items-center gap-3">
-            <Loader2 className="w-5 h-5 animate-spin text-yellow-400" />
-            <p className="text-yellow-200">Connecting to interview room...</p>
-          </div>
-        )}
-
-        {connectionError && (
-          <div className="mb-4 p-3 bg-red-900 border border-red-700 rounded-lg">
-            <div className="flex items-center gap-3 text-red-200">
-              <AlertCircle className="w-5 h-5" />
-              <div className="flex-1">
-                <h3 className="font-semibold">Connection Error</h3>
-                <p className="text-sm text-red-300">{connectionError}</p>
-              </div>
-              <Button 
-                onClick={() => window.location.reload()} 
-                size="sm"
-                variant="outline"
-                className="text-red-200 border-red-500"
-              >
-                Retry
-              </Button>
+      <div className="flex-1 flex">
+        <div className="flex-1 p-4">
+          {/* Connection Status Banner */}
+          {isConnecting && (
+            <div className="mb-4 p-3 bg-yellow-900 border border-yellow-700 rounded-lg flex items-center gap-3">
+              <Loader2 className="w-5 h-5 animate-spin text-yellow-400" />
+              <p className="text-yellow-200">Connecting to interview room...</p>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Always show video grid */}
-        <div className="max-w-7xl mx-auto">
-            {/* Video Grid */}
+          {connectionError && (
+            <div className="mb-4 p-3 bg-red-900 border border-red-700 rounded-lg">
+              <div className="flex items-center gap-3 text-red-200">
+                <AlertCircle className="w-5 h-5" />
+                <div className="flex-1">
+                  <h3 className="font-semibold">Connection Error</h3>
+                  <p className="text-sm text-red-300">{connectionError}</p>
+                </div>
+                <Button 
+                  onClick={() => window.location.reload()} 
+                  size="sm"
+                  variant="outline"
+                  className="text-red-200 border-red-500"
+                >
+                  Retry
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Video Grid */}
+          <div className="max-w-7xl mx-auto">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
               {/* Remote Video (Main) */}
               <div className="relative aspect-video bg-gray-800 rounded-lg overflow-hidden">
@@ -755,6 +860,81 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
               </Card>
             )}
           </div>
+        </div>
+
+        {/* Chat Sidebar */}
+        {isChatOpen && (
+          <div className="w-80 bg-gray-800 border-l border-gray-700 flex flex-col">
+            {/* Chat Header */}
+            <div className="p-4 border-b border-gray-700 flex items-center justify-between">
+              <h3 className="font-semibold text-white flex items-center gap-2">
+                <MessageSquare className="w-4 h-4" />
+                Chat
+              </h3>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={toggleChat}
+                className="text-gray-400 hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+
+            {/* Messages */}
+            <ScrollArea className="flex-1 p-4">
+              <div className="space-y-3">
+                {messages.length === 0 ? (
+                  <p className="text-gray-400 text-center text-sm">No messages yet. Start a conversation!</p>
+                ) : (
+                  messages.map((message, index) => (
+                    <div
+                      key={index}
+                      className={`flex ${message.isMe ? 'justify-end' : 'justify-start'}`}
+                    >
+                      <div
+                        className={`max-w-[80%] rounded-lg p-3 ${
+                          message.isMe
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-gray-700 text-gray-100'
+                        }`}
+                      >
+                        {!message.isMe && (
+                          <p className="text-xs font-medium mb-1 opacity-75">{message.sender}</p>
+                        )}
+                        <p className="text-sm break-words">{message.text}</p>
+                        <p className={`text-xs mt-1 ${message.isMe ? 'text-blue-100' : 'text-gray-400'}`}>
+                          {message.time}
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </ScrollArea>
+
+            {/* Message Input */}
+            <div className="p-4 border-t border-gray-700">
+              <div className="flex gap-2">
+                <Input
+                  value={messageInput}
+                  onChange={(e) => setMessageInput(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder="Type a message..."
+                  className="flex-1 bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                />
+                <Button
+                  onClick={sendMessage}
+                  disabled={!messageInput.trim()}
+                  size="sm"
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  <Send className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -64,7 +64,8 @@
             "@types/react-syntax-highlighter": "^15.5.13",
             "@types/simple-peer": "^9.11.9",
             "@vitejs/plugin-react-swc": "^3.10.2",
-            "vite": "^6.4.1"
+            "vite": "^6.4.1",
+            "vite-plugin-node-polyfills": "^0.24.0"
       },
       "scripts": {
             "dev": "vite",
