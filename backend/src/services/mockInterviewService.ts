@@ -580,16 +580,31 @@ export class MockInterviewService {
     try {
       const { error } = await supabase
         .from('interview_bookings')
-        .update({
-          no_show_reported: true,
-          booking_status: 'no_show'
-        })
+        .update({ no_show_reported: true })
         .eq('id', bookingId);
 
       if (error) throw error;
     } catch (error) {
       console.error('Error reporting no-show:', error);
       throw new Error('Failed to report no-show');
+    }
+  }
+
+  async endSession(sessionId: string, instructorId: string): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from('mock_interview_sessions')
+        .update({
+          status: 'completed',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', sessionId)
+        .eq('instructor_id', instructorId);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error ending session:', error);
+      throw new Error('Failed to end interview session');
     }
   }
 }
