@@ -2,10 +2,10 @@ import { useState } from "react";
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-import { 
-  Plus, 
-  Search, 
-  FileText, 
+import {
+  Plus,
+  Search,
+  FileText,
   Trash2,
   Star,
   MoreVertical,
@@ -15,7 +15,7 @@ import {
   Italic,
   Code,
   List,
-  CheckSquare
+  CheckSquare,
 } from "lucide-react";
 import {
   Dialog,
@@ -35,6 +35,7 @@ export default function NotebookPage() {
   const [currentView, setCurrentView] = useState<"list" | "detail">("list");
   const [isNewNotebookOpen, setIsNewNotebookOpen] = useState(false);
   const [newNoteTitle, setNewNoteTitle] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Fetch notes from API
   const { data: notesData, isLoading } = useNotes();
@@ -42,21 +43,31 @@ export default function NotebookPage() {
 
   const notes = notesData || [];
 
+  // Filter notes based on search query
+  const filteredNotes = notes.filter((note: Note) => {
+    const query = searchQuery.toLowerCase();
+    return (
+      note.title?.toLowerCase().includes(query) ||
+      note.content_markdown?.toLowerCase().includes(query) ||
+      (note.tags || []).some((tag: string) => tag.toLowerCase().includes(query))
+    );
+  });
+
   const handleCreateNote = async () => {
     if (!newNoteTitle.trim()) return;
 
     try {
       await createNoteMutation.mutateAsync({
         title: newNoteTitle,
-        contentMarkdown: '',
+        contentMarkdown: "",
         isPrivate: true,
-        tags: []
+        tags: [],
       });
 
       setIsNewNotebookOpen(false);
       setNewNoteTitle("");
     } catch (error) {
-      console.error('Error creating note:', error);
+      console.error("Error creating note:", error);
     }
   };
 
@@ -82,9 +93,9 @@ export default function NotebookPage() {
   // If viewing notebook detail
   if (currentView === "detail" && selectedNoteData) {
     return (
-      <NotebookDetailPlaceholder 
-        notebook={selectedNoteData} 
-        onBack={handleBack} 
+      <NotebookDetailPlaceholder
+        notebook={selectedNoteData}
+        onBack={handleBack}
       />
     );
   }
@@ -97,9 +108,12 @@ export default function NotebookPage() {
         <div className="p-4 border-b border-border">
           <div className="flex items-center justify-between mb-4">
             <h3>My Notes</h3>
-            <Dialog open={isNewNotebookOpen} onOpenChange={setIsNewNotebookOpen}>
-              <Button 
-                size="sm" 
+            <Dialog
+              open={isNewNotebookOpen}
+              onOpenChange={setIsNewNotebookOpen}
+            >
+              <Button
+                size="sm"
                 className="bg-blue-600 hover:bg-blue-700"
                 onClick={() => setIsNewNotebookOpen(true)}
               >
@@ -116,7 +130,7 @@ export default function NotebookPage() {
                 <div className="space-y-4 py-4">
                   <div className="space-y-2">
                     <Label>Notebook Title *</Label>
-                    <Input 
+                    <Input
                       placeholder="e.g., Array Algorithms"
                       value={newNoteTitle}
                       onChange={(e) => setNewNoteTitle(e.target.value)}
@@ -124,15 +138,22 @@ export default function NotebookPage() {
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button variant="outline" onClick={() => setIsNewNotebookOpen(false)}>
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsNewNotebookOpen(false)}
+                  >
                     Cancel
                   </Button>
-                  <Button 
+                  <Button
                     className="bg-blue-600 hover:bg-blue-700"
                     onClick={handleCreateNote}
-                    disabled={!newNoteTitle.trim() || createNoteMutation.isPending}
+                    disabled={
+                      !newNoteTitle.trim() || createNoteMutation.isPending
+                    }
                   >
-                    {createNoteMutation.isPending ? 'Creating...' : 'Create Notebook'}
+                    {createNoteMutation.isPending
+                      ? "Creating..."
+                      : "Create Notebook"}
                   </Button>
                 </DialogFooter>
               </DialogContent>
@@ -140,20 +161,29 @@ export default function NotebookPage() {
           </div>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input placeholder="Search notes..." className="pl-9" />
+            <Input
+              placeholder="Search notes..."
+              className="pl-9"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
           </div>
         </div>
 
         {/* Notes List */}
         <div className="flex-1 overflow-auto p-2">
-          {notes.length === 0 ? (
+          {filteredNotes.length === 0 ? (
             <div className="p-8 text-center text-muted-foreground">
               <FileText className="w-12 h-12 mx-auto mb-2 opacity-50" />
-              <p className="text-sm">No notes yet</p>
-              <p className="text-xs">Create your first note to get started</p>
+              <p className="text-sm">
+                {searchQuery ? "No notes match your search" : "No notes yet"}
+              </p>
+              {!searchQuery && (
+                <p className="text-xs">Create your first note to get started</p>
+              )}
             </div>
           ) : (
-            notes.map((note: Note) => (
+            filteredNotes.map((note: Note) => (
               <button
                 key={note.id}
                 onClick={() => handleNotebookClick(note.id)}
@@ -166,7 +196,9 @@ export default function NotebookPage() {
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <div className="flex items-center gap-2 flex-1 min-w-0">
                     <FileText className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                    <span className="text-sm truncate">{note.title || 'Untitled'}</span>
+                    <span className="text-sm truncate">
+                      {note.title || "Untitled"}
+                    </span>
                   </div>
                   <div className="flex items-center gap-1">
                     <span
@@ -180,7 +212,7 @@ export default function NotebookPage() {
                   </div>
                 </div>
                 <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
-                  {note.contentMarkdown?.substring(0, 100) || 'No content'}
+                  {note.contentMarkdown?.substring(0, 100) || "No content"}
                 </p>
                 <p className="text-xs text-muted-foreground">
                   {new Date(note.updatedAt).toLocaleDateString()}
@@ -201,7 +233,7 @@ export default function NotebookPage() {
             <p className="text-muted-foreground mb-6">
               Select a note from the list or create a new one to get started
             </p>
-            <Button 
+            <Button
               className="bg-blue-600 hover:bg-blue-700"
               onClick={() => setIsNewNotebookOpen(true)}
             >

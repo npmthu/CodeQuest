@@ -1,9 +1,72 @@
 import { supabaseAdmin } from "../config/database";
-import type {
-  User,
-  UserLearningProfile
-} from '../models/User';
-import type { UpdateUserDTO } from '../dtos/user.dto';
+import type { User, UserLearningProfile } from "../models/User";
+import type { UpdateUserDTO } from "../dtos/user.dto";
+
+export async function verifyUserPassword(email: string, password: string) {
+  const { error } = await supabaseAdmin.auth.signInWithPassword({
+    email,
+    password,
+  });
+  if (error) throw new Error("Invalid credentials");
+}
+
+export async function changePassword(
+  userId: string,
+  email: string,
+  currentPassword: string,
+  newPassword: string
+) {
+  if (!newPassword || newPassword.length < 8) {
+    throw new Error("New password must be at least 8 characters");
+  }
+
+  await verifyUserPassword(email, currentPassword);
+
+  const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+    password: newPassword,
+  });
+
+  if (error) {
+    throw new Error(error.message || "Failed to update password");
+  }
+  return true;
+}
+
+export async function deleteAccount(
+  userId: string,
+  email: string,
+  password: string
+) {
+  await verifyUserPassword(email, password);
+
+  const { error: deleteProfileError } = await supabaseAdmin
+    .from("users")
+    .delete()
+    .eq("id", userId);
+
+  if (deleteProfileError) {
+    throw new Error(deleteProfileError.message || "Failed to delete profile");
+  }
+
+  const { error: deleteUserError } = await supabaseAdmin.auth.admin.deleteUser(
+    userId
+  );
+  if (deleteUserError) {
+    throw new Error(deleteUserError.message || "Failed to delete auth user");
+  }
+
+  return true;
+}
+
+export async function revokeSession(sessionId: string) {
+  // Supabase admin API does not support per-session revocation via JS client yet; placeholder for future.
+  console.warn(
+    "Session revocation requested for",
+    sessionId,
+    "— no-op implemented"
+  );
+  return true;
+}
 
 export async function listUsers(limit = 100) {
   const { data, error } = await supabaseAdmin

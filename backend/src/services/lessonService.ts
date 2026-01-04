@@ -1,6 +1,14 @@
 import { supabaseAdmin } from "../config/database";
 import type { Lesson } from "../models/Lesson";
 
+const slugifyLocal = (text: string) =>
+  text
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-");
+
 export async function listLessons(topicId?: string, publishedOnly = true) {
   try {
     let query = supabaseAdmin
@@ -118,6 +126,57 @@ export async function getUserProgressSummary(userId: string) {
   };
 }
 
+export async function createLesson(payload: {
+  topic_id: string;
+  title: string;
+  content_markdown: string;
+  difficulty?: string;
+  estimated_time_min?: number;
+  course_id?: string;
+}) {
+  if (!payload.title || !payload.topic_id || !payload.content_markdown) {
+    throw new Error("title, topic_id, and content_markdown are required");
+  }
+
+  const slug = slugifyLocal(payload.title);
+  const { data, error } = await supabaseAdmin
+    .from("lessons")
+    .insert({
+      ...payload,
+      slug,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function updateLesson(lessonId: string, patch: Partial<Lesson>) {
+  const updatedPatch = { ...patch } as any;
+  if ((patch as any).title) {
+    updatedPatch.slug = slugifyLocal((patch as any).title);
+  }
+  const { data, error } = await supabaseAdmin
+    .from("lessons")
+    .update(updatedPatch)
+    .eq("id", lessonId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteLesson(lessonId: string) {
+  const { error } = await supabaseAdmin
+    .from("lessons")
+    .delete()
+    .eq("id", lessonId);
+  if (error) throw error;
+  return true;
+}
+
 /**
  * Get completion status for multiple lessons for a user
  */
@@ -142,6 +201,25 @@ export async function getUserLessonsProgress(
   });
 
   return progressMap;
+}
+
+export async function getCurrentLessonForUser(
+  userId: string,
+  topicId?: string
+) {
+  const lessons = await listLessons(topicId, false);
+  if (!lessons.length) return null;
+
+  const lessonIds = lessons.map((l) => l.id);
+  const progressMap = await getUserLessonsProgress(userId, lessonIds);
+
+  // Prefer first incomplete lesson; fallback to first lesson
+  const firstIncomplete = lessons.find((lesson) => {
+    const progress = progressMap.get(lesson.id);
+    return !progress || !progress.completed_at;
+  });
+
+  return firstIncomplete || lessons[0];
 }
 
 /**

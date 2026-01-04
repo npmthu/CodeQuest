@@ -16,7 +16,8 @@ import {
   Lock,
 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useLessons, useQuizzes } from "../hooks/useApi";
+import { useState, useEffect } from "react";
+import { useLessons, useQuizzes, useGetCurrentLesson } from "../hooks/useApi";
 import type { Lesson, LessonWithProgress } from "../interfaces";
 
 export default function LessonPage() {
@@ -26,12 +27,30 @@ export default function LessonPage() {
     courseId?: string;
   }>();
 
+  const [currentLessonId, setCurrentLessonId] = useState<string | null>(null);
+
   // Fetch lessons for this topic using the hook
   const { data: lessonsData, isLoading } = useLessons(topicId);
 
   // Fetch quizzes for this topic
   const { data: quizzesData } = useQuizzes(topicId);
   const topicQuiz = quizzesData?.[0]; // Get the first quiz for this topic
+
+  // Fetch current lesson for this topic (if available)
+  const { data: currentLessonData } = useGetCurrentLesson(topicId);
+
+  // Set current lesson from API or first incomplete lesson
+  useEffect(() => {
+    if (currentLessonData?.id) {
+      setCurrentLessonId(currentLessonData.id);
+    } else if (lessonsData && lessonsData.length > 0) {
+      // Find first incomplete lesson
+      const firstIncomplete = lessonsData.find((l) => !l.isCompleted);
+      if (firstIncomplete) {
+        setCurrentLessonId(firstIncomplete.id);
+      }
+    }
+  }, [currentLessonData, lessonsData]);
 
   const lessons: LessonWithProgress[] = lessonsData || [];
   const completedLessons = lessons.filter((l) => l.isCompleted).length;
@@ -125,7 +144,7 @@ export default function LessonPage() {
             <h3 className="mb-4">Course Content</h3>
             {lessons.map((lesson) => {
               const isCompleted = lesson.isCompleted;
-              const isCurrent = false; // TODO: Track current lesson
+              const isCurrent = currentLessonId === lesson.id;
 
               const getLessonIcon = () => {
                 if (lesson.difficulty === "easy")
