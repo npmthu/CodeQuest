@@ -1,8 +1,8 @@
 // Admin routes - /api/admin/*
-import { Router } from 'express';
-import { AdminController } from '../controllers/adminController';
-import { requireAdmin } from '../middleware/adminAuth';
-import { supabaseAuth } from '../middleware/auth';
+import { Router } from "express";
+import { AdminController } from "../controllers/adminController";
+import { requireAdmin } from "../middleware/adminAuth";
+import { supabaseAuth } from "../middleware/auth";
 
 const router = Router();
 const adminController = new AdminController();
@@ -13,13 +13,45 @@ router.use(supabaseAuth);
 // Apply admin role check to all admin routes
 router.use(requireAdmin);
 
+// User Management
+router.get("/users", adminController.getAllUsers.bind(adminController));
+router.get("/users/:userId", adminController.getUserById.bind(adminController));
+router.patch(
+  "/users/:userId",
+  adminController.updateUser.bind(adminController)
+);
+router.delete(
+  "/users/:userId",
+  adminController.deleteUser.bind(adminController)
+);
+router.patch(
+  "/users/:userId/role",
+  adminController.updateUserRole.bind(adminController)
+);
+router.patch(
+  "/users/:userId/status",
+  adminController.updateUserStatus.bind(adminController)
+);
+
+// Dashboard Stats
+router.get("/stats", adminController.getAdminStats.bind(adminController));
+
 // Subscription Plan Management - Fixes TC_ADMIN_SUB_01, TC_ADMIN_SUB_03
-router.post('/plans', adminController.createPlan.bind(adminController));
-router.put('/plans/:id', adminController.updatePlan.bind(adminController));
+router.post("/plans", adminController.createPlan.bind(adminController));
+router.put("/plans/:id", adminController.updatePlan.bind(adminController));
 
 // User Subscription Management - Fixes TC_ADMIN_SUB_02, TC_ADMIN_SUB_05
-router.post('/users/:userId/cancel-subscription', adminController.cancelUserSubscription.bind(adminController));
-router.get('/users/:userId/subscription', adminController.getUserSubscription.bind(adminController));
-router.post('/users/:userId/extend-subscription', adminController.extendUserSubscription.bind(adminController));
+router.post(
+  "/users/:userId/cancel-subscription",
+  adminController.cancelUserSubscription.bind(adminController)
+);
+router.get(
+  "/users/:userId/subscription",
+  adminController.getUserSubscription.bind(adminController)
+);
+router.post(
+  "/users/:userId/extend-subscription",
+  adminController.extendUserSubscription.bind(adminController)
+);
 
 export default router;

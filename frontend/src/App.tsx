@@ -11,7 +11,6 @@ import { Toaster } from "sonner";
 import LoginPage from "./components/LoginPage";
 import DashboardLayout from "./components/DashboardLayout";
 import Dashboard from "./components/Dashboard";
-import HomePage from "./components/HomePage";
 import CoursesPage from "./components/CoursesPage";
 import CourseEnrollPage from "./components/CourseEnrollPage";
 import CourseDetailPage from "./components/CourseDetailPage";
@@ -22,7 +21,6 @@ import CertificatePage from "./components/CertificatePage";
 import CodeEditor from "./components/CodeEditor";
 import ForumPage from "./components/ForumPage";
 import NotebookPage from "./components/NotebookPage";
-import InterviewPage from "./components/InterviewPage";
 import ProfilePage from "./components/ProfilePage";
 import SettingsPage from "./components/SettingsPage";
 import PricingPage from "./components/PricingPage";
@@ -45,6 +43,12 @@ import CreateSession from "./components/CreateSession";
 import InterviewLobbyPage from "./components/InterviewLobbyPage";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { SubscriptionProvider } from "./contexts/SubscriptionContext";
+
+// Admin components
+import AdminLayout from "./pages/admin/AdminLayout";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminLoginPage from "./pages/admin/AdminLoginPage";
+import UserManagement from "./pages/admin/UserManagement";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -97,8 +101,36 @@ function DashboardRoute({ children }: { children: React.ReactNode }) {
   );
 }
 
+// Admin protected route wrapper
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const { user, profile, loading } = useAuth();
+  const location = useLocation();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/admin/login" state={{ from: location }} replace />;
+  }
+
+  // Check admin role
+  if (profile?.role !== "admin") {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return <>{children}</>;
+}
+
 function AppContent() {
-  const { user, loading } = useAuth();
+  const { user, profile, loading } = useAuth();
 
   if (loading) {
     return (
@@ -118,6 +150,57 @@ function AppContent() {
         path="/login"
         element={user ? <Navigate to="/dashboard" replace /> : <LoginPage />}
       />
+
+      {/* Admin routes */}
+      <Route
+        path="/admin/login"
+        element={
+          user && profile?.role === "admin" ? (
+            <Navigate to="/admin" replace />
+          ) : (
+            <AdminLoginPage />
+          )
+        }
+      />
+      <Route
+        path="/admin"
+        element={
+          <AdminRoute>
+            <AdminLayout />
+          </AdminRoute>
+        }
+      >
+        <Route index element={<AdminDashboard />} />
+        <Route path="users" element={<UserManagement />} />
+        <Route
+          path="courses"
+          element={
+            <div className="p-6">
+              <h1 className="text-2xl font-bold">
+                Courses Management (Coming Soon)
+              </h1>
+            </div>
+          }
+        />
+        <Route
+          path="subscriptions"
+          element={
+            <div className="p-6">
+              <h1 className="text-2xl font-bold">
+                Subscriptions Management (Coming Soon)
+              </h1>
+            </div>
+          }
+        />
+        <Route
+          path="settings"
+          element={
+            <div className="p-6">
+              <h1 className="text-2xl font-bold">Settings (Coming Soon)</h1>
+            </div>
+          }
+        />
+      </Route>
 
       {/* Protected routes with dashboard layout */}
       <Route
