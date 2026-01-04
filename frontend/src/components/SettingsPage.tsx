@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -7,6 +7,7 @@ import { Switch } from "./ui/switch";
 import { Badge } from "./ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { useAuth } from "../contexts/AuthContext";
+import { useLanguage } from "../contexts/LanguageContext";
 import { useUpdateUserProfile } from "../hooks/useApi";
 import { 
   User, 
@@ -19,6 +20,7 @@ import {
 
 export default function SettingsPage() {
   const { user, profile, loading } = useAuth();
+  const { language, setLanguage, t } = useLanguage();
   const updateProfileMutation = useUpdateUserProfile();
   const [displayName, setDisplayName] = useState(profile?.display_name || '');
   const [bio, setBio] = useState(profile?.bio || '');
@@ -26,6 +28,50 @@ export default function SettingsPage() {
   const [githubUrl, setGithubUrl] = useState('');
   const [linkedinUrl, setLinkedinUrl] = useState('');
   const [websiteUrl, setWebsiteUrl] = useState('');
+  
+  // Preferences state
+  const [darkMode, setDarkMode] = useState(() => {
+    const saved = localStorage.getItem('darkMode');
+    return saved ? JSON.parse(saved) : false;
+  });
+  const [codeTheme, setCodeTheme] = useState(() => {
+    return localStorage.getItem('codeTheme') || 'VS Code Dark';
+  });
+  const [timezone, setTimezone] = useState(() => {
+    return localStorage.getItem('timezone') || 'Pacific Time (PT)';
+  });
+  const [notifications, setNotifications] = useState({
+    email: true,
+    push: true,
+    weeklyReport: false,
+    marketing: false,
+    dailyReminder: true,
+    streakAlerts: true
+  });
+  
+  // Apply dark mode on mount and when it changes
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    localStorage.setItem('darkMode', JSON.stringify(darkMode));
+  }, [darkMode]);
+  
+  // Save preferences to localStorage
+  useEffect(() => {
+    localStorage.setItem('codeTheme', codeTheme);
+  }, [codeTheme]);
+  
+  useEffect(() => {
+    localStorage.setItem('timezone', timezone);
+  }, [timezone]);
+  
+  // Save notification preferences
+  useEffect(() => {
+    localStorage.setItem('notifications', JSON.stringify(notifications));
+  }, [notifications]);
 
   if (loading) {
     return (
@@ -53,36 +99,36 @@ export default function SettingsPage() {
   return (
     <div className="p-8 space-y-6">
       <div>
-        <h2>Settings</h2>
-        <p className="text-muted-foreground mt-1">Manage your account and preferences</p>
+        <h2>{t('settings.title')}</h2>
+        <p className="text-muted-foreground mt-1">{t('settings.subtitle')}</p>
       </div>
 
       <Tabs defaultValue="profile" className="space-y-6">
         <TabsList>
           <TabsTrigger value="profile">
             <User className="w-4 h-4 mr-2" />
-            Profile
+            {t('settings.profile')}
           </TabsTrigger>
           <TabsTrigger value="notifications">
             <Bell className="w-4 h-4 mr-2" />
-            Notifications
+            {t('settings.notifications')}
           </TabsTrigger>
           <TabsTrigger value="security">
             <Lock className="w-4 h-4 mr-2" />
-            Security
+            {t('settings.security')}
           </TabsTrigger>
           <TabsTrigger value="preferences">
             <Palette className="w-4 h-4 mr-2" />
-            Preferences
+            {t('settings.preferences')}
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile" className="space-y-6">
           <Card className="p-6">
-            <h3 className="mb-6">Personal Information</h3>
+            <h3 className="mb-6">{t('settings.personalInfo')}</h3>
             <div className="space-y-4 max-w-2xl">
               <div>
-                <Label htmlFor="displayName">Display Name</Label>
+                <Label htmlFor="displayName">{t('settings.displayName')}</Label>
                 <Input 
                   id="displayName" 
                   value={displayName} 
@@ -91,7 +137,7 @@ export default function SettingsPage() {
                 />
               </div>
               <div>
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">{t('settings.email')}</Label>
                 <Input 
                   id="email" 
                   type="email" 
@@ -101,7 +147,7 @@ export default function SettingsPage() {
                 />
               </div>
               <div>
-                <Label htmlFor="bio">Bio</Label>
+                <Label htmlFor="bio">{t('settings.bio')}</Label>
                 <textarea
                   id="bio"
                   className="w-full mt-2 p-3 border border-input rounded-lg resize-none"
@@ -111,7 +157,7 @@ export default function SettingsPage() {
                 />
               </div>
               <div>
-                <Label htmlFor="location">Location</Label>
+                <Label htmlFor="location">{t('settings.location')}</Label>
                 <Input 
                   id="location" 
                   value={location} 
@@ -124,16 +170,16 @@ export default function SettingsPage() {
                 onClick={handleSaveProfile}
                 disabled={updateProfileMutation.isPending}
               >
-                {updateProfileMutation.isPending ? 'Saving...' : 'Save Changes'}
+                {updateProfileMutation.isPending ? t('settings.saving') : t('settings.saveChanges')}
               </Button>
             </div>
           </Card>
 
           <Card className="p-6">
-            <h3 className="mb-6">Social Links</h3>
+            <h3 className="mb-6">{t('settings.socialLinks')}</h3>
             <div className="space-y-4 max-w-2xl">
               <div>
-                <Label htmlFor="github">GitHub</Label>
+                <Label htmlFor="github">{t('settings.github')}</Label>
                 <Input 
                   id="github" 
                   placeholder="https://github.com/username" 
@@ -143,7 +189,7 @@ export default function SettingsPage() {
                 />
               </div>
               <div>
-                <Label htmlFor="linkedin">LinkedIn</Label>
+                <Label htmlFor="linkedin">{t('settings.linkedin')}</Label>
                 <Input 
                   id="linkedin" 
                   placeholder="https://linkedin.com/in/username" 
@@ -153,7 +199,7 @@ export default function SettingsPage() {
                 />
               </div>
               <div>
-                <Label htmlFor="website">Website</Label>
+                <Label htmlFor="website">{t('settings.website')}</Label>
                 <Input 
                   id="website" 
                   placeholder="https://yourwebsite.com" 
@@ -167,7 +213,7 @@ export default function SettingsPage() {
                 onClick={handleSaveProfile}
                 disabled={updateProfileMutation.isPending}
               >
-                {updateProfileMutation.isPending ? 'Saving...' : 'Save Links'}
+                {updateProfileMutation.isPending ? t('settings.saving') : t('settings.saveLinks')}
               </Button>
             </div>
           </Card>
@@ -175,62 +221,83 @@ export default function SettingsPage() {
 
         <TabsContent value="notifications" className="space-y-6">
           <Card className="p-6">
-            <h3 className="mb-6">Email Notifications</h3>
+            <h3 className="mb-6">{t('settings.emailNotifications')}</h3>
             <div className="space-y-6 max-w-2xl">
               <div className="flex items-center justify-between">
                 <div>
-                  <p>New lesson available</p>
-                  <p className="text-sm text-muted-foreground">Get notified when new lessons are published</p>
+                  <p>{t('settings.newLesson')}</p>
+                  <p className="text-sm text-muted-foreground">{t('settings.newLessonDesc')}</p>
                 </div>
-                <Switch defaultChecked />
+                <Switch 
+                  checked={notifications.email} 
+                  onCheckedChange={(checked) => setNotifications(prev => ({ ...prev, email: checked }))} 
+                />
               </div>
               <div className="flex items-center justify-between">
                 <div>
-                  <p>Forum replies</p>
-                  <p className="text-sm text-muted-foreground">Receive notifications for forum activity</p>
+                  <p>{t('settings.forumReplies')}</p>
+                  <p className="text-sm text-muted-foreground">{t('settings.forumRepliesDesc')}</p>
                 </div>
-                <Switch defaultChecked />
+                <Switch 
+                  checked={notifications.email} 
+                  onCheckedChange={(checked) => setNotifications(prev => ({ ...prev, email: checked }))} 
+                />
               </div>
               <div className="flex items-center justify-between">
                 <div>
-                  <p>Achievement unlocked</p>
-                  <p className="text-sm text-muted-foreground">Get notified when you earn badges</p>
+                  <p>{t('settings.achievements')}</p>
+                  <p className="text-sm text-muted-foreground">{t('settings.achievementsDesc')}</p>
                 </div>
-                <Switch defaultChecked />
+                <Switch 
+                  checked={notifications.email} 
+                  onCheckedChange={(checked) => setNotifications(prev => ({ ...prev, email: checked }))} 
+                />
               </div>
               <div className="flex items-center justify-between">
                 <div>
-                  <p>Weekly progress summary</p>
-                  <p className="text-sm text-muted-foreground">Receive a weekly email with your progress</p>
+                  <p>{t('settings.weeklyReport')}</p>
+                  <p className="text-sm text-muted-foreground">{t('settings.weeklyReportDesc')}</p>
                 </div>
-                <Switch />
+                <Switch 
+                  checked={notifications.weeklyReport} 
+                  onCheckedChange={(checked) => setNotifications(prev => ({ ...prev, weeklyReport: checked }))} 
+                />
               </div>
               <div className="flex items-center justify-between">
                 <div>
-                  <p>Marketing emails</p>
-                  <p className="text-sm text-muted-foreground">Receive updates about new features and promotions</p>
+                  <p>{t('settings.marketing')}</p>
+                  <p className="text-sm text-muted-foreground">{t('settings.marketingDesc')}</p>
                 </div>
-                <Switch />
+                <Switch 
+                  checked={notifications.marketing} 
+                  onCheckedChange={(checked) => setNotifications(prev => ({ ...prev, marketing: checked }))} 
+                />
               </div>
             </div>
           </Card>
 
           <Card className="p-6">
-            <h3 className="mb-6">Push Notifications</h3>
+            <h3 className="mb-6">{t('settings.pushNotifications')}</h3>
             <div className="space-y-6 max-w-2xl">
               <div className="flex items-center justify-between">
                 <div>
-                  <p>Daily reminder</p>
-                  <p className="text-sm text-muted-foreground">Remind me to practice coding daily</p>
+                  <p>{t('settings.dailyReminder')}</p>
+                  <p className="text-sm text-muted-foreground">{t('settings.dailyReminderDesc')}</p>
                 </div>
-                <Switch defaultChecked />
+                <Switch 
+                  checked={notifications.dailyReminder} 
+                  onCheckedChange={(checked) => setNotifications(prev => ({ ...prev, dailyReminder: checked }))} 
+                />
               </div>
               <div className="flex items-center justify-between">
                 <div>
-                  <p>Streak alerts</p>
-                  <p className="text-sm text-muted-foreground">Alert when my streak is about to break</p>
+                  <p>{t('settings.streakAlerts')}</p>
+                  <p className="text-sm text-muted-foreground">{t('settings.streakAlertsDesc')}</p>
                 </div>
-                <Switch defaultChecked />
+                <Switch 
+                  checked={notifications.streakAlerts} 
+                  onCheckedChange={(checked) => setNotifications(prev => ({ ...prev, streakAlerts: checked }))} 
+                />
               </div>
             </div>
           </Card>
@@ -238,31 +305,31 @@ export default function SettingsPage() {
 
         <TabsContent value="security" className="space-y-6">
           <Card className="p-6">
-            <h3 className="mb-6">Change Password</h3>
+            <h3 className="mb-6">{t('settings.changePassword')}</h3>
             <div className="space-y-4 max-w-2xl">
               <div>
-                <Label htmlFor="currentPassword">Current Password</Label>
+                <Label htmlFor="currentPassword">{t('settings.currentPassword')}</Label>
                 <Input id="currentPassword" type="password" className="mt-2" />
               </div>
               <div>
-                <Label htmlFor="newPassword">New Password</Label>
+                <Label htmlFor="newPassword">{t('settings.newPassword')}</Label>
                 <Input id="newPassword" type="password" className="mt-2" />
               </div>
               <div>
-                <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                <Label htmlFor="confirmPassword">{t('settings.confirmPassword')}</Label>
                 <Input id="confirmPassword" type="password" className="mt-2" />
               </div>
-              <Button className="bg-blue-600 hover:bg-blue-700">Update Password</Button>
+              <Button className="bg-blue-600 hover:bg-blue-700">{t('settings.updatePassword')}</Button>
             </div>
           </Card>
 
           <Card className="p-6">
-            <h3 className="mb-6">Two-Factor Authentication</h3>
+            <h3 className="mb-6">{t('settings.twoFactor')}</h3>
             <div className="max-w-2xl">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <p>Enable 2FA</p>
-                  <p className="text-sm text-muted-foreground">Add an extra layer of security to your account</p>
+                  <p>{t('settings.enable2FA')}</p>
+                  <p className="text-sm text-muted-foreground">{t('settings.enable2FADesc')}</p>
                 </div>
                 <Switch />
               </div>
@@ -270,21 +337,21 @@ export default function SettingsPage() {
           </Card>
 
           <Card className="p-6">
-            <h3 className="mb-6">Active Sessions</h3>
+            <h3 className="mb-6">{t('settings.activeSessions')}</h3>
             <div className="space-y-4 max-w-2xl">
               <div className="flex items-start justify-between p-4 border border-border rounded-lg">
                 <div>
                   <p>MacBook Pro - Chrome</p>
-                  <p className="text-sm text-muted-foreground">San Francisco, CA • Current session</p>
+                  <p className="text-sm text-muted-foreground">San Francisco, CA • {t('settings.currentSession')}</p>
                 </div>
-                <Badge className="bg-green-100 text-green-700">Active</Badge>
+                <Badge className="bg-green-100 text-green-700">{t('settings.active')}</Badge>
               </div>
               <div className="flex items-start justify-between p-4 border border-border rounded-lg">
                 <div>
                   <p>iPhone 14 - Safari</p>
                   <p className="text-sm text-muted-foreground">San Francisco, CA • 2 hours ago</p>
                 </div>
-                <Button variant="outline" size="sm">Revoke</Button>
+                <Button variant="outline" size="sm">{t('settings.revoke')}</Button>
               </div>
             </div>
           </Card>
@@ -292,18 +359,29 @@ export default function SettingsPage() {
 
         <TabsContent value="preferences" className="space-y-6">
           <Card className="p-6">
-            <h3 className="mb-6">Appearance</h3>
+            <div className="flex items-center justify-between mb-6">
+              <h3>{t('settings.appearance')}</h3>
+              {darkMode && (
+                <Badge className="bg-purple-100 text-purple-700">
+                  {t('settings.darkModeActive')}
+                </Badge>
+              )}
+            </div>
             <div className="space-y-6 max-w-2xl">
               <div className="flex items-center justify-between">
                 <div>
-                  <p>Dark Mode</p>
-                  <p className="text-sm text-muted-foreground">Switch to dark theme</p>
+                  <p>{t('settings.darkMode')}</p>
+                  <p className="text-sm text-muted-foreground">{t('settings.darkModeDesc')}</p>
                 </div>
-                <Switch />
+                <Switch checked={darkMode} onCheckedChange={setDarkMode} />
               </div>
               <div>
-                <Label>Code Editor Theme</Label>
-                <select className="w-full mt-2 p-3 border border-input rounded-lg">
+                <Label>{t('settings.codeTheme')}</Label>
+                <select 
+                  className="w-full mt-2 p-3 border border-input rounded-lg"
+                  value={codeTheme}
+                  onChange={(e) => setCodeTheme(e.target.value)}
+                >
                   <option>VS Code Dark</option>
                   <option>VS Code Light</option>
                   <option>Monokai</option>
@@ -314,20 +392,31 @@ export default function SettingsPage() {
           </Card>
 
           <Card className="p-6">
-            <h3 className="mb-6">Language & Region</h3>
+            <div className="flex items-center justify-between mb-6">
+              <h3>{t('settings.languageRegion')}</h3>
+              <Badge variant="outline">
+                {language === 'vi' ? '🇻🇳 Tiếng Việt' : '🇺🇸 English'} • {timezone}
+              </Badge>
+            </div>
             <div className="space-y-4 max-w-2xl">
               <div>
-                <Label>Language</Label>
-                <select className="w-full mt-2 p-3 border border-input rounded-lg">
-                  <option>English</option>
-                  <option>Vietnamese</option>
-                  <option>Spanish</option>
-                  <option>French</option>
+                <Label>{t('settings.language')}</Label>
+                <select 
+                  className="w-full mt-2 p-3 border border-input rounded-lg"
+                  value={language}
+                  onChange={(e) => setLanguage(e.target.value as 'en' | 'vi')}
+                >
+                  <option value="en">{t('lang.english')}</option>
+                  <option value="vi">{t('lang.vietnamese')}</option>
                 </select>
               </div>
               <div>
-                <Label>Timezone</Label>
-                <select className="w-full mt-2 p-3 border border-input rounded-lg">
+                <Label>{t('settings.timezone')}</Label>
+                <select 
+                  className="w-full mt-2 p-3 border border-input rounded-lg"
+                  value={timezone}
+                  onChange={(e) => setTimezone(e.target.value)}
+                >
                   <option>Pacific Time (PT)</option>
                   <option>Eastern Time (ET)</option>
                   <option>Central Time (CT)</option>
@@ -338,14 +427,14 @@ export default function SettingsPage() {
           </Card>
 
           <Card className="p-6 border-red-200">
-            <h3 className="mb-6 text-red-600">Danger Zone</h3>
+            <h3 className="mb-6 text-red-600">{t('settings.dangerZone')}</h3>
             <div className="space-y-4 max-w-2xl">
               <div className="flex items-center justify-between">
                 <div>
-                  <p>Delete Account</p>
-                  <p className="text-sm text-muted-foreground">Permanently delete your account and all data</p>
+                  <p>{t('settings.deleteAccount')}</p>
+                  <p className="text-sm text-muted-foreground">{t('settings.deleteAccountDesc')}</p>
                 </div>
-                <Button variant="destructive">Delete Account</Button>
+                <Button variant="destructive">{t('settings.deleteAccount')}</Button>
               </div>
             </div>
           </Card>
