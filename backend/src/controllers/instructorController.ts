@@ -191,30 +191,214 @@ export const getInstructorAnalytics = async (req: AuthRequest, res: Response) =>
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    // Mock analytics data
-    const revenueData = [
-      { month: 'Jan', revenue: 8500 },
-      { month: 'Feb', revenue: 9200 },
-      { month: 'Mar', revenue: 8800 },
-      { month: 'Apr', revenue: 10500 },
-      { month: 'May', revenue: 11200 },
-      { month: 'Jun', revenue: 12450 },
+    const period = (req.query.period as string) || '30d';
+    
+    // Calculate date range based on period
+    const now = new Date();
+    let startDate = new Date();
+    switch (period) {
+      case '7d':
+        startDate.setDate(now.getDate() - 7);
+        break;
+      case '30d':
+        startDate.setDate(now.getDate() - 30);
+        break;
+      case '90d':
+        startDate.setDate(now.getDate() - 90);
+        break;
+      case '1y':
+        startDate.setFullYear(now.getFullYear() - 1);
+        break;
+      default:
+        startDate.setDate(now.getDate() - 30);
+    }
+
+    // Get instructor's lessons
+    const { data: lessons } = await supabaseAdmin
+      .from('lessons')
+      .select('id, title, created_at')
+      .eq('created_by', userId);
+
+    const lessonIds = lessons?.map(l => l.id) || [];
+
+    // Get instructor's problems
+    const { data: problems } = await supabaseAdmin
+      .from('problems')
+      .select('id, title')
+      .eq('created_by', userId);
+
+    const problemIds = problems?.map(p => p.id) || [];
+
+    // Get lesson completions within period
+    let lessonCompletions: any[] = [];
+    if (lessonIds.length > 0) {
+      const { data } = await supabaseAdmin
+        .from('lesson_completions')
+        .select('user_id, completed_at, lesson_id')
+        .in('lesson_id', lessonIds)
+        .gte('completed_at', startDate.toISOString())
+        .order('completed_at', { ascending: true });
+      lessonCompletions = data || [];
+    }
+
+    // Get submissions within period  
+    let submissions: any[] = [];
+    if (problemIds.length > 0) {
+      const { data } = await supabaseAdmin
+        .from('submissions')
+        .select('user_id, submitted_at, problem_id, status')
+        .in('problem_id', problemIds)
+        .gte('submitted_at', startDate.toISOString())
+        .order('submitted_at', { ascending: true });
+      submissions = data || [];
+    }
+
+    // Calculate unique students
+    const uniqueStudents = new Set([
+      ...lessonCompletions.map(c => c.user_id),
+      ...submissions.map(s => s.user_id)
+    ]);
+
+    // Group data by date for charts
+    const dateGroups = new Map<string, { completions: number; submissions: number; uniqueUsers: Set<string> }>();
+    
+    // Initialize date groups
+    const currentDate = new Date(startDate);
+    while (currentDate <= now) {
+      const dateKey = currentDate.toISOString().split('T')[0];
+      dateGroups.set(dateKey, { completions: 0, submissions: 0, uniqueUsers: new Set() });
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    // Fill in lesson completions
+    lessonCompletions.forEach(c => {
+      const dateKey = new Date(c.completed_at).toISOString().split('T')[0];
+      const group = dateGroups.get(dateKey);
+      if (group) {
+        group.completions++;
+        group.uniqueUsers.add(c.user_id);
+      }
+    });
+
+    // Fill in submissions
+    submissions.forEach(s => {
+      const dateKey = new Date(s.submitted_at).toISOString().split('T')[0];
+      const group = dateGroups.get(dateKey);
+      if (group) {
+        group.submissions++;
+        group.uniqueUsers.add(s.user_id);
+      }
+    });
+
+    // Convert to chart data (aggregate by week for longer periods)
+    const aggregateData = (groupSize: number = 1) => {
+      const entries = Array.from(dateGroups.entries());
+      const result: any[] = [];
+      
+      for (let i = 0; i < entries.length; i += groupSize) {
+        const slice = entries.slice(i, i + groupSize);
+        const totalCompletions = slice.reduce((sum, [_, v]) => sum + v.completions, 0);
+        const totalSubmissions = slice.reduce((sum, [_, v]) => sum + v.submissions, 0);
+        const allUsers = new Set<string>();
+        slice.forEach(([_, v]) => v.uniqueUsers.forEach(u => allUsers.add(u)));
+        
+        const date = new Date(slice[0][0]);
+        result.push({
+          date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          completions: totalCompletions,
+          submissions: totalSubmissions,
+          engagements: allUsers.size,
+          // Estimate revenue based on activity
+          revenue: (totalCompletions * 5) + (totalSubmissions * 2)
+        });
+      }
+      return result;
+    };
+
+    const groupSize = period === '7d' ? 1 : period === '30d' ? 3 : period === '90d' ? 7 : 14;
+    const chartData = aggregateData(groupSize);
+
+    // Get top performing lessons/problems
+    const lessonStats = await Promise.all((lessons || []).slice(0, 5).map(async (lesson: any) => {
+      const { count: completionCount } = await supabaseAdmin
+        .from('lesson_completions')
+        .select('*', { count: 'exact', head: true })
+        .eq('lesson_id', lesson.id);
+
+      return {
+        id: lesson.id,
+        title: lesson.title,
+        type: 'lesson',
+        views: completionCount || 0,
+        completion: 100, // Completed by definition
+      };
+    }));
+
+    const problemStats = await Promise.all((problems || []).slice(0, 5).map(async (problem: any) => {
+      const { data: subs } = await supabaseAdmin
+        .from('submissions')
+        .select('status')
+        .eq('problem_id', problem.id);
+
+      const total = subs?.length || 0;
+      const accepted = subs?.filter((s: any) => s.status === 'accepted').length || 0;
+
+      return {
+        id: problem.id,
+        title: problem.title,
+        type: 'problem',
+        views: total,
+        completion: total > 0 ? Math.round((accepted / total) * 100) : 0,
+      };
+    }));
+
+    // Calculate overview stats
+    const totalCompletions = lessonCompletions.length;
+    const totalSubmissionsCount = submissions.length;
+    const acceptedSubmissions = submissions.filter(s => s.status === 'accepted').length;
+    
+    const overviewStats = {
+      totalViews: totalCompletions + totalSubmissionsCount,
+      newEnrollments: uniqueStudents.size,
+      revenue: (totalCompletions * 5) + (acceptedSubmissions * 2), // Estimated
+      avgCompletion: totalSubmissionsCount > 0 
+        ? Math.round((acceptedSubmissions / totalSubmissionsCount) * 100)
+        : 0
+    };
+
+    // Student engagement by day of week
+    const weekdayEngagement = [
+      { day: 'Mon', avgTime: 0, completion: 0 },
+      { day: 'Tue', avgTime: 0, completion: 0 },
+      { day: 'Wed', avgTime: 0, completion: 0 },
+      { day: 'Thu', avgTime: 0, completion: 0 },
+      { day: 'Fri', avgTime: 0, completion: 0 },
+      { day: 'Sat', avgTime: 0, completion: 0 },
+      { day: 'Sun', avgTime: 0, completion: 0 },
     ];
 
-    const enrollmentData = [
-      { month: 'Jan', students: 180 },
-      { month: 'Feb', students: 220 },
-      { month: 'Mar', students: 195 },
-      { month: 'Apr', students: 280 },
-      { month: 'May', students: 310 },
-      { month: 'Jun', students: 284 },
-    ];
+    lessonCompletions.forEach(c => {
+      const dayIndex = new Date(c.completed_at).getDay();
+      const adjustedIndex = dayIndex === 0 ? 6 : dayIndex - 1; // Adjust for Mon=0
+      weekdayEngagement[adjustedIndex].completion++;
+      weekdayEngagement[adjustedIndex].avgTime += 30; // Estimate 30 min per completion
+    });
+
+    // Normalize engagement data
+    weekdayEngagement.forEach(day => {
+      if (day.completion > 0) {
+        day.avgTime = Math.round(day.avgTime / day.completion);
+      }
+    });
 
     return res.json({
       success: true,
       data: {
-        revenueData: revenueData,
-        enrollmentData: enrollmentData
+        overviewStats,
+        chartData,
+        topContent: [...lessonStats, ...problemStats].sort((a, b) => b.views - a.views).slice(0, 5),
+        weekdayEngagement,
+        period
       }
     });
   } catch (error) {
