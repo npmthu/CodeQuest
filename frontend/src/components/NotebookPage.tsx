@@ -1,21 +1,11 @@
 import { useState } from "react";
-import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import {
   Plus,
   Search,
   FileText,
-  Trash2,
-  Star,
   MoreVertical,
-  Sparkles,
-  Brain,
-  Bold,
-  Italic,
-  Code,
-  List,
-  CheckSquare,
 } from "lucide-react";
 import {
   Dialog,
@@ -48,7 +38,7 @@ export default function NotebookPage() {
     const query = searchQuery.toLowerCase();
     return (
       note.title?.toLowerCase().includes(query) ||
-      note.content_markdown?.toLowerCase().includes(query) ||
+      note.contentMarkdown?.toLowerCase().includes(query) ||
       (note.tags || []).some((tag: string) => tag.toLowerCase().includes(query))
     );
   });
