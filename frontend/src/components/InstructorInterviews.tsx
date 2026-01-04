@@ -72,7 +72,7 @@ export default function InstructorInterviews() {
       
       const API_URL = import.meta.env.VITE_API_BASE || 'http://localhost:3000';
       
-      const response = await fetch(`${API_URL}/mock-interviews/sessions?instructor_id=${user?.id}`, {
+      const response = await fetch(`${API_URL}/mock-interviews/sessions?instructor_id=${user?.id}&limit=1000`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'

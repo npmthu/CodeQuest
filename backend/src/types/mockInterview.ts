@@ -112,7 +112,8 @@ export interface BookSessionRequest {
 }
 
 export interface CreateFeedbackRequest {
-  booking_id: string;
+  booking_id?: string; // Optional - only for learner feedback
+  session_id?: string; // Optional - for instructor system feedback
   overall_rating: number;
   technical_rating: number;
   communication_rating: number;
@@ -121,6 +122,8 @@ export interface CreateFeedbackRequest {
   areas_for_improvement?: string;
   recommendations?: string;
   detailed_feedback?: Record<string, any>;
+  comments?: string; // General comments field
+  feedback_type?: 'learner_feedback' | 'instructor_system' | 'peer_review';
   is_public?: boolean;
 }
 

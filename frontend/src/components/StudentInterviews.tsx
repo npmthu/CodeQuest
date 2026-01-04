@@ -60,6 +60,8 @@ export default function StudentInterviews() {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState<'available' | 'my-bookings'>('available');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6;
 
   useEffect(() => {
     fetchData();
@@ -92,8 +94,8 @@ export default function StudentInterviews() {
         hasToken: !!token
       });
       
-      // Fetch available sessions (no /api prefix - already in VITE_API_BASE)
-      const sessionsResponse = await fetch(`${API_URL}/mock-interviews/sessions`, {
+      // Fetch available sessions (with large limit to get all sessions)
+      const sessionsResponse = await fetch(`${API_URL}/mock-interviews/sessions?limit=1000&status=scheduled`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -186,13 +188,27 @@ export default function StudentInterviews() {
   };
 
   const filteredSessions = availableSessions.filter(session => {
-    const matchesSearch = session.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         session.topic.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         session.instructor?.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const searchLower = searchTerm.toLowerCase();
+    const matchesSearch = !searchTerm || 
+                         session.title?.toLowerCase().includes(searchLower) ||
+                         session.topic?.toLowerCase().includes(searchLower) ||
+                         (session.instructor?.name || '').toLowerCase().includes(searchLower);
     const hasSlots = session.slots_available > 0;
     const isUpcoming = new Date(session.session_date) > new Date();
     return matchesSearch && hasSlots && isUpcoming;
   });
+
+  // Pagination
+  const totalPages = Math.ceil(filteredSessions.length / itemsPerPage);
+  const paginatedSessions = filteredSessions.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  // Reset to page 1 when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -334,7 +350,8 @@ export default function StudentInterviews() {
               </p>
             </Card>
           ) : (
-            filteredSessions.map((session) => (
+            <>
+              {paginatedSessions.map((session) => (
               <Card key={session.id} className="p-6">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
@@ -397,7 +414,63 @@ export default function StudentInterviews() {
                   </div>
                 </div>
               </Card>
-            ))
+            ))}
+            
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 mt-8 pb-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="px-3"
+                >
+                  Previous
+                </Button>
+                
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+                    let page;
+                    if (totalPages <= 7) {
+                      page = i + 1;
+                    } else if (currentPage <= 4) {
+                      page = i + 1;
+                    } else if (currentPage >= totalPages - 3) {
+                      page = totalPages - 6 + i;
+                    } else {
+                      page = currentPage - 3 + i;
+                    }
+                    return (
+                      <Button
+                        key={page}
+                        variant={page === currentPage ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setCurrentPage(page)}
+                        className="w-9 h-9 p-0"
+                      >
+                        {page}
+                      </Button>
+                    );
+                  })}
+                </div>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="px-3"
+                >
+                  Next
+                </Button>
+                
+                <span className="text-sm text-muted-foreground ml-4">
+                  Page {currentPage} of {totalPages}
+                </span>
+              </div>
+            )}
+            </>
           )}
         </div>
       )}

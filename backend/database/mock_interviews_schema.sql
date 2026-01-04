@@ -41,9 +41,10 @@ CREATE TABLE IF NOT EXISTS interview_bookings (
 -- Interview Feedback from instructors
 CREATE TABLE IF NOT EXISTS interview_feedback (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    booking_id UUID NOT NULL REFERENCES interview_bookings(id) ON DELETE CASCADE,
+    session_id UUID NOT NULL REFERENCES mock_interview_sessions(id) ON DELETE CASCADE,
+    booking_id UUID REFERENCES interview_bookings(id) ON DELETE SET NULL, -- Optional for instructor feedback
     instructor_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    learner_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    learner_id UUID REFERENCES users(id) ON DELETE CASCADE, -- Null for instructor-provided feedback
     overall_rating INTEGER CHECK (overall_rating >= 1 AND overall_rating <= 5),
     technical_rating INTEGER CHECK (technical_rating >= 1 AND technical_rating <= 5),
     communication_rating INTEGER CHECK (communication_rating >= 1 AND communication_rating <= 5),
@@ -52,9 +53,11 @@ CREATE TABLE IF NOT EXISTS interview_feedback (
     areas_for_improvement TEXT,
     recommendations TEXT,
     detailed_feedback JSONB, -- Structured feedback data
+    comments TEXT, -- General comments field (NEW)
+    feedback_type VARCHAR(50) DEFAULT 'learner_feedback' CHECK (feedback_type IN ('learner_feedback', 'instructor_system', 'peer_review')), -- Type of feedback (NEW)
     feedback_date TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     is_public BOOLEAN DEFAULT FALSE, -- Whether feedback can be shared
-    UNIQUE(booking_id) -- One feedback per booking
+    UNIQUE(booking_id) -- One feedback per booking (relaxed when booking_id is null)
 );
 
 -- AI Suggestions and Learning Assistance Logs

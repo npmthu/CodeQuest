@@ -386,32 +386,68 @@ export class MockInterviewService {
   }
 
   // Feedback Management
-  async createFeedback(instructorId: string, feedbackData: CreateFeedbackRequest): Promise<InterviewFeedback> {
+  async createFeedback(userId: string, feedbackData: CreateFeedbackRequest): Promise<InterviewFeedback> {
     try {
-      // Verify instructor owns the booking
-      const { data: booking, error: bookingError } = await supabase
-        .from('interview_bookings')
-        .select(`
-          *,
-          session:mock_interview_sessions(instructor_id)
-        `)
-        .eq('id', feedbackData.booking_id)
-        .single();
+      let learnerId: string | null = null;
+      let instructorId: string | null = null;
+      let sessionId: string | null = feedbackData.session_id || null;
 
-      if (bookingError || !booking) {
-        throw new Error('Booking not found');
-      }
+      // Case 1: Learner providing feedback (requires booking_id or session_id)
+      if (feedbackData.booking_id) {
+        const { data: booking, error: bookingError } = await supabase
+          .from('interview_bookings')
+          .select(`
+            *,
+            session:mock_interview_sessions(id, instructor_id)
+          `)
+          .eq('id', feedbackData.booking_id)
+          .single();
 
-      if (booking.session?.instructor_id !== instructorId) {
-        throw new Error('Only the assigned instructor can provide feedback');
+        if (bookingError || !booking) {
+          throw new Error('Booking not found');
+        }
+
+        // Verify user is the learner for this booking
+        if (booking.learner_id !== userId) {
+          throw new Error('You can only provide feedback for your own bookings');
+        }
+
+        learnerId = booking.learner_id;
+        instructorId = booking.session?.instructor_id || null;
+        sessionId = booking.session_id;
+      } 
+      // Case 2: Instructor providing system/session feedback (no booking needed)
+      else if (feedbackData.session_id) {
+        const { data: session, error: sessionError } = await supabase
+          .from('mock_interview_sessions')
+          .select('id, instructor_id')
+          .eq('id', feedbackData.session_id)
+          .single();
+
+        if (sessionError || !session) {
+          throw new Error('Session not found');
+        }
+
+        // Verify user is the instructor for this session
+        if (session.instructor_id !== userId) {
+          throw new Error('You can only provide feedback for your own sessions');
+        }
+
+        instructorId = session.instructor_id;
+        sessionId = session.id;
+        // learnerId remains null for instructor system feedback
+      } else {
+        throw new Error('Either booking_id or session_id is required');
       }
 
       // Create feedback
       const { data: feedback, error: feedbackError } = await supabase
         .from('interview_feedback')
         .insert({
+          booking_id: feedbackData.booking_id || null,
+          session_id: sessionId,
           instructor_id: instructorId,
-          learner_id: booking.learner_id,
+          learner_id: learnerId,
           overall_rating: feedbackData.overall_rating,
           technical_rating: feedbackData.technical_rating,
           communication_rating: feedbackData.communication_rating,
@@ -420,6 +456,8 @@ export class MockInterviewService {
           areas_for_improvement: feedbackData.areas_for_improvement,
           recommendations: feedbackData.recommendations,
           detailed_feedback: feedbackData.detailed_feedback,
+          comments: feedbackData.comments,
+          feedback_type: feedbackData.feedback_type || 'learner_feedback',
           is_public: feedbackData.is_public || false
         })
         .select()
