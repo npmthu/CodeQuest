@@ -25,11 +25,19 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
 
 export const forumService = {
   /**
-   * Lấy danh sách forum posts
+   * Lấy danh sách forum posts với optional tag filter
+   * @param tag - Optional tag to filter posts by
    */
-  async getPosts(): Promise<ForumPostWithAuthor[]> {
+  async getPosts(tag?: string): Promise<ForumPostWithAuthor[]> {
     const authHeaders = await getAuthHeaders();
-    const response = await fetch(`${API_BASE_URL}/forum/posts`, {
+    
+    // Build URL with query parameters
+    const url = new URL(`${API_BASE_URL}/forum/posts`);
+    if (tag && tag.trim() !== '' && tag.toLowerCase() !== 'all') {
+      url.searchParams.set('tag', tag);
+    }
+    
+    const response = await fetch(url.toString(), {
       credentials: 'include',
       headers: authHeaders
     });

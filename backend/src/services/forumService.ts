@@ -2,10 +2,12 @@ import { supabaseAdmin } from '../config/database';
 import type { ForumPost, ForumReply } from '../models/Forum';
 
 /**
- * List forum posts with author and problem details
+ * List forum posts with optional tag filter
+ * @param limit - Maximum number of posts to return
+ * @param tag - Optional tag to filter by (filters posts containing this tag in their tags array)
  */
-export async function listForumPosts(limit = 50): Promise<any[]> {
-  const { data: posts, error } = await supabaseAdmin
+export async function listForumPosts(limit = 50, tag?: string): Promise<any[]> {
+  let query = supabaseAdmin
     .from('forum_posts')
     .select(`
       id,
@@ -22,10 +24,22 @@ export async function listForumPosts(limit = 50): Promise<any[]> {
       updated_at,
       author:users!author_id(id, display_name, avatar_url, reputation, level, email),
       problem:problems!related_problem_id(id, title, slug, difficulty)
-    `)
+    `);
+
+  // Apply tag filter if provided
+  // The 'tags' column is JSONB array, use @> operator to check if array contains the tag
+  if (tag && tag.trim() !== '') {
+    // For JSONB array containment in Supabase, we need to use the 'contains' filter
+    // This checks if the tags array contains the specified tag
+    query = query.contains('tags', [tag]);
+  }
+
+  query = query
     .order('is_pinned', { ascending: false })
     .order('created_at', { ascending: false })
     .limit(limit);
+
+  const { data: posts, error } = await query;
 
   if (error) {
     console.error('Error listing forum posts:', error);

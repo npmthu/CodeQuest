@@ -9,16 +9,38 @@ import {
 import type { CreateForumPostDTO, CreateForumReplyDTO } from '../dtos/forum.dto';
 
 /**
- * List forum posts
+ * List forum posts with optional tag filter
  * GET /api/forum/posts
+ * Query params:
+ *  - tag: Filter posts by tag (optional)
+ *  - limit: Maximum number of posts to return (optional, default 50)
  */
 export const listForumPosts = async (req: AuthRequest, res: Response) => {
   try {
-    const posts = await forumService.listForumPosts();
+    // Get query parameters for filtering
+    const { tag, limit } = req.query;
+    
+    // Parse limit (default 50)
+    const parsedLimit = limit ? parseInt(limit as string, 10) : 50;
+    
+    // Call service with optional tag filter
+    const posts = await forumService.listForumPosts(
+      parsedLimit, 
+      tag as string | undefined
+    );
+    
     const mapped = (posts || []).map((p: any) =>
       mapForumPostWithAuthorToDTO(p, (p as any).author, (p as any).problem)
     );
-    return res.json({ success: true, data: mapped });
+    
+    return res.json({ 
+      success: true, 
+      data: mapped,
+      meta: {
+        count: mapped.length,
+        filter: tag ? { tag } : null
+      }
+    });
   } catch (error: any) {
     console.error('Error listing forum posts:', error);
     return res.status(500).json({ success: false, error: error.message });

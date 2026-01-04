@@ -8,11 +8,12 @@ import {
   Plus, 
   MessageSquare, 
   ThumbsUp, 
-  Eye,
   TrendingUp,
   Clock,
   X,
-  Trash2
+  Trash2,
+  Filter,
+  XCircle
 } from "lucide-react";
 import {
   Dialog,
@@ -50,9 +51,12 @@ export default function ForumPage() {
   const [newPostContent, setNewPostContent] = useState("");
   const [newPostTags, setNewPostTags] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<"recent" | "popular" | "mostReplies">("recent");
+  
+  // NEW: Tag filter state
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
 
-  // Fetch posts from API
-  const { data: postsData, isLoading } = useForumPosts();
+  // Fetch posts from API with tag filter
+  const { data: postsData, isLoading } = useForumPosts(selectedTag);
   const createPostMutation = useCreateForumPost();
   const deletePostMutation = useDeleteForumPost();
   
@@ -60,6 +64,65 @@ export default function ForumPage() {
   const { data: postDetailData, refetch: refetchPostDetail } = useForumPost(
     selectedPost?.id || ''
   );
+
+  // Available tags for filtering (standardized lowercase for consistency)
+  const availableTags = [
+    "python", 
+    "javascript", 
+    "java", 
+    "cpp", 
+    "csharp",
+    "algorithms", 
+    "data-structures", 
+    "sql", 
+    "database",
+    "web-development", 
+    "backend",
+    "frontend",
+    "ai-ml", 
+    "interview-prep",
+    "debugging",
+    "best-practices",
+    "career",
+    "help"
+  ];
+
+  // Display names for tags (for UI)
+  const tagDisplayNames: Record<string, string> = {
+    "python": "Python",
+    "javascript": "JavaScript",
+    "java": "Java",
+    "cpp": "C++",
+    "csharp": "C#",
+    "algorithms": "Algorithms",
+    "data-structures": "Data Structures",
+    "sql": "SQL",
+    "database": "Database",
+    "web-development": "Web Dev",
+    "backend": "Backend",
+    "frontend": "Frontend",
+    "ai-ml": "AI/ML",
+    "interview-prep": "Interview Prep",
+    "debugging": "Debugging",
+    "best-practices": "Best Practices",
+    "career": "Career",
+    "help": "Help"
+  };
+
+  // Handle tag selection
+  const handleTagSelect = (tag: string) => {
+    if (tag === "all" || selectedTag === tag) {
+      // If clicking "All" or the same tag, clear filter
+      setSelectedTag(null);
+    } else {
+      setSelectedTag(tag);
+    }
+  };
+
+  // Clear tag filter
+  const handleClearFilter = () => {
+    setSelectedTag(null);
+  };
 
   // Sort posts based on selected option
   const sortedPosts = useMemo(() => {
@@ -126,7 +189,7 @@ export default function ForumPage() {
     );
   }
 
-  const tags = ["All", "Python", "C++", "DSA", "SQL", "Web", "AI", "Interview"];
+  const tags = ["all", ...availableTags]; // Add "all" option
 
   // If viewing post detail
   if (currentView === "detail" && selectedPost) {
@@ -144,6 +207,7 @@ export default function ForumPage() {
 
   return (
     <div className="p-8 space-y-6">
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -160,6 +224,25 @@ export default function ForumPage() {
           </Button>
         </div>
       </div>
+
+      {/* Active Filter Indicator */}
+      {selectedTag && (
+        <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <Filter className="w-4 h-4 text-blue-600" />
+          <span className="text-sm text-blue-800">
+            Filtering by tag: <strong>{selectedTag}</strong>
+          </span>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="ml-auto text-blue-600 hover:text-blue-700 hover:bg-blue-100"
+            onClick={handleClearFilter}
+          >
+            <XCircle className="w-4 h-4 mr-1" />
+            Clear Filter
+          </Button>
+        </div>
+      )}
 
       {/* New Post Dialog */}
       <Dialog open={isNewPostOpen} onOpenChange={setIsNewPostOpen}>
@@ -232,28 +315,63 @@ export default function ForumPage() {
         </Select>
       </div>
 
-      {/* Tags */}
+      {/* Tags - Now with active filter functionality */}
       <div className="flex items-center gap-2 flex-wrap">
-        {tags.map((tag) => (
-          <Badge
-            key={tag}
-            variant={tag === "All" ? "default" : "outline"}
-            className={`cursor-pointer ${
-              tag === "All" ? "bg-blue-600 hover:bg-blue-700" : "hover:bg-gray-100"
-            }`}
-          >
-            {tag}
-          </Badge>
-        ))}
+        {tags.map((tag) => {
+          const isActive = tag === "all" 
+            ? selectedTag === null 
+            : selectedTag === tag;
+          
+          const displayName = tag === "all" ? "All" : (tagDisplayNames[tag] || tag);
+          
+          return (
+            <Badge
+              key={tag}
+              variant={isActive ? "default" : "outline"}
+              className={`cursor-pointer transition-all ${
+                isActive 
+                  ? "bg-blue-600 hover:bg-blue-700 text-white" 
+                  : "hover:bg-gray-100 hover:border-blue-400"
+              }`}
+              onClick={() => handleTagSelect(tag)}
+            >
+              {displayName}
+              {isActive && tag !== "all" && (
+                <X className="w-3 h-3 ml-1" />
+              )}
+            </Badge>
+          );
+        })}
       </div>
 
       {/* Posts */}
       <div className="space-y-4">
-        {sortedPosts.length === 0 ? (
+        {isLoading ? (
+          <Card className="p-12 text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="text-muted-foreground mt-4">Loading posts...</p>
+          </Card>
+        ) : sortedPosts.length === 0 ? (
           <Card className="p-12 text-center">
             <MessageSquare className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-            <h3 className="text-xl font-semibold mb-2">No posts yet</h3>
-            <p className="text-muted-foreground">Be the first to start a discussion!</p>
+            <h3 className="text-xl font-semibold mb-2">
+              {selectedTag ? `No posts found with tag "${selectedTag}"` : 'No posts yet'}
+            </h3>
+            <p className="text-muted-foreground">
+              {selectedTag 
+                ? 'Try selecting a different tag or clear the filter.' 
+                : 'Be the first to start a discussion!'}
+            </p>
+            {selectedTag && (
+              <Button 
+                variant="outline" 
+                className="mt-4"
+                onClick={handleClearFilter}
+              >
+                <XCircle className="w-4 h-4 mr-2" />
+                Clear Filter
+              </Button>
+            )}
           </Card>
         ) : (
           sortedPosts.map((post: ForumPostWithAuthor) => (
@@ -347,56 +465,6 @@ export default function ForumPage() {
           ))
         )}
       </div>
-
-      {/* New Post Dialog */}
-      <Dialog open={isNewPostOpen} onOpenChange={setIsNewPostOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Create New Post</DialogTitle>
-            <DialogDescription>
-              Share your question or knowledge with the community
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Title *</Label>
-              <Input 
-                placeholder="What's your question or topic?"
-                value={newPostTitle}
-                onChange={(e) => setNewPostTitle(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Content *</Label>
-              <Textarea 
-                placeholder="Describe your question or share your thoughts..." 
-                className="min-h-[200px]"
-                value={newPostContent}
-                onChange={(e) => setNewPostContent(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Tags (optional)</Label>
-              <Input 
-                placeholder="e.g., python, algorithms, help (comma separated)"
-                onChange={(e) => setNewPostTags(e.target.value.split(',').map(t => t.trim()).filter(t => t))}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsNewPostOpen(false)}>
-              Cancel
-            </Button>
-            <Button 
-              className="bg-blue-600 hover:bg-blue-700"
-              onClick={handleCreatePost}
-              disabled={!newPostTitle || !newPostContent || createPostMutation.isPending}
-            >
-              {createPostMutation.isPending ? 'Posting...' : 'Post Question'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
