@@ -149,6 +149,44 @@ export function useUpdateUserProfile() {
   });
 }
 
+export function useChangePassword() {
+  return useMutation({
+    mutationFn: async (payload: {
+      currentPassword: string;
+      newPassword: string;
+    }) => {
+      const result = await apiFetch("/users/change-password", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+      return result.data;
+    },
+  });
+}
+
+export function useDeleteAccount() {
+  return useMutation({
+    mutationFn: async (payload: { password: string }) => {
+      const result = await apiFetch("/users/account", {
+        method: "DELETE",
+        body: JSON.stringify(payload),
+      });
+      return result.data;
+    },
+  });
+}
+
+export function useRevokeSession() {
+  return useMutation({
+    mutationFn: async (sessionId: string) => {
+      const result = await apiFetch(`/users/sessions/${sessionId}/revoke`, {
+        method: "POST",
+      });
+      return result.data;
+    },
+  });
+}
+
 // Course Hooks
 export function useCourses() {
   return useQuery({
@@ -261,6 +299,21 @@ export function useLesson(id: string) {
     queryKey: ["lesson", id],
     queryFn: () => lessonService.getLessonById(id),
     enabled: !!id,
+  });
+}
+
+// Current lesson for a topic (computed client-side for now)
+export function useGetCurrentLesson(topicId?: string) {
+  return useQuery({
+    queryKey: ["currentLesson", topicId],
+    queryFn: async () => {
+      const result = await apiFetch(
+        `/lessons/current${topicId ? `?topicId=${topicId}` : ""}`
+      );
+      return result.data || null;
+    },
+    enabled: !!topicId,
+    staleTime: 60 * 1000,
   });
 }
 
@@ -427,6 +480,124 @@ export function useBusinessActivities() {
     queryFn: async () => {
       const result = await apiFetch("/business/activities");
       return result.data;
+    },
+  });
+}
+
+export function useAddLearner() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: {
+      name: string;
+      email: string;
+      department?: string;
+      cohort?: string;
+    }) => {
+      const result = await apiFetch("/business/learners", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+      return result.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["businessLearners"] });
+    },
+  });
+}
+
+export function useUpdateLearner() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: {
+      id: string;
+      name?: string;
+      department?: string;
+      cohort?: string;
+    }) => {
+      const { id, ...body } = payload;
+      const result = await apiFetch(`/business/learners/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(body),
+      });
+      return result.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["businessLearners"] });
+    },
+  });
+}
+
+export function useDeleteLearner() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const result = await apiFetch(`/business/learners/${id}`, {
+        method: "DELETE",
+      });
+      return result.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["businessLearners"] });
+    },
+  });
+}
+
+export function useAddInstructor() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: {
+      name: string;
+      email: string;
+      specialization?: string;
+      cohorts?: string[];
+      bio?: string;
+    }) => {
+      const result = await apiFetch("/business/instructors", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+      return result.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["businessInstructors"] });
+    },
+  });
+}
+
+export function useUpdateInstructor() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: {
+      id: string;
+      name?: string;
+      specialization?: string;
+      cohorts?: string[];
+      bio?: string;
+    }) => {
+      const { id, ...body } = payload;
+      const result = await apiFetch(`/business/instructors/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(body),
+      });
+      return result.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["businessInstructors"] });
+    },
+  });
+}
+
+export function useDeleteInstructor() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const result = await apiFetch(`/business/instructors/${id}`, {
+        method: "DELETE",
+      });
+      return result.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["businessInstructors"] });
     },
   });
 }

@@ -38,6 +38,60 @@ export async function listLessonsHandler(req: Request, res: Response) {
   }
 }
 
+export async function createLessonHandler(req: Request, res: Response) {
+  try {
+    const user = (req as any).user;
+    if (!user || (user.role !== "instructor" && user.role !== "admin")) {
+      return res.status(403).json({ success: false, error: "Forbidden" });
+    }
+
+    const body = req.body || {};
+    const lesson = await lessonService.createLesson({
+      topic_id: body.topicId || body.topic_id,
+      title: body.title,
+      content_markdown: body.content_markdown || body.content,
+      difficulty: body.difficulty,
+      estimated_time_min: body.estimatedTimeMin,
+      course_id: body.courseId || body.course_id,
+    });
+
+    return res.status(201).json({ success: true, data: lesson });
+  } catch (error: any) {
+    return res.status(400).json({ success: false, error: error.message });
+  }
+}
+
+export async function updateLessonHandler(req: Request, res: Response) {
+  try {
+    const user = (req as any).user;
+    if (!user || (user.role !== "instructor" && user.role !== "admin")) {
+      return res.status(403).json({ success: false, error: "Forbidden" });
+    }
+
+    const updated = await lessonService.updateLesson(
+      req.params.id,
+      req.body || {}
+    );
+    return res.json({ success: true, data: updated });
+  } catch (error: any) {
+    return res.status(400).json({ success: false, error: error.message });
+  }
+}
+
+export async function deleteLessonHandler(req: Request, res: Response) {
+  try {
+    const user = (req as any).user;
+    if (!user || (user.role !== "instructor" && user.role !== "admin")) {
+      return res.status(403).json({ success: false, error: "Forbidden" });
+    }
+
+    await lessonService.deleteLesson(req.params.id);
+    return res.json({ success: true, message: "Lesson deleted" });
+  } catch (error: any) {
+    return res.status(400).json({ success: false, error: error.message });
+  }
+}
+
 export async function getLessonHandler(req: Request, res: Response) {
   try {
     const lesson = await lessonService.getLesson(req.params.id);
@@ -109,6 +163,25 @@ export async function getUserProgressHandler(req: Request, res: Response) {
     const summary = await lessonService.getUserProgressSummary(user.id);
 
     return res.json({ success: true, data: summary });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+}
+
+export async function getCurrentLessonHandler(req: Request, res: Response) {
+  try {
+    const user = (req as any).user;
+    if (!user) {
+      return res.status(401).json({ success: false, error: "Unauthorized" });
+    }
+
+    const { topicId } = req.query;
+    const lesson = await lessonService.getCurrentLessonForUser(
+      user.id,
+      topicId as string | undefined
+    );
+
+    return res.json({ success: true, data: lesson || null });
   } catch (error: any) {
     return res.status(500).json({ success: false, error: error.message });
   }

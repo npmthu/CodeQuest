@@ -3,6 +3,14 @@ import { AuthRequest } from "../middleware/auth";
 import { supabaseAdmin } from "../config/database";
 import * as lessonService from "../services/lessonService";
 
+const slugifyLocal = (text: string) =>
+  text
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-");
+
 /**
  * List all courses
  * GET /api/courses
@@ -124,6 +132,100 @@ export async function getCourseProgressHandler(
     );
 
     return res.json({ success: true, data: stats });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+}
+
+/**
+ * Create a course
+ * POST /api/courses
+ */
+export async function createCourseHandler(req: AuthRequest, res: Response) {
+  try {
+    const user = req.user;
+    if (!user) {
+      return res
+        .status(401)
+        .json({ success: false, error: "Authentication required" });
+    }
+
+    // basic role gate; adjust as needed
+    if (user.role !== "instructor" && user.role !== "admin") {
+      return res.status(403).json({ success: false, error: "Forbidden" });
+    }
+
+    const { title, description, category, level, thumbnail_url, is_published } =
+      req.body || {};
+
+    if (!title) {
+      return res
+        .status(400)
+        .json({ success: false, error: "Title is required" });
+    }
+
+    const slug = slugifyLocal(title);
+
+    const { data, error } = await supabaseAdmin
+      .from("courses")
+      .insert({
+        title,
+        description,
+        difficulty: level,
+        thumbnail_url,
+        is_published: !!is_published,
+        slug,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      return res
+        .status(400)
+        .json({ success: false, error: error.message || "Create failed" });
+    }
+
+    return res.status(201).json({ success: true, data });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+}
+
+/**
+ * Update a course
+ * PATCH /api/courses/:id
+ */
+export async function updateCourseHandler(req: AuthRequest, res: Response) {
+  try {
+    const user = req.user;
+    if (!user) {
+      return res
+        .status(401)
+        .json({ success: false, error: "Authentication required" });
+    }
+    if (user.role !== "instructor" && user.role !== "admin") {
+      return res.status(403).json({ success: false, error: "Forbidden" });
+    }
+
+    const patch = req.body || {};
+    if (patch.title) {
+      patch.slug = slugifyLocal(patch.title);
+    }
+
+    const { data, error } = await supabaseAdmin
+      .from("courses")
+      .update({ ...patch, updated_at: new Date().toISOString() })
+      .eq("id", req.params.id)
+      .select()
+      .single();
+
+    if (error) {
+      return res
+        .status(400)
+        .json({ success: false, error: error.message || "Update failed" });
+    }
+
+    return res.json({ success: true, data });
   } catch (error: any) {
     return res.status(500).json({ success: false, error: error.message });
   }

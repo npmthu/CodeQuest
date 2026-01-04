@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from "./ui/select";
 import { Switch } from "./ui/switch";
-import { 
+import {
   ArrowLeft,
   Save,
   Upload,
@@ -29,7 +29,7 @@ import {
   Clock,
   BookOpen,
   Target,
-  Award
+  Award,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
@@ -83,10 +83,12 @@ export default function InstructorCreateCourse() {
 
   const levels = ["Beginner", "Intermediate", "Advanced", "All Levels"];
 
-  const addListItem = (field: "whatYouWillLearn" | "prerequisites" | "targetAudience") => {
-    setCourseData(prev => ({
+  const addListItem = (
+    field: "whatYouWillLearn" | "prerequisites" | "targetAudience"
+  ) => {
+    setCourseData((prev) => ({
       ...prev,
-      [field]: [...prev[field], ""]
+      [field]: [...prev[field], ""],
     }));
   };
 
@@ -95,9 +97,9 @@ export default function InstructorCreateCourse() {
     index: number,
     value: string
   ) => {
-    setCourseData(prev => ({
+    setCourseData((prev) => ({
       ...prev,
-      [field]: prev[field].map((item, i) => i === index ? value : item)
+      [field]: prev[field].map((item, i) => (i === index ? value : item)),
     }));
   };
 
@@ -105,21 +107,100 @@ export default function InstructorCreateCourse() {
     field: "whatYouWillLearn" | "prerequisites" | "targetAudience",
     index: number
   ) => {
-    setCourseData(prev => ({
+    setCourseData((prev) => ({
       ...prev,
-      [field]: prev[field].filter((_, i) => i !== index)
+      [field]: prev[field].filter((_, i) => i !== index),
     }));
   };
 
   const handleNext = () => {
+    // Validate current step before moving forward
+    if (!validateCurrentStep()) {
+      return;
+    }
     if (currentStep < totalSteps) {
-      setCurrentStep(prev => prev + 1);
+      setCurrentStep((prev) => prev + 1);
     }
   };
 
   const handlePrevious = () => {
     if (currentStep > 1) {
-      setCurrentStep(prev => prev - 1);
+      setCurrentStep((prev) => prev - 1);
+    }
+  };
+
+  const validateCurrentStep = (): boolean => {
+    switch (currentStep) {
+      case 1:
+        if (!courseData.title.trim()) {
+          alert("Please enter a course title");
+          return false;
+        }
+        if (!courseData.description.trim()) {
+          alert("Please enter a course description");
+          return false;
+        }
+        if (!courseData.category) {
+          alert("Please select a category");
+          return false;
+        }
+        if (!courseData.level) {
+          alert("Please select a course level");
+          return false;
+        }
+        return true;
+      case 2:
+        // Media step - optional validation
+        return true;
+      case 3:
+        // Objectives step validation
+        if (
+          courseData.whatYouWillLearn.filter((item) => item.trim()).length === 0
+        ) {
+          alert("Please add at least one learning objective");
+          return false;
+        }
+        return true;
+      case 4:
+        // Final validation
+        return true;
+      default:
+        return true;
+    }
+  };
+
+  const handleSaveAsDraft = async () => {
+    try {
+      // Call API to save course as draft
+      // await saveCourseAsDraftMutation.mutateAsync({
+      //   ...courseData,
+      //   status: 'draft'
+      // });
+
+      alert("Course saved as draft successfully!");
+      navigate("/instructor/courses");
+    } catch (error: any) {
+      alert("Failed to save course: " + (error.message || "Unknown error"));
+    }
+  };
+
+  const handleCreateCourse = async () => {
+    // Validate all steps
+    if (!validateCurrentStep()) {
+      return;
+    }
+
+    try {
+      // Call API to create/publish course
+      // await createCourseMutation.mutateAsync({
+      //   ...courseData,
+      //   status: 'published'
+      // });
+
+      alert("Course created and published successfully!");
+      navigate("/instructor/courses");
+    } catch (error: any) {
+      alert("Failed to create course: " + (error.message || "Unknown error"));
     }
   };
 
@@ -141,7 +222,12 @@ export default function InstructorCreateCourse() {
                 <Input
                   placeholder="e.g., Complete Python Programming Masterclass"
                   value={courseData.title}
-                  onChange={(e) => setCourseData(prev => ({ ...prev, title: e.target.value }))}
+                  onChange={(e) =>
+                    setCourseData((prev) => ({
+                      ...prev,
+                      title: e.target.value,
+                    }))
+                  }
                 />
                 <p className="text-xs text-muted-foreground">
                   A clear, descriptive title helps students find your course
@@ -153,7 +239,12 @@ export default function InstructorCreateCourse() {
                 <Input
                   placeholder="e.g., Learn Python from scratch with hands-on projects"
                   value={courseData.subtitle}
-                  onChange={(e) => setCourseData(prev => ({ ...prev, subtitle: e.target.value }))}
+                  onChange={(e) =>
+                    setCourseData((prev) => ({
+                      ...prev,
+                      subtitle: e.target.value,
+                    }))
+                  }
                 />
               </div>
 
@@ -163,7 +254,12 @@ export default function InstructorCreateCourse() {
                   placeholder="Describe what students will learn in your course..."
                   rows={6}
                   value={courseData.description}
-                  onChange={(e) => setCourseData(prev => ({ ...prev, description: e.target.value }))}
+                  onChange={(e) =>
+                    setCourseData((prev) => ({
+                      ...prev,
+                      description: e.target.value,
+                    }))
+                  }
                 />
                 <p className="text-xs text-muted-foreground">
                   {courseData.description.length}/1000 characters
@@ -173,15 +269,17 @@ export default function InstructorCreateCourse() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Category *</Label>
-                  <Select 
+                  <Select
                     value={courseData.category}
-                    onValueChange={(value: string) => setCourseData(prev => ({ ...prev, category: value }))}
+                    onValueChange={(value: string) =>
+                      setCourseData((prev) => ({ ...prev, category: value }))
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select category" />
                     </SelectTrigger>
                     <SelectContent>
-                      {categories.map(cat => (
+                      {categories.map((cat) => (
                         <SelectItem key={cat} value={cat.toLowerCase()}>
                           {cat}
                         </SelectItem>
@@ -194,13 +292,15 @@ export default function InstructorCreateCourse() {
                   <Label>Level *</Label>
                   <Select
                     value={courseData.level}
-                    onValueChange={(value: string) => setCourseData(prev => ({ ...prev, level: value }))}
+                    onValueChange={(value: string) =>
+                      setCourseData((prev) => ({ ...prev, level: value }))
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select level" />
                     </SelectTrigger>
                     <SelectContent>
-                      {levels.map(level => (
+                      {levels.map((level) => (
                         <SelectItem key={level} value={level.toLowerCase()}>
                           {level}
                         </SelectItem>
@@ -213,7 +313,12 @@ export default function InstructorCreateCourse() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Language</Label>
-                  <Select value={courseData.language} onValueChange={(value: string) => setCourseData(prev => ({ ...prev, language: value }))}>
+                  <Select
+                    value={courseData.language}
+                    onValueChange={(value: string) =>
+                      setCourseData((prev) => ({ ...prev, language: value }))
+                    }
+                  >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -232,7 +337,12 @@ export default function InstructorCreateCourse() {
                     type="number"
                     placeholder="49.99"
                     value={courseData.price}
-                    onChange={(e) => setCourseData(prev => ({ ...prev, price: e.target.value }))}
+                    onChange={(e) =>
+                      setCourseData((prev) => ({
+                        ...prev,
+                        price: e.target.value,
+                      }))
+                    }
                   />
                 </div>
               </div>
@@ -297,7 +407,9 @@ export default function InstructorCreateCourse() {
                 <div className="flex gap-3">
                   <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
                   <div>
-                    <p className="font-medium text-blue-900">Tips for great thumbnails</p>
+                    <p className="font-medium text-blue-900">
+                      Tips for great thumbnails
+                    </p>
                     <ul className="text-sm text-blue-800 mt-2 space-y-1 list-disc list-inside">
                       <li>Use high-quality images with good lighting</li>
                       <li>Include text overlay with your course title</li>
@@ -333,13 +445,21 @@ export default function InstructorCreateCourse() {
                       <Input
                         placeholder={`Learning objective ${index + 1}`}
                         value={item}
-                        onChange={(e) => updateListItem("whatYouWillLearn", index, e.target.value)}
+                        onChange={(e) =>
+                          updateListItem(
+                            "whatYouWillLearn",
+                            index,
+                            e.target.value
+                          )
+                        }
                       />
                       {courseData.whatYouWillLearn.length > 1 && (
                         <Button
                           variant="outline"
                           size="icon"
-                          onClick={() => removeListItem("whatYouWillLearn", index)}
+                          onClick={() =>
+                            removeListItem("whatYouWillLearn", index)
+                          }
                         >
                           <AlertCircle className="w-4 h-4" />
                         </Button>
@@ -367,7 +487,9 @@ export default function InstructorCreateCourse() {
                       <Input
                         placeholder={`Prerequisite ${index + 1}`}
                         value={item}
-                        onChange={(e) => updateListItem("prerequisites", index, e.target.value)}
+                        onChange={(e) =>
+                          updateListItem("prerequisites", index, e.target.value)
+                        }
                       />
                       {courseData.prerequisites.length > 1 && (
                         <Button
@@ -401,13 +523,21 @@ export default function InstructorCreateCourse() {
                       <Input
                         placeholder={`Target audience ${index + 1}`}
                         value={item}
-                        onChange={(e) => updateListItem("targetAudience", index, e.target.value)}
+                        onChange={(e) =>
+                          updateListItem(
+                            "targetAudience",
+                            index,
+                            e.target.value
+                          )
+                        }
                       />
                       {courseData.targetAudience.length > 1 && (
                         <Button
                           variant="outline"
                           size="icon"
-                          onClick={() => removeListItem("targetAudience", index)}
+                          onClick={() =>
+                            removeListItem("targetAudience", index)
+                          }
                         >
                           <AlertCircle className="w-4 h-4" />
                         </Button>
@@ -447,7 +577,9 @@ export default function InstructorCreateCourse() {
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Title</p>
-                      <p className="text-sm font-medium">{courseData.title || "Not set"}</p>
+                      <p className="text-sm font-medium">
+                        {courseData.title || "Not set"}
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
@@ -456,7 +588,9 @@ export default function InstructorCreateCourse() {
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Category</p>
-                      <p className="text-sm font-medium capitalize">{courseData.category || "Not set"}</p>
+                      <p className="text-sm font-medium capitalize">
+                        {courseData.category || "Not set"}
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
@@ -465,7 +599,9 @@ export default function InstructorCreateCourse() {
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Level</p>
-                      <p className="text-sm font-medium capitalize">{courseData.level || "Not set"}</p>
+                      <p className="text-sm font-medium capitalize">
+                        {courseData.level || "Not set"}
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
@@ -474,7 +610,9 @@ export default function InstructorCreateCourse() {
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Price</p>
-                      <p className="text-sm font-medium">${courseData.price || "Free"}</p>
+                      <p className="text-sm font-medium">
+                        ${courseData.price || "Free"}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -523,9 +661,12 @@ export default function InstructorCreateCourse() {
                 <div className="flex gap-3">
                   <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
                   <div>
-                    <p className="font-medium text-green-900">Ready to Launch!</p>
+                    <p className="font-medium text-green-900">
+                      Ready to Launch!
+                    </p>
                     <p className="text-sm text-green-800 mt-1">
-                      Your course is ready to be published. Once published, students can enroll and start learning.
+                      Your course is ready to be published. Once published,
+                      students can enroll and start learning.
                     </p>
                   </div>
                 </div>
@@ -545,20 +686,33 @@ export default function InstructorCreateCourse() {
       <header className="bg-white border-b border-border">
         <div className="max-w-5xl mx-auto px-8 py-4">
           <div className="flex items-center justify-between">
-            <Button 
-              variant="ghost" 
-              onClick={() => navigate('/instructor/courses')}
+            <Button
+              variant="ghost"
+              onClick={() => navigate("/instructor/courses")}
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Courses
             </Button>
             <div className="flex items-center gap-3">
-              <Button variant="outline">
+              <Button variant="outline" onClick={handleSaveAsDraft}>
                 Save as Draft
               </Button>
-              <Button className="bg-blue-600 hover:bg-blue-700">
+              <Button
+                className="bg-blue-600 hover:bg-blue-700"
+                onClick={() => {
+                  if (validateCurrentStep()) {
+                    if (currentStep === totalSteps) {
+                      handleCreateCourse();
+                    } else {
+                      handleNext();
+                    }
+                  }
+                }}
+              >
                 <Save className="w-4 h-4 mr-2" />
-                Save & Continue
+                {currentStep === totalSteps
+                  ? "Create Course"
+                  : "Save & Continue"}
               </Button>
             </div>
           </div>
@@ -585,7 +739,9 @@ export default function InstructorCreateCourse() {
               <div
                 key={item.step}
                 className={`flex items-center gap-2 ${
-                  currentStep >= item.step ? "text-blue-600" : "text-muted-foreground"
+                  currentStep >= item.step
+                    ? "text-blue-600"
+                    : "text-muted-foreground"
                 }`}
               >
                 <div
@@ -622,12 +778,25 @@ export default function InstructorCreateCourse() {
             >
               Previous
             </Button>
-            <Button
-              className="bg-blue-600 hover:bg-blue-700"
-              onClick={handleNext}
-            >
-              {currentStep === totalSteps ? "Create Course" : "Next"}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" onClick={handleSaveAsDraft}>
+                Save as Draft
+              </Button>
+              <Button
+                className="bg-blue-600 hover:bg-blue-700"
+                onClick={() => {
+                  if (validateCurrentStep()) {
+                    if (currentStep === totalSteps) {
+                      handleCreateCourse();
+                    } else {
+                      handleNext();
+                    }
+                  }
+                }}
+              >
+                {currentStep === totalSteps ? "Create Course" : "Next"}
+              </Button>
+            </div>
           </div>
         </Card>
       </main>

@@ -36,38 +36,62 @@ export default function DashboardLayout({
   const location = useLocation();
 
   const studentMenuItems = [
-    { path: "/dashboard", label: t('nav.dashboard'), icon: Home },
-    { path: "/courses", label: t('nav.courses'), icon: BookOpen },
-    { path: "/quizzes", label: t('nav.quizzes'), icon: ClipboardList },
-    { path: "/forum", label: t('nav.forum'), icon: MessageSquare },
-    { path: "/notebook", label: t('nav.notebook'), icon: NotebookPen },
-    { path: "/interview", label: t('nav.interview'), icon: VideoIcon },
-    { path: "/profile", label: t('nav.profile'), icon: User },
-    { path: "/settings", label: t('nav.settings'), icon: Settings },
+    { path: "/dashboard", label: t("nav.dashboard"), icon: Home },
+    { path: "/courses", label: t("nav.courses"), icon: BookOpen },
+    { path: "/quizzes", label: t("nav.quizzes"), icon: ClipboardList },
+    { path: "/forum", label: t("nav.forum"), icon: MessageSquare },
+    { path: "/notebook", label: t("nav.notebook"), icon: NotebookPen },
+    { path: "/interview", label: t("nav.interview"), icon: VideoIcon },
+    { path: "/profile", label: t("nav.profile"), icon: User },
+    { path: "/settings", label: t("nav.settings"), icon: Settings },
   ];
 
   const instructorMenuItems = [
-    { path: "/instructor/dashboard", label: t('nav.dashboard'), icon: Home },
-    { path: "/instructor/courses", label: t('nav.myCourses'), icon: VideoIcon },
-    { path: "/instructor/interviews", label: t('nav.mockInterviews'), icon: VideoIcon },
-    { path: "/quizzes", label: t('nav.quizzes'), icon: ClipboardList },
-    { path: "/instructor/analytics", label: t('nav.analytics'), icon: BarChart3 },
-    { path: "/forum", label: t('nav.forum'), icon: MessageSquare },
-    { path: "/profile", label: t('nav.profile'), icon: User },
-    { path: "/settings", label: t('nav.settings'), icon: Settings },
+    { path: "/instructor/dashboard", label: "Dashboard", icon: Home },
+    { path: "/instructor/courses", label: "My Courses", icon: VideoIcon },
+    {
+      path: "/instructor/interviews",
+      label: "Mock Interviews",
+      icon: VideoIcon,
+    },
+    { path: "/quizzes", label: "Quizzes", icon: ClipboardList },
+    { path: "/instructor/analytics", label: "Analytics", icon: BarChart3 },
+    { path: "/forum", label: "Forum", icon: MessageSquare },
+    { path: "/profile", label: "Profile", icon: User },
+    { path: "/settings", label: "Settings", icon: Settings },
+    { path: "/instructor/dashboard", label: t("nav.dashboard"), icon: Home },
+    { path: "/instructor/courses", label: t("nav.myCourses"), icon: VideoIcon },
+    {
+      path: "/instructor/interviews",
+      label: t("nav.mockInterviews"),
+      icon: VideoIcon,
+    },
+    { path: "/quizzes", label: t("nav.quizzes"), icon: ClipboardList },
+    {
+      path: "/instructor/analytics",
+      label: t("nav.analytics"),
+      icon: BarChart3,
+    },
+    { path: "/forum", label: t("nav.forum"), icon: MessageSquare },
+    { path: "/profile", label: t("nav.profile"), icon: User },
+    { path: "/settings", label: t("nav.settings"), icon: Settings },
   ];
 
   const businessMenuItems = [
-    { path: "/business/dashboard", label: t('nav.dashboard'), icon: Home },
-    { path: "/business/account", label: t('nav.accountMgmt'), icon: Building },
+    { path: "/business/dashboard", label: t("nav.dashboard"), icon: Home },
+    { path: "/business/account", label: t("nav.accountMgmt"), icon: Building },
     {
       path: "/business/instructors",
-      label: t('nav.instructors'),
+      label: t("nav.instructors"),
       icon: GraduationCap,
     },
-    { path: "/business/performance", label: t('nav.performance'), icon: Target },
-    { path: "/business/analytics", label: t('nav.analytics'), icon: BarChart3 },
-    { path: "/settings", label: t('nav.settings'), icon: Settings },
+    {
+      path: "/business/performance",
+      label: t("nav.performance"),
+      icon: Target,
+    },
+    { path: "/business/analytics", label: t("nav.analytics"), icon: BarChart3 },
+    { path: "/settings", label: t("nav.settings"), icon: Settings },
   ];
 
   const menuItems =
@@ -91,11 +115,11 @@ export default function DashboardLayout({
   const getRoleLabel = () => {
     switch (userRole) {
       case "instructor":
-        return t('role.instructor');
+        return t("role.instructor");
       case "business":
-        return t('role.business');
+        return t("role.business");
       default:
-        return t('role.student');
+        return t("role.student");
     }
   };
 
@@ -108,7 +132,9 @@ export default function DashboardLayout({
           <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
             <Code2 className="w-5 h-5 text-white" />
           </div>
-          <span className="text-xl text-blue-600 dark:text-blue-400">CodeQuest</span>
+          <span className="text-xl text-blue-600 dark:text-blue-400">
+            CodeQuest
+          </span>
         </div>
 
         {/* Navigation */}
@@ -153,7 +179,9 @@ export default function DashboardLayout({
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm truncate dark:text-gray-300">Bug Quýt</p>
-              <p className="text-xs text-muted-foreground dark:text-gray-500">Level 5</p>
+              <p className="text-xs text-muted-foreground dark:text-gray-500">
+                Level 5
+              </p>
             </div>
           </div>
           <Button
@@ -163,7 +191,7 @@ export default function DashboardLayout({
             onClick={() => signOut()}
           >
             <LogOut className="w-4 h-4 mr-2" />
-            {t('nav.logout')}
+            {t("nav.logout")}
           </Button>
         </div>
       </aside>
@@ -183,8 +211,12 @@ export default function DashboardLayout({
               <span className="absolute top-1 right-1 w-2 h-2 bg-blue-600 rounded-full"></span>
             </button>
             <Link to="/pricing">
-              <Button variant="outline" size="sm" className="dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
-                {t('nav.upgradeToPro')}
+              <Button
+                variant="outline"
+                size="sm"
+                className="dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+              >
+                {t("nav.upgradeToPro")}
               </Button>
             </Link>
           </div>

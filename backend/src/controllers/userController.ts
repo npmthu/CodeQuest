@@ -1,8 +1,75 @@
 // User controller - profile, settings, dashboard data
-import { Request, Response } from 'express';
-import { AuthRequest } from '../middleware/auth';
-import * as userService from '../services/userService';
-import { mapUserToDTO, mapUserToProfileDTO } from '../mappers/user.mapper';
+import { Request, Response } from "express";
+import { AuthRequest } from "../middleware/auth";
+import * as userService from "../services/userService";
+import { mapUserToDTO, mapUserToProfileDTO } from "../mappers/user.mapper";
+
+export async function changePasswordHandler(req: AuthRequest, res: Response) {
+  try {
+    const userId = req.user?.id;
+    const email = req.user?.email;
+    if (!userId || !email) {
+      return res.status(401).json({ success: false, error: "Unauthorized" });
+    }
+
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+      return res
+        .status(400)
+        .json({ success: false, error: "Missing passwords" });
+    }
+
+    await userService.changePassword(
+      userId,
+      email,
+      currentPassword,
+      newPassword
+    );
+    return res.json({ success: true, message: "Password updated" });
+  } catch (err: any) {
+    return res.status(400).json({ success: false, error: err.message });
+  }
+}
+
+export async function deleteAccountHandler(req: AuthRequest, res: Response) {
+  try {
+    const userId = req.user?.id;
+    const email = req.user?.email;
+    if (!userId || !email) {
+      return res.status(401).json({ success: false, error: "Unauthorized" });
+    }
+
+    const { password } = req.body;
+    if (!password) {
+      return res
+        .status(400)
+        .json({ success: false, error: "Password required" });
+    }
+
+    await userService.deleteAccount(userId, email, password);
+    return res.json({ success: true, message: "Account deleted" });
+  } catch (err: any) {
+    return res.status(400).json({ success: false, error: err.message });
+  }
+}
+
+export async function revokeSessionHandler(req: AuthRequest, res: Response) {
+  try {
+    const sessionId = req.params.id;
+    if (!sessionId) {
+      return res
+        .status(400)
+        .json({ success: false, error: "Session id required" });
+    }
+    await userService.revokeSession(sessionId);
+    return res.json({
+      success: true,
+      message: "Session revoked (no-op placeholder)",
+    });
+  } catch (err: any) {
+    return res.status(400).json({ success: false, error: err.message });
+  }
+}
 
 export async function listUsers(req: Request, res: Response) {
   try {
@@ -17,7 +84,8 @@ export async function listUsers(req: Request, res: Response) {
 export async function getUserHandler(req: Request, res: Response) {
   try {
     const user = await userService.getUser(req.params.id);
-    if (!user) return res.status(404).json({ success: false, error: 'User not found' });
+    if (!user)
+      return res.status(404).json({ success: false, error: "User not found" });
     const userDTO = mapUserToProfileDTO(user);
     res.json({ success: true, data: userDTO });
   } catch (err: any) {
@@ -29,22 +97,22 @@ export async function updateUserHandler(req: AuthRequest, res: Response) {
   try {
     const userId = req.user?.id;
     if (!userId) {
-      return res.status(401).json({ success: false, error: 'Unauthorized' });
+      return res.status(401).json({ success: false, error: "Unauthorized" });
     }
 
     // Accept camelCase from frontend
     const updates = {
       displayName: req.body.displayName,
       bio: req.body.bio,
-      avatarUrl: req.body.avatarUrl
+      avatarUrl: req.body.avatarUrl,
     };
-    
+
     const updatedUser = await userService.updateUser(userId, updates);
 
     const userDTO = mapUserToProfileDTO(updatedUser);
-    res.json({ success: true, data: userDTO, message: 'Profile updated' });
+    res.json({ success: true, data: userDTO, message: "Profile updated" });
   } catch (err: any) {
-    console.error('Update user error:', err);
+    console.error("Update user error:", err);
     res.status(500).json({ success: false, error: err.message });
   }
 }
@@ -53,28 +121,31 @@ export async function getUserStatsHandler(req: AuthRequest, res: Response) {
   try {
     const userId = req.user?.id;
     if (!userId) {
-      return res.status(401).json({ success: false, error: 'Unauthorized' });
+      return res.status(401).json({ success: false, error: "Unauthorized" });
     }
 
     const stats = await userService.getUserStats(userId);
     return res.json({ success: true, data: stats });
   } catch (error: any) {
-    console.error('Get stats error:', error);
+    console.error("Get stats error:", error);
     return res.status(500).json({ success: false, error: error.message });
   }
 }
 
-export async function getLearningProfileHandler(req: AuthRequest, res: Response) {
+export async function getLearningProfileHandler(
+  req: AuthRequest,
+  res: Response
+) {
   try {
     const userId = req.user?.id;
     if (!userId) {
-      return res.status(401).json({ success: false, error: 'Unauthorized' });
+      return res.status(401).json({ success: false, error: "Unauthorized" });
     }
 
     const profile = await userService.getUserLearningProfile(userId);
     return res.json({ success: true, data: profile });
   } catch (error: any) {
-    console.error('Get learning profile error:', error);
+    console.error("Get learning profile error:", error);
     return res.status(500).json({ success: false, error: error.message });
   }
 }
@@ -85,7 +156,7 @@ export async function getLeaderboardHandler(req: Request, res: Response) {
     const leaderboard = await userService.getLeaderboard(limit);
     return res.json({ success: true, data: leaderboard });
   } catch (error: any) {
-    console.error('Get leaderboard error:', error);
+    console.error("Get leaderboard error:", error);
     return res.status(500).json({ success: false, error: error.message });
   }
 }
