@@ -33,8 +33,8 @@ export class FeedbackController {
       const feedbackData = req.body;
       
       // Validate required fields based on role
-      // Instructors need booking_id to provide feedback for learner
-      // Learners can provide feedback about system/session without strict booking requirement
+      // Instructors provide feedback for system/session (no booking_id needed)
+      // Learners provide feedback for instructors (booking_id required to link)
       const requiredRatings = ['overall_rating', 'technical_rating', 'communication_rating', 'problem_solving_rating'];
       const missingFields = requiredRatings.filter(field => feedbackData[field] === undefined || feedbackData[field] === null);
       
@@ -45,11 +45,12 @@ export class FeedbackController {
         });
       }
 
-      // Instructors must provide booking_id
-      if (isInstructor && !feedbackData.booking_id) {
+      // Learners must provide booking_id to link feedback to their booking
+      // Instructors don't need booking_id (they provide system/session feedback)
+      if (isLearner && !feedbackData.booking_id && !feedbackData.session_id) {
         return res.status(400).json({
           success: false,
-          error: 'Instructors must provide booking_id'
+          error: 'Learners must provide booking_id or session_id'
         });
       }
 

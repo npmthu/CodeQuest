@@ -21,8 +21,7 @@ export default function InterviewFeedbackModal({
   onClose,
   bookingId,
   sessionId,
-  userRole = 'learner',
-  instructorName = 'Instructor'
+  userRole = 'learner'
 }: InterviewFeedbackModalProps) {
   const { session: authSession } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
