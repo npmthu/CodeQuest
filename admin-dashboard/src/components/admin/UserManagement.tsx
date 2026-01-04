@@ -1,5 +1,14 @@
 import { useState, useEffect } from "react";
-import { Search, Filter, MoreVertical, UserCheck, UserX, Crown, Mail, Loader2 } from "lucide-react";
+import {
+  Search,
+  Filter,
+  MoreVertical,
+  UserCheck,
+  UserX,
+  Crown,
+  Mail,
+  Loader2,
+} from "lucide-react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Badge } from "../ui/badge";
@@ -31,12 +40,12 @@ import { toast } from "sonner";
 interface User {
   id: string;
   email: string;
-  full_name?: string;
+  display_name?: string;
   role: string;
   created_at: string;
-  last_sign_in_at?: string;
+  last_login_at?: string;
+  is_active?: boolean;
   subscription_tier?: string;
-  is_banned?: boolean;
 }
 
 export default function UserManagement() {
@@ -66,26 +75,30 @@ export default function UserManagement() {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const response = await adminApi.getUsers(page, 20, searchTerm || undefined);
+      const response = await adminApi.getUsers(
+        page,
+        20,
+        searchTerm || undefined
+      );
       if (response.success && response.data) {
         setUsers(response.data.users || response.data || []);
         setTotal(response.data.pagination?.total || response.data.length || 0);
       } else {
-        toast.error(response.error || 'Failed to fetch users');
+        toast.error(response.error || "Failed to fetch users");
       }
     } catch (error) {
-      console.error('Error fetching users:', error);
-      toast.error('Failed to load users');
+      console.error("Error fetching users:", error);
+      toast.error("Failed to load users");
     } finally {
       setLoading(false);
     }
   };
 
   const formatTimeAgo = (dateString?: string) => {
-    if (!dateString) return 'Never';
+    if (!dateString) return "Never";
     const date = new Date(dateString);
     const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
-    if (seconds < 60) return 'Just now';
+    if (seconds < 60) return "Just now";
     if (seconds < 3600) return `${Math.floor(seconds / 60)} min ago`;
     if (seconds < 86400) return `${Math.floor(seconds / 3600)} hours ago`;
     if (seconds < 604800) return `${Math.floor(seconds / 86400)} days ago`;
@@ -97,22 +110,25 @@ export default function UserManagement() {
   };
 
   const getUserStatus = (user: User) => {
-    if (user.is_banned) return 'Banned';
-    const lastActive = user.last_sign_in_at ? new Date(user.last_sign_in_at) : null;
-    if (!lastActive) return 'Inactive';
-    const daysSinceActive = (Date.now() - lastActive.getTime()) / (1000 * 60 * 60 * 24);
-    return daysSinceActive < 30 ? 'Active' : 'Inactive';
+    // Use is_active from database
+    return user.is_active ? "Active" : "Inactive";
   };
 
   const getUserRole = (user: User) => {
-    if (user.role === 'admin') return 'Admin';
-    if (user.subscription_tier && user.subscription_tier !== 'free' && user.subscription_tier !== 'basic') {
-      return 'Premium';
-    }
-    return 'Free';
+    // Handle null, undefined, or empty role
+    const role = (user.role || "learner").toLowerCase().trim();
+    if (!role || role === "") return "Learner";
+    if (role === "admin") return "Admin";
+    if (role === "instructor") return "Instructor";
+    if (role === "business_partner") return "Business Partner";
+    return "Learner";
   };
 
   const filteredUsers = users.filter((user) => {
+    // Exclude admin role from user list
+    const role = (user.role || "learner").toLowerCase().trim();
+    if (role === "admin") return false;
+
     const userRole = getUserRole(user).toLowerCase();
     const userStatus = getUserStatus(user).toLowerCase();
     const matchesRole = filterRole === "all" || userRole === filterRole;
@@ -122,15 +138,15 @@ export default function UserManagement() {
 
   const handleUpgradeToPremium = async (userId: string) => {
     try {
-      const response = await adminApi.updateUserRole(userId, 'premium');
+      const response = await adminApi.updateUserRole(userId, "premium");
       if (response.success) {
-        toast.success('User upgraded to Premium');
+        toast.success("User upgraded to Premium");
         fetchUsers();
       } else {
-        toast.error(response.error || 'Failed to upgrade user');
+        toast.error(response.error || "Failed to upgrade user");
       }
     } catch (error) {
-      toast.error('Failed to upgrade user');
+      toast.error("Failed to upgrade user");
     }
   };
 
@@ -138,13 +154,13 @@ export default function UserManagement() {
     try {
       const response = await adminApi.banUser(userId);
       if (response.success) {
-        toast.success('User has been banned');
+        toast.success("User has been banned");
         fetchUsers();
       } else {
-        toast.error(response.error || 'Failed to ban user');
+        toast.error(response.error || "Failed to ban user");
       }
     } catch (error) {
-      toast.error('Failed to ban user');
+      toast.error("Failed to ban user");
     }
   };
 
@@ -152,13 +168,13 @@ export default function UserManagement() {
     try {
       const response = await adminApi.unbanUser(userId);
       if (response.success) {
-        toast.success('User has been unbanned');
+        toast.success("User has been unbanned");
         fetchUsers();
       } else {
-        toast.error(response.error || 'Failed to unban user');
+        toast.error(response.error || "Failed to unban user");
       }
     } catch (error) {
-      toast.error('Failed to unban user');
+      toast.error("Failed to unban user");
     }
   };
 
@@ -190,7 +206,6 @@ export default function UserManagement() {
               <SelectItem value="all">All Status</SelectItem>
               <SelectItem value="active">Active</SelectItem>
               <SelectItem value="inactive">Inactive</SelectItem>
-              <SelectItem value="banned">Banned</SelectItem>
             </SelectContent>
           </Select>
           <Select value={filterRole} onValueChange={setFilterRole}>
@@ -200,8 +215,9 @@ export default function UserManagement() {
             <SelectContent>
               <SelectItem value="all">All Roles</SelectItem>
               <SelectItem value="admin">Admin</SelectItem>
-              <SelectItem value="premium">Premium</SelectItem>
-              <SelectItem value="free">Free</SelectItem>
+              <SelectItem value="instructor">Instructor</SelectItem>
+              <SelectItem value="learner">Learner</SelectItem>
+              <SelectItem value="business partner">Business Partner</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -238,16 +254,20 @@ export default function UserManagement() {
                 </TableRow>
               ) : filteredUsers.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                  <TableCell
+                    colSpan={7}
+                    className="text-center py-8 text-gray-500"
+                  >
                     No users found
                   </TableCell>
                 </TableRow>
               ) : (
                 filteredUsers.map((user) => {
-                  const displayName = user.full_name || user.email?.split('@')[0] || 'User';
+                  const displayName =
+                    user.display_name || user.email?.split("@")[0] || "User";
                   const userRole = getUserRole(user);
                   const userStatus = getUserStatus(user);
-                  
+
                   return (
                     <TableRow key={user.id} className="hover:bg-gray-50">
                       <TableCell>
@@ -260,30 +280,38 @@ export default function UserManagement() {
                           <span>{displayName}</span>
                         </div>
                       </TableCell>
-                      <TableCell className="text-gray-600">{user.email}</TableCell>
+                      <TableCell className="text-gray-600">
+                        {user.email}
+                      </TableCell>
                       <TableCell>
                         <Badge
-                          variant={userRole === "Premium" || userRole === "Admin" ? "default" : "secondary"}
-                          className={
-                            userRole === "Admin"
-                              ? "bg-purple-600 text-white"
-                              : userRole === "Premium"
-                              ? "bg-[#2563EB] text-white"
-                              : "bg-gray-200 text-gray-700"
-                          }
+                          style={{
+                            backgroundColor:
+                              userRole === "Admin"
+                                ? "#dc2626"
+                                : userRole === "Instructor"
+                                ? "#2563eb"
+                                : userRole === "Business Partner"
+                                ? "#9333ea"
+                                : "#16a34a",
+                            color: "white",
+                            border: "none",
+                          }}
                         >
-                          {(userRole === "Premium" || userRole === "Admin") && <Crown className="w-3 h-3 mr-1" />}
+                          {userRole === "Admin" && (
+                            <Crown className="w-3 h-3 mr-1 inline" />
+                          )}
                           {userRole}
                         </Badge>
                       </TableCell>
                       <TableCell>
                         <Badge
-                          variant={userStatus === "Active" ? "default" : "secondary"}
+                          variant={
+                            userStatus === "Active" ? "default" : "secondary"
+                          }
                           className={
                             userStatus === "Active"
                               ? "bg-green-100 text-green-700"
-                              : userStatus === "Banned"
-                              ? "bg-red-100 text-red-700"
                               : "bg-gray-100 text-gray-700"
                           }
                         >
@@ -291,7 +319,7 @@ export default function UserManagement() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-gray-600">
-                        {formatTimeAgo(user.last_sign_in_at)}
+                        {formatTimeAgo(user.last_login_at)}
                       </TableCell>
                       <TableCell className="text-gray-600">
                         {formatDate(user.created_at)}
@@ -299,7 +327,11 @@ export default function UserManagement() {
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0"
+                            >
                               <MoreVertical className="w-4 h-4" />
                             </Button>
                           </DropdownMenuTrigger>
@@ -308,31 +340,6 @@ export default function UserManagement() {
                               <Mail className="w-4 h-4 mr-2" />
                               Send Email
                             </DropdownMenuItem>
-                            {userRole === "Free" && (
-                              <DropdownMenuItem
-                                onClick={() => handleUpgradeToPremium(user.id)}
-                              >
-                                <Crown className="w-4 h-4 mr-2" />
-                                Upgrade to Premium
-                              </DropdownMenuItem>
-                            )}
-                            {user.is_banned ? (
-                              <DropdownMenuItem
-                                onClick={() => handleUnbanUser(user.id)}
-                                className="text-green-600"
-                              >
-                                <UserCheck className="w-4 h-4 mr-2" />
-                                Unban User
-                              </DropdownMenuItem>
-                            ) : (
-                              <DropdownMenuItem
-                                onClick={() => handleBanUser(user.id)}
-                                className="text-red-600"
-                              >
-                                <UserX className="w-4 h-4 mr-2" />
-                                Ban User
-                              </DropdownMenuItem>
-                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
@@ -350,7 +357,7 @@ export default function UserManagement() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setPage(p => Math.max(1, p - 1))}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page === 1}
             >
               Previous
@@ -361,7 +368,7 @@ export default function UserManagement() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setPage(p => p + 1)}
+              onClick={() => setPage((p) => p + 1)}
               disabled={page * 20 >= total}
             >
               Next

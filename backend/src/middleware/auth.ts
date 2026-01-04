@@ -17,8 +17,8 @@ export async function supabaseAuth(
   try {
     const header = String(req.headers.authorization || "");
     const token = header.startsWith("Bearer ") ? header.slice(7) : undefined;
-    
-    if (!token || token === 'null' || token === 'undefined')
+
+    if (!token || token === "null" || token === "undefined")
       return res.status(401).json({ success: false, error: "Missing token" });
 
     const { data, error } = await supabaseAdmin.auth.getUser(token);
@@ -32,6 +32,19 @@ export async function supabaseAuth(
       .select("role")
       .eq("id", data.user.id)
       .single();
+
+    // Update last_login_at timestamp (fire and forget - non-blocking)
+    supabaseAdmin
+      .from("users")
+      .update({ last_login_at: new Date().toISOString() })
+      .eq("id", data.user.id)
+      .then(({ error }) => {
+        if (error) {
+          console.error("Failed to update last_login_at:", error.message);
+        } else {
+          console.log(`✅ Updated last_login_at for user ${data.user.id}`);
+        }
+      });
 
     // Attach minimal user object to request
     (req as AuthRequest).user = {

@@ -86,7 +86,8 @@ function DashboardRoute({ children }: { children: React.ReactNode }) {
   // Map role from database to UI role type
   const getUserRole = (): "student" | "instructor" | "business" => {
     const dbRole = profile?.role;
-    if (dbRole === "instructor") return "instructor";
+    // Admin has instructor privileges in regular dashboard
+    if (dbRole === "admin" || dbRole === "instructor") return "instructor";
     if (dbRole === "business_partner") return "business";
     return "student";
   };
