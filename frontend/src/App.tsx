@@ -45,6 +45,7 @@ import CreateSession from "./components/CreateSession";
 import InterviewLobbyPage from "./components/InterviewLobbyPage";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { SubscriptionProvider } from "./contexts/SubscriptionContext";
+import { LanguageProvider } from "./contexts/LanguageContext";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -410,8 +411,10 @@ export default function App() {
         <ApiProvider>
           <AuthProvider>
             <SubscriptionProvider>
-              <AppContent />
-              <Toaster position="top-right" richColors />
+              <LanguageProvider>
+                <AppContent />
+                <Toaster position="top-right" richColors />
+              </LanguageProvider>
             </SubscriptionProvider>
           </AuthProvider>
         </ApiProvider>
