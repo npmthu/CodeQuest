@@ -29,9 +29,9 @@ export async function listForumPosts(limit = 50, tag?: string): Promise<any[]> {
   // Apply tag filter if provided
   // The 'tags' column is JSONB array, use @> operator to check if array contains the tag
   if (tag && tag.trim() !== '') {
-    // For JSONB array containment in Supabase, we need to use the 'contains' filter
+    // For JSONB array containment in Supabase, we need to use PostgreSQL @> operator
     // This checks if the tags array contains the specified tag
-    query = query.contains('tags', [tag]);
+    query = query.filter('tags', 'cs', JSON.stringify([tag]));
   }
 
   query = query

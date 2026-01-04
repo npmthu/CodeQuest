@@ -441,7 +441,7 @@ export function useForumPosts(tag?: string | null) {
   return useQuery({
     // Include tag in query key to refetch when tag changes
     queryKey: ["forumPosts", tag || "all"],
-    queryFn: () => forumService.getPosts(tag || undefined),
+    queryFn: async () => await forumService.getPosts(tag || undefined),
   });
 }
 
