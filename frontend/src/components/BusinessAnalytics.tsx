@@ -49,11 +49,17 @@ import {
 } from "recharts";
 
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { useGenerateBusinessPDF, useGenerateBusinessCSV } from "../hooks/useReports";
 
 interface BusinessAnalyticsProps {}
 
 export default function BusinessAnalytics() {
   const navigate = useNavigate();
+  const [selectedPeriod, setSelectedPeriod] = useState('q2-2024');
+  
+  const generatePDF = useGenerateBusinessPDF();
+  const generateCSV = useGenerateBusinessCSV();
   const overviewStats = [
     {
       label: "Total Investment",
@@ -177,7 +183,7 @@ export default function BusinessAnalytics() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Select defaultValue="q2-2024">
+          <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
             <SelectTrigger className="w-[180px]">
               <SelectValue />
             </SelectTrigger>
@@ -188,9 +194,13 @@ export default function BusinessAnalytics() {
               <SelectItem value="ytd">Year to Date</SelectItem>
             </SelectContent>
           </Select>
-          <Button className="bg-blue-600 hover:bg-blue-700">
+          <Button 
+            className="bg-blue-600 hover:bg-blue-700"
+            onClick={() => generatePDF.mutate(selectedPeriod)}
+            disabled={generatePDF.isPending}
+          >
             <Download className="w-4 h-4 mr-2" />
-            Export Full Report
+            {generatePDF.isPending ? 'Generating...' : 'Export Full Report'}
           </Button>
         </div>
       </div>
@@ -510,13 +520,21 @@ export default function BusinessAnalytics() {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="outline">
+            <Button 
+              variant="outline"
+              onClick={() => generatePDF.mutate(selectedPeriod)}
+              disabled={generatePDF.isPending}
+            >
               <Download className="w-4 h-4 mr-2" />
-              Export as PDF
+              {generatePDF.isPending ? 'Generating...' : 'Export as PDF'}
             </Button>
-            <Button variant="outline">
+            <Button 
+              variant="outline"
+              onClick={() => generateCSV.mutate(selectedPeriod)}
+              disabled={generateCSV.isPending}
+            >
               <Download className="w-4 h-4 mr-2" />
-              Export as CSV
+              {generateCSV.isPending ? 'Generating...' : 'Export as CSV'}
             </Button>
           </div>
         </div>

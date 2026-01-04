@@ -17,10 +17,13 @@ import {
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useUserStats } from "../hooks/useApi";
+import { useState } from "react";
+import EditProfileModal from "./EditProfileModal";
 
 export default function ProfilePage() {
   const { user, profile } = useAuth();
   const { data: stats, isLoading } = useUserStats();
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -79,7 +82,12 @@ export default function ProfilePage() {
                 <span className="text-5xl text-white">{avatarInitials}</span>
               </div>
             )}
-            <Button className="w-full mt-4" variant="outline" size="sm">
+            <Button 
+              className="w-full mt-4" 
+              variant="outline" 
+              size="sm"
+              onClick={() => setIsEditModalOpen(true)}
+            >
               <Edit className="w-4 h-4 mr-2" />
               Edit Profile
             </Button>
@@ -90,7 +98,10 @@ export default function ProfilePage() {
             <div className="flex items-start justify-between">
               <div>
                 <h2 className="mb-2">{displayName}</h2>
-                <p className="text-muted-foreground mb-4">{email}</p>
+                <p className="text-muted-foreground mb-2">{email}</p>
+                {profile?.bio && (
+                  <p className="text-muted-foreground mb-4 text-sm">{profile.bio}</p>
+                )}
                 <div className="flex items-center gap-4 mb-4">
                   <Badge className="bg-blue-600">{stats?.level || 'Beginner'}</Badge>
                   <div className="flex items-center gap-2 text-sm">
@@ -245,6 +256,12 @@ export default function ProfilePage() {
           </Card>
         </TabsContent>
       </Tabs>
+      
+      {/* Edit Profile Modal */}
+      <EditProfileModal 
+        isOpen={isEditModalOpen} 
+        onClose={() => setIsEditModalOpen(false)} 
+      />
     </div>
   );
 }
