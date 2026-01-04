@@ -17,6 +17,12 @@ router.use(requireAdmin);
 router.post('/plans', adminController.createPlan.bind(adminController));
 router.put('/plans/:id', adminController.updatePlan.bind(adminController));
 
+// Get all subscriptions with user details (for admin dashboard)
+router.get('/subscriptions', adminController.getAllSubscriptions.bind(adminController));
+
+// Get all users with pagination and search
+router.get('/users', adminController.getAllUsers.bind(adminController));
+
 // User Subscription Management - Fixes TC_ADMIN_SUB_02, TC_ADMIN_SUB_05
 router.post('/users/:userId/cancel-subscription', adminController.cancelUserSubscription.bind(adminController));
 router.get('/users/:userId/subscription', adminController.getUserSubscription.bind(adminController));

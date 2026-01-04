@@ -2,8 +2,113 @@
 import { Request, Response } from 'express';
 import { subscriptionService } from '../services/subscriptionService';
 import { AuthRequest } from '../middleware/auth';
+import { supabaseAdmin } from '../config/database';
 
 export class AdminController {
+  /**
+   * GET /api/admin/subscriptions
+   * Get all subscriptions with user details for admin dashboard
+   */
+  async getAllSubscriptions(req: AuthRequest, res: Response) {
+    try {
+      const { status, page = 1, limit = 50 } = req.query;
+      const offset = (Number(page) - 1) * Number(limit);
+
+      let query = supabaseAdmin
+        .from('subscriptions')
+        .select(`
+          *,
+          plan:subscription_plans(id, name, slug, price_monthly),
+          user:users(id, email, display_name)
+        `)
+        .order('created_at', { ascending: false })
+        .range(offset, offset + Number(limit) - 1);
+
+      if (status && status !== 'all') {
+        if (status === 'canceled') {
+          query = query.eq('cancel_at_period_end', true);
+        } else {
+          query = query.eq('status', status);
+        }
+      }
+
+      const { data, error, count } = await query;
+
+      if (error) throw error;
+
+      // Transform data for frontend
+      const subscriptions = (data || []).map((sub: any) => ({
+        id: sub.id,
+        user_id: sub.user_id,
+        user_email: sub.user?.email,
+        user_name: sub.user?.display_name,
+        plan_id: sub.plan_id,
+        plan_name: sub.plan?.name,
+        status: sub.status,
+        current_period_end: sub.current_period_end,
+        cancel_at_period_end: sub.cancel_at_period_end,
+        created_at: sub.created_at
+      }));
+
+      res.json({
+        success: true,
+        data: subscriptions,
+        pagination: {
+          page: Number(page),
+          limit: Number(limit),
+          total: count
+        }
+      });
+    } catch (error: any) {
+      console.error('❌ Error fetching subscriptions:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message || 'Failed to fetch subscriptions'
+      });
+    }
+  }
+
+  /**
+   * GET /api/admin/users
+   * Get all users with pagination and search
+   */
+  async getAllUsers(req: AuthRequest, res: Response) {
+    try {
+      const { page = 1, limit = 20, search } = req.query;
+      const offset = (Number(page) - 1) * Number(limit);
+
+      let query = supabaseAdmin
+        .from('users')
+        .select('id, email, display_name, role, created_at', { count: 'exact' })
+        .order('created_at', { ascending: false })
+        .range(offset, offset + Number(limit) - 1);
+
+      if (search) {
+        query = query.or(`email.ilike.%${search}%,display_name.ilike.%${search}%`);
+      }
+
+      const { data, error, count } = await query;
+
+      if (error) throw error;
+
+      res.json({
+        success: true,
+        data: data || [],
+        pagination: {
+          page: Number(page),
+          limit: Number(limit),
+          total: count
+        }
+      });
+    } catch (error: any) {
+      console.error('❌ Error fetching users:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message || 'Failed to fetch users'
+      });
+    }
+  }
+
   /**
    * POST /api/admin/plans
    * Create a new subscription plan - Fixes TC_ADMIN_SUB_01

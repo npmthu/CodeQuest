@@ -19,6 +19,7 @@ import aiRoutes from "./ai.routes";
 import certificateRoutes from "./certificate.routes";
 import subscriptionRoutes from "./subscriptionRoutes";
 import mockInterviewRoutes from "./mockInterviewRoutes";
+import adminRoutes from "./admin.routes";
 
 const router = express.Router();
 
@@ -42,5 +43,6 @@ router.use("/ai", aiRoutes);
 router.use("/certificates", certificateRoutes);
 router.use("/subscription", subscriptionRoutes);
 router.use("/mock-interviews", mockInterviewRoutes);
+router.use("/admin", adminRoutes);
 
 export default router;
