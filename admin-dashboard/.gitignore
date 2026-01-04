@@ -7,3 +7,8 @@ node_modules
 
 # .specstory folder
 .specstory
+
+# Vite build artifacts
+.vite
+dist
+*.local
