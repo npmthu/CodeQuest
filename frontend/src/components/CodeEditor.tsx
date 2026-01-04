@@ -579,10 +579,11 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
               {/* Line numbers */}
               <div 
                 ref={lineNumbersRef}
-                className="bg-gray-800 text-gray-500 text-right px-4 py-6 font-mono text-sm select-none overflow-hidden"
+                className="bg-gray-800 text-gray-400 text-right px-4 py-6 font-mono text-sm select-none overflow-hidden"
+                style={{ lineHeight: '1.5rem' }}
               >
-                {code.split('\n').map((_, i) => (
-                  <div key={i} className="leading-6">
+                {(code + '\n').split('\n').slice(0, -1).map((_, i) => (
+                  <div key={i}>
                     {i + 1}
                   </div>
                 ))}
@@ -593,22 +594,34 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
                 {/* Syntax highlighted preview (non-editable, positioned behind) */}
                 <div 
                   ref={highlightRef}
-                  className="absolute inset-0 pointer-events-none overflow-hidden"
+                  className="absolute inset-0 pointer-events-none overflow-auto"
+                  style={{
+                    padding: '1.5rem',
+                    fontSize: '0.875rem',
+                    lineHeight: '1.5rem',
+                    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+                  }}
                 >
                   <SyntaxHighlighter
                     language={language.name === 'cpp' ? 'cpp' : language.name}
                     style={vscDarkPlus}
                     customStyle={{
                       margin: 0,
-                      padding: '1.5rem',
+                      padding: 0,
                       background: 'transparent',
                       fontSize: '0.875rem',
                       lineHeight: '1.5rem',
-                      minHeight: '100%',
+                      fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
                     }}
                     showLineNumbers={false}
-                    wrapLines={true}
-                    lineProps={{ style: { wordBreak: 'break-all', whiteSpace: 'pre-wrap' } }}
+                    wrapLines={false}
+                    codeTagProps={{
+                      style: {
+                        fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+                        fontSize: '0.875rem',
+                        lineHeight: '1.5rem',
+                      }
+                    }}
                   >
                     {code}
                   </SyntaxHighlighter>
@@ -620,12 +633,30 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
                   value={code}
                   onChange={(e) => setCode(e.target.value)}
                   onScroll={handleScroll}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Tab') {
+                      e.preventDefault();
+                      const start = e.currentTarget.selectionStart;
+                      const end = e.currentTarget.selectionEnd;
+                      const newCode = code.substring(0, start) + '    ' + code.substring(end);
+                      setCode(newCode);
+                      // Set cursor position after the inserted spaces
+                      setTimeout(() => {
+                        if (textareaRef.current) {
+                          textareaRef.current.selectionStart = textareaRef.current.selectionEnd = start + 4;
+                        }
+                      }, 0);
+                    }
+                  }}
                   spellCheck={false}
                   className="absolute inset-0 w-full h-full p-6 font-mono text-sm bg-transparent outline-none border-0 resize-none overflow-auto"
                   style={{
                     color: 'transparent',
                     caretColor: 'white',
                     lineHeight: '1.5rem',
+                    fontSize: '0.875rem',
+                    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+                    letterSpacing: 'normal',
                   }}
                 />
               </div>
