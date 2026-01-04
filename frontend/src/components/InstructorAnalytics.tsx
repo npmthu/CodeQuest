@@ -46,11 +46,17 @@ import {
 } from "recharts";
 
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { useGenerateInstructorPDF, useGenerateInstructorCSV } from "../hooks/useReports";
 
 interface InstructorAnalyticsProps {}
 
 export default function InstructorAnalytics() {
   const navigate = useNavigate();
+  const [selectedPeriod, setSelectedPeriod] = useState('30d');
+  
+  const generatePDF = useGenerateInstructorPDF();
+  const generateCSV = useGenerateInstructorCSV();
   const overviewStats = [
     {
       label: "Total Views",
@@ -180,7 +186,7 @@ export default function InstructorAnalytics() {
           <p className="text-muted-foreground mt-1">Track your course performance and student engagement</p>
         </div>
         <div className="flex items-center gap-3">
-          <Select defaultValue="30d">
+          <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
             <SelectTrigger className="w-[180px]">
               <SelectValue />
             </SelectTrigger>
@@ -191,9 +197,13 @@ export default function InstructorAnalytics() {
               <SelectItem value="1y">Last year</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="outline">
+          <Button 
+            variant="outline"
+            onClick={() => generatePDF.mutate(selectedPeriod)}
+            disabled={generatePDF.isPending}
+          >
             <Download className="w-4 h-4 mr-2" />
-            Export Report
+            {generatePDF.isPending ? 'Generating...' : 'Export Report'}
           </Button>
         </div>
       </div>
