@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -44,6 +45,9 @@ import ForumPostDetail from "./ForumPostDetail";
 
 export default function ForumPage() {
   const { user } = useAuth();
+  const { postId } = useParams<{ postId: string }>();
+  const navigate = useNavigate();
+  
   const [currentView, setCurrentView] = useState<"list" | "detail">("list");
   const [selectedPost, setSelectedPost] = useState<ForumPostWithAuthor | null>(null);
   const [isNewPostOpen, setIsNewPostOpen] = useState(false);
@@ -60,10 +64,22 @@ export default function ForumPage() {
   const createPostMutation = useCreateForumPost();
   const deletePostMutation = useDeleteForumPost();
   
-  // Fetch single post detail when viewing detail
+  // Fetch single post detail when viewing detail or when postId is in URL
   const { data: postDetailData, refetch: refetchPostDetail } = useForumPost(
-    selectedPost?.id || ''
+    postId || selectedPost?.id || ''
   );
+
+  // Handle URL-based navigation
+  useEffect(() => {
+    if (postId && postDetailData) {
+      setSelectedPost(postDetailData);
+      setCurrentView("detail");
+    } else if (!postId && currentView === "detail") {
+      // If no postId in URL but we're in detail view, go back to list
+      setCurrentView("list");
+      setSelectedPost(null);
+    }
+  }, [postId, postDetailData, currentView]);
 
   // Available tags for filtering (standardized lowercase for consistency)
   const availableTags = [
@@ -139,13 +155,13 @@ export default function ForumPage() {
   }, [postsData, sortBy]);
 
   const handleViewPost = (post: ForumPostWithAuthor) => {
-    setSelectedPost(post);
-    setCurrentView("detail");
+    // Navigate to the post URL instead of just changing view
+    navigate(`/forum/${post.id}`);
   };
 
   const handleBackToList = () => {
-    setCurrentView("list");
-    setSelectedPost(null);
+    // Navigate back to forum list
+    navigate('/forum');
   };
 
   const handleCreatePost = async () => {
