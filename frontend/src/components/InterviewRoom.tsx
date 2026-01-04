@@ -8,6 +8,7 @@ declare module 'simple-peer/simplepeer.min.js';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
+import VideoGrid from './VideoGrid';
 import { 
   Video, 
   VideoOff, 
@@ -66,6 +67,7 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
   const [sessionEndReason, setSessionEndReason] = useState<string | null>(null);
   const [isReconnecting, setIsReconnecting] = useState(false);
   const [disconnectedUsers, setDisconnectedUsers] = useState<Set<string>>(new Set());
+  const [pinnedParticipantId, setPinnedParticipantId] = useState<string | null>(null);
   
   // Session details for feedback
   const [bookingId, setBookingId] = useState<string | null>(null);
@@ -75,6 +77,7 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
   // Refs
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
+  const localStreamRef = useRef<MediaStream | null>(null); // Track current stream
   const peersRef = useRef<Map<string, InstanceType<typeof Peer>>>(new Map());
   const socketRef = useRef<Socket | null>(null);
   const reconnectAttempts = useRef(0);
@@ -310,6 +313,16 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
       setIsConnecting(false);
     });
 
+    // Handle participant kick (when instructor removes someone)
+    newSocket.on('participant-kicked', (data) => {
+      console.log('🚫 You have been removed from the session:', data);
+      toast.error('You have been removed from the session');
+      cleanup();
+      setSessionEnded(true);
+      setSessionEndReason('You have been removed from the session');
+      setTimeout(() => navigate('/dashboard'), 2000);
+    });
+
     return () => {
       newSocket.close();
       cleanup();
@@ -359,6 +372,7 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
         }
 
         setLocalStream(stream);
+        localStreamRef.current = stream; // Keep ref in sync
         
         if (localVideoRef.current) {
           localVideoRef.current.srcObject = stream;
@@ -396,6 +410,7 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
             
             if (mounted) {
               setLocalStream(basicStream);
+              localStreamRef.current = basicStream; // Keep ref in sync
               if (localVideoRef.current) {
                 localVideoRef.current.srcObject = basicStream;
               }
@@ -418,7 +433,21 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
 
     return () => {
       mounted = false;
-      // Don't cleanup stream here, let cleanup() handle it
+      // Cleanup on unmount - use ref to get current stream
+      console.log('🧹 Component unmounting - cleaning up all media');
+      const stream = localStreamRef.current;
+      if (stream) {
+        stream.getTracks().forEach(track => {
+          track.stop();
+          track.enabled = false;
+          console.log('🛑 Stopped track on unmount:', track.kind);
+        });
+      }
+      
+      // Disconnect socket
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+      }
     };
   }, []);
 
@@ -765,12 +794,56 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
   }, [localStream, isVideoEnabled]);
 
   const leaveRoom = useCallback(() => {
+    console.log('👋 Leaving room...');
     if (socketRef.current) {
       socketRef.current.emit('leave-room');
+      socketRef.current.disconnect();
     }
-    cleanup();
-    navigate('/dashboard');
-  }, [navigate]);
+    
+    // Stop all tracks immediately
+    if (localStream) {
+      console.log('🛑 Stopping all local tracks before leave');
+      localStream.getTracks().forEach(track => {
+        console.log('  📹 Track:', track.kind, 'readyState:', track.readyState);
+        track.stop();
+        track.enabled = false;
+        console.log('  ✅ Stopped:', track.kind, 'new readyState:', track.readyState);
+      });
+    }
+    
+    // Stop local video element
+    if (localVideoRef.current && localVideoRef.current.srcObject) {
+      const tracks = (localVideoRef.current.srcObject as MediaStream).getTracks();
+      tracks.forEach(track => {
+        track.stop();
+        track.enabled = false;
+      });
+      localVideoRef.current.srcObject = null;
+    }
+    
+    // Stop all remote streams
+    remoteStreams.forEach((stream, userId) => {
+      console.log('🛑 Stopping remote stream from:', userId);
+      stream.getTracks().forEach(track => {
+        track.stop();
+        track.enabled = false;
+      });
+    });
+    
+    // Destroy all peers
+    peersRef.current.forEach((peer, userId) => {
+      console.log('🔌 Destroying peer:', userId);
+      peer.destroy();
+    });
+    peersRef.current.clear();
+    
+    console.log('✅ All media stopped, navigating...');
+    
+    // Navigate after a short delay to ensure cleanup completes
+    setTimeout(() => {
+      navigate('/dashboard');
+    }, 100);
+  }, [navigate, localStream, remoteStreams]);
 
   // End session - instructor only
   const endSession = useCallback(async () => {
@@ -825,15 +898,19 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
   const cleanup = useCallback(() => {
     console.log('🧹 Cleaning up media streams and peer connections...');
     
-    // Stop local stream tracks
-    if (localStream) {
-      console.log('🛑 Stopping', localStream.getTracks().length, 'local tracks');
-      localStream.getTracks().forEach(track => {
+    // Stop local stream tracks IMMEDIATELY using ref to avoid stale closure
+    const stream = localStreamRef.current;
+    if (stream) {
+      console.log('🛑 Stopping', stream.getTracks().length, 'local tracks');
+      stream.getTracks().forEach(track => {
+        console.log('  📹 Track before stop:', track.kind, 'readyState:', track.readyState);
         track.stop();
-        console.log('  ✓ Stopped', track.kind, 'track');
+        track.enabled = false; // Also disable the track
+        console.log('  ✓ Stopped', track.kind, 'track, new readyState:', track.readyState);
       });
     }
     setLocalStream(null);
+    localStreamRef.current = null; // Keep ref in sync
 
     // Stop local video element
     if (localVideoRef.current && localVideoRef.current.srcObject) {
@@ -871,7 +948,7 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
     setRemoteStreams(new Map());
     
     console.log('✅ Cleanup complete');
-  }, [localStream, remoteStreams]);
+  }, []); // Empty deps - uses refs to avoid stale closures
 
   // Get the main remote stream (first available)
   const mainRemoteStream = remoteStreams.size > 0 
@@ -902,7 +979,11 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
             </Button>
             
             <Button 
-              onClick={() => navigate('/dashboard')}
+              onClick={() => {
+                console.log('🏠 Returning to dashboard...');
+                cleanup();
+                setTimeout(() => navigate('/dashboard'), 100);
+              }}
               className="w-full"
               variant={userRole === 'learner' ? 'outline' : 'default'}
             >
@@ -912,8 +993,12 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
             {userRole === 'learner' && (
               <Button 
                 variant="ghost"
-                onClick={() => navigate('/interviews')}
-                className="w-full"
+                onClick={() => {
+                  console.log('🔍 Viewing more sessions...');
+                  cleanup();
+                  setTimeout(() => navigate('/interviews'), 100);
+                }}
+                className="w-full bg-white"
               >
                 View More Sessions
               </Button>
@@ -945,7 +1030,21 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
             <Button 
               variant="ghost" 
               size="sm" 
-              onClick={() => navigate('/dashboard')}
+              onClick={() => {
+                console.log('👋 Back button clicked - cleaning up...');
+                if (localStream) {
+                  localStream.getTracks().forEach(track => {
+                    console.log('🛑 Stopping track:', track.kind);
+                    track.stop();
+                    track.enabled = false;
+                  });
+                }
+                cleanup();
+                if (socketRef.current) {
+                  socketRef.current.emit('leave-room');
+                }
+                setTimeout(() => navigate('/dashboard'), 100);
+              }}
               className="text-gray-300 hover:text-white"
             >
               ← Back
@@ -1049,83 +1148,76 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
           </div>
         )}
 
-        {/* Always show video grid */}
+        {/* Multi-party Video Grid */}
+        <div className="max-w-7xl mx-auto mb-4">
+          {/* Build participants array for VideoGrid */}
+          {localStream && (
+            <VideoGrid
+              participants={[
+                // Local user
+                {
+                  id: user?.id || 'local',
+                  userId: user?.id || 'local',
+                  displayName: profile?.fullName || 'You',
+                  role: userRole as 'instructor' | 'learner' | 'observer',
+                  stream: localStream,
+                  audioEnabled: isAudioEnabled,
+                  videoEnabled: isVideoEnabled,
+                  connectionQuality: 'excellent' as const
+                },
+                // Remote users
+                ...Array.from(remoteStreams.entries()).map(([userId, stream]) => {
+                  const participant = participants.find(p => p.userId === userId);
+                  return {
+                    id: userId,
+                    userId: userId,
+                    displayName: participant?.role === 'instructor' ? 'Instructor' : `Learner ${participants.indexOf(participant!) + 1}`,
+                    role: (participant?.role as 'instructor' | 'learner' | 'observer') || 'learner',
+                    stream: stream,
+                    audioEnabled: participant?.mediaState?.audioEnabled ?? true,
+                    videoEnabled: participant?.mediaState?.videoEnabled ?? true,
+                    connectionQuality: 'good' as const
+                  };
+                })
+              ]}
+              localUserId={user?.id || 'local'}
+              isInstructor={userRole === 'instructor'}
+              pinnedParticipantId={pinnedParticipantId}
+              onPin={setPinnedParticipantId}
+              onMuteParticipant={(participantId: string) => {
+                // Find peer and toggle audio
+                const peer = peersRef.current.get(participantId);
+                if (peer && localStream) {
+                  const audioTrack = localStream.getAudioTracks()[0];
+                  if (audioTrack) {
+                    audioTrack.enabled = !audioTrack.enabled;
+                    setIsAudioEnabled(audioTrack.enabled);
+                    // Notify others
+                    socketRef.current?.emit('media-state-changed', {
+                      audioEnabled: audioTrack.enabled,
+                      videoEnabled: isVideoEnabled
+                    });
+                  }
+                }
+              }}
+              onKickParticipant={(participantId: string) => {
+                // Only instructor can kick
+                if (userRole === 'instructor') {
+                  const peer = peersRef.current.get(participantId);
+                  if (peer) {
+                    peer.destroy();
+                    peersRef.current.delete(participantId);
+                    socketRef.current?.emit('kick-participant', { targetUserId: participantId });
+                    toast.success(`Participant removed from session`);
+                  }
+                }
+              }}
+            />
+          )}
+        </div>
+
+        {/* Controls and Participants */}
         <div className="max-w-7xl mx-auto">
-            {/* Video Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-              {/* Remote Video (Main) */}
-              <div className="relative aspect-video bg-gray-800 rounded-lg overflow-hidden">
-                {mainRemoteStream ? (
-                  <video
-                    ref={remoteVideoRef}
-                    autoPlay
-                    playsInline
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="flex items-center justify-center h-full">
-                    <div className="text-center">
-                      <Video className="w-12 h-12 mx-auto mb-2 text-gray-600" />
-                      <p className="text-gray-400">Waiting for participant...</p>
-                    </div>
-                  </div>
-                )}
-                
-                {/* Remote User Info */}
-                {participants.length > 0 && (
-                  <div className="absolute top-4 left-4 bg-black bg-opacity-50 px-3 py-2 rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <User className="w-4 h-4" />
-                      <span className="text-sm">
-                        {participants[0].role === 'instructor' ? 'Instructor' : 'Learner'}
-                      </span>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Local Video (Picture-in-Picture) */}
-              <div className="relative aspect-video bg-gray-800 rounded-lg overflow-hidden">
-                {localStream ? (
-                  <video
-                    ref={localVideoRef}
-                    autoPlay
-                    playsInline
-                    muted
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="flex items-center justify-center h-full">
-                    <div className="text-center">
-                      <VideoOff className="w-12 h-12 mx-auto mb-2 text-gray-600" />
-                      <p className="text-gray-400">Camera off</p>
-                    </div>
-                  </div>
-                )}
-                
-                {/* Local User Info */}
-                <div className="absolute top-4 left-4 bg-black bg-opacity-50 px-3 py-2 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-white">You ({userRole})</span>
-                  </div>
-                </div>
-
-                {/* Media Status Indicators */}
-                <div className="absolute bottom-4 right-4 flex gap-2">
-                  {!isAudioEnabled && (
-                    <div className="bg-red-600 p-2 rounded-full">
-                      <MicOff className="w-4 h-4" />
-                    </div>
-                  )}
-                  {!isVideoEnabled && (
-                    <div className="bg-red-600 p-2 rounded-full">
-                      <VideoOff className="w-4 h-4" />
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
             {/* Controls */}
             <div className="flex justify-center">
               <Card className="bg-gray-800 border-gray-700 px-6 py-4">
@@ -1216,7 +1308,7 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
               </Card>
             )}
           </div>
+        </div>
       </div>
-    </div>
   );
 }
