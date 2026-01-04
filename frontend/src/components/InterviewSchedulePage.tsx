@@ -27,7 +27,7 @@ import {
   Clock,
   Plus,
   Video,
-  Users,
+
   Bell,
   CheckCircle,
   X,

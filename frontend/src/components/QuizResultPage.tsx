@@ -1,10 +1,10 @@
-import React from "react";
+// React hooks and components imported below
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuizResult } from "../hooks/useApi";
 
 export default function QuizResultPage() {
   const { id, resultId } = useParams<{ id: string; resultId: string }>();
-  const navigate = useNavigate();
+  useNavigate();
   const {
     data: result,
     isLoading,

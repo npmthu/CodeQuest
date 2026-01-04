@@ -47,18 +47,6 @@ export default function DashboardLayout({
   ];
 
   const instructorMenuItems = [
-    { path: "/instructor/dashboard", label: "Dashboard", icon: Home },
-    { path: "/instructor/courses", label: "My Courses", icon: VideoIcon },
-    {
-      path: "/instructor/interviews",
-      label: "Mock Interviews",
-      icon: VideoIcon,
-    },
-    { path: "/quizzes", label: "Quizzes", icon: ClipboardList },
-    { path: "/instructor/analytics", label: "Analytics", icon: BarChart3 },
-    { path: "/forum", label: "Forum", icon: MessageSquare },
-    { path: "/profile", label: "Profile", icon: User },
-    { path: "/settings", label: "Settings", icon: Settings },
     { path: "/instructor/dashboard", label: t("nav.dashboard"), icon: Home },
     { path: "/instructor/courses", label: t("nav.myCourses"), icon: VideoIcon },
     {

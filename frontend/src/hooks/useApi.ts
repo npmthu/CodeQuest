@@ -795,12 +795,12 @@ export function useVoteForumItem() {
       votableType,
       votableId,
       voteType,
-      postId,
+      _postId,
     }: {
       votableType: "post" | "reply";
       votableId: string;
       voteType: "upvote" | "downvote";
-      postId: string; // needed to update userVotes cache
+      _postId: string; // needed to update userVotes cache
     }) => {
       return apiFetch("/forum/vote", {
         method: "POST",
@@ -809,19 +809,19 @@ export function useVoteForumItem() {
     },
 
     onMutate: async (variables) => {
-      const { votableType, votableId, voteType, postId } = variables;
+      const { votableType, votableId, voteType, _postId } = variables;
 
       // Cancel outgoing refetches
-      await queryClient.cancelQueries({ queryKey: ["forumPost", postId] });
+      await queryClient.cancelQueries({ queryKey: ["forumPost", _postId] });
       await queryClient.cancelQueries({ queryKey: ["forumPosts"] });
-      await queryClient.cancelQueries({ queryKey: ["userVotes", postId] });
+      await queryClient.cancelQueries({ queryKey: ["userVotes", _postId] });
 
       // Snapshot previous values
-      const previousPost = queryClient.getQueryData(["forumPost", postId]);
+      const previousPost = queryClient.getQueryData(["forumPost", _postId]);
       const previousList = queryClient.getQueryData(["forumPosts"]);
       const previousVotes = queryClient.getQueryData([
         "userVotes",
-        postId,
+        _postId,
       ]) as any;
 
       // Determine if this is toggling off or changing vote
@@ -835,7 +835,7 @@ export function useVoteForumItem() {
 
       // Optimistically update post/reply upvotes
       if (votableType === "post") {
-        queryClient.setQueryData(["forumPost", postId], (old: any) => {
+        queryClient.setQueryData(["forumPost", _postId], (old: any) => {
           if (!old) return old;
           return {
             ...old,
@@ -853,7 +853,7 @@ export function useVoteForumItem() {
         });
       } else {
         // Update reply upvotes
-        queryClient.setQueryData(["forumPost", postId], (old: any) => {
+        queryClient.setQueryData(["forumPost", _postId], (old: any) => {
           if (!old) return old;
           return {
             ...old,
@@ -868,7 +868,7 @@ export function useVoteForumItem() {
       }
 
       // Update user votes cache
-      queryClient.setQueryData(["userVotes", postId], (old: any) => {
+      queryClient.setQueryData(["userVotes", _postId], (old: any) => {
         if (!old) return old;
         if (votableType === "post") {
           return {
@@ -893,7 +893,7 @@ export function useVoteForumItem() {
       // Rollback on error
       if (context?.previousPost) {
         queryClient.setQueryData(
-          ["forumPost", variables.postId],
+          ["forumPost", variables._postId],
           context.previousPost
         );
       }
@@ -902,7 +902,7 @@ export function useVoteForumItem() {
       }
       if (context?.previousVotes) {
         queryClient.setQueryData(
-          ["userVotes", variables.postId],
+          ["userVotes", variables. _postId],
           context.previousVotes
         );
       }
@@ -911,11 +911,11 @@ export function useVoteForumItem() {
     onSuccess: (_data, variables) => {
       // Refetch to ensure consistency
       queryClient.invalidateQueries({
-        queryKey: ["forumPost", variables.postId],
+        queryKey: ["forumPost", variables._postId],
       });
       queryClient.invalidateQueries({ queryKey: ["forumPosts"] });
       queryClient.invalidateQueries({
-        queryKey: ["userVotes", variables.postId],
+        queryKey: ["userVotes", variables._postId],
       });
     },
   });
@@ -944,10 +944,10 @@ export function useDeleteReply() {
   return useMutation({
     mutationFn: async ({
       replyId,
-      postId,
+      _postId,
     }: {
       replyId: string;
-      postId: string;
+      _postId: string;
     }) => {
       return apiFetch(`/forum/replies/${replyId}`, {
         method: "DELETE",
@@ -955,7 +955,7 @@ export function useDeleteReply() {
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
-        queryKey: ["forumPost", variables.postId],
+        queryKey: ["forumPost", variables._postId],
       });
       queryClient.invalidateQueries({ queryKey: ["forumPosts"] });
     },

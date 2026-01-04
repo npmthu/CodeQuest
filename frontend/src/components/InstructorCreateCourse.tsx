@@ -4,7 +4,7 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
 import { Label } from "./ui/label";
-import { Badge } from "./ui/badge";
+
 import { Progress } from "./ui/progress";
 import {
   Select,
@@ -20,19 +20,18 @@ import {
   Upload,
   Image as ImageIcon,
   Video,
-  FileText,
+
   CheckCircle,
   AlertCircle,
   Info,
   DollarSign,
-  Users,
-  Clock,
+
   BookOpen,
   Target,
   Award,
 } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
-import { ImageWithFallback } from "./figma/ImageWithFallback";
+
+
 
 import { useNavigate } from "react-router-dom";
 

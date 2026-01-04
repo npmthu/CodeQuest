@@ -30,7 +30,7 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  ResponsiveContainer
+
 } from "recharts";
 import {
   DropdownMenu,
@@ -47,15 +47,13 @@ import {
 
 import { useNavigate } from "react-router-dom";
 
-interface InstructorDashboardProps {}
-
 export default function InstructorDashboard() {
   const navigate = useNavigate();
   // Fetch real data from API
-  const { data: instructorStats, isLoading: statsLoading } = useInstructorStats();
-  const { data: instructorCourses, isLoading: coursesLoading } = useInstructorCourses();
-  const { data: instructorAnalytics, isLoading: analyticsLoading } = useInstructorAnalytics();
-  const { data: instructorActivities, isLoading: activitiesLoading } = useInstructorActivities();
+  const { data: instructorStats } = useInstructorStats();
+  const { data: instructorCourses } = useInstructorCourses();
+  const { data: instructorAnalytics } = useInstructorAnalytics();
+  const { data: instructorActivities } = useInstructorActivities();
 
   // Transform API data to stats format
   const stats = [

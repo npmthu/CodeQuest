@@ -18,7 +18,7 @@ import {
 import { useNavigate, useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { useLessons, useQuizzes, useGetCurrentLesson } from "../hooks/useApi";
-import type { Lesson, LessonWithProgress } from "../interfaces";
+import type { LessonWithProgress } from "../interfaces";
 
 export default function LessonPage() {
   const navigate = useNavigate();
@@ -44,10 +44,12 @@ export default function LessonPage() {
     if (currentLessonData?.id) {
       setCurrentLessonId(currentLessonData.id);
     } else if (lessonsData && lessonsData.length > 0) {
-      // Find first incomplete lesson
-      const firstIncomplete = lessonsData.find((l) => !l.isCompleted);
+      // Find first incomplete lesson or use first lesson
+      const firstIncomplete = lessonsData.find((l: any) => !l.isCompleted);
       if (firstIncomplete) {
         setCurrentLessonId(firstIncomplete.id);
+      } else {
+        setCurrentLessonId(lessonsData[0].id);
       }
     }
   }, [currentLessonData, lessonsData]);
@@ -146,7 +148,8 @@ export default function LessonPage() {
               const isCompleted = lesson.isCompleted;
               const isCurrent = currentLessonId === lesson.id;
 
-              const getLessonIcon = () => {
+              // Get lesson icon based on difficulty
+              const getLessonIconComponent = () => {
                 if (lesson.difficulty === "easy")
                   return <FileText className="w-5 h-5" />;
                 if (lesson.difficulty === "medium")

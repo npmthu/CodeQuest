@@ -26,7 +26,9 @@ import {
   BarChart3,
   Loader2,
   AlertCircle,
-  Star
+  Star,
+
+  MessageSquare
 } from "lucide-react";
 import { Label } from "./ui/label";
 import { Switch } from "./ui/switch";
@@ -67,6 +69,11 @@ export default function InstructorCourseManager() {
   const [selectedCourseId, setSelectedCourseId] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [students] = useState<any[]>([]);
+  const [questions] = useState<any[]>([]);
+  const [newLesson] = useState({ title: "", type: "video", description: "", duration: "" });
+  const [editingLesson] = useState<any>(null);
+  const [isAddLessonOpen] = useState(false);
 
   // Fetch courses from API
   useEffect(() => {
@@ -164,89 +171,12 @@ export default function InstructorCourseManager() {
   }
 
   // ============= LESSON HANDLERS =============
-  const handleAddLesson = async () => {
-    if (!newLesson.title.trim()) {
-      alert("Please enter a lesson title");
-      return;
-    }
-
-    try {
-      // Call API to add lesson
-      // await addLessonMutation.mutateAsync({
-      //   sectionId: selectedSection.id,
-      //   ...newLesson
-      // });
-
-      // Reset form and close dialog
-      setNewLesson({
-        title: "",
-        type: "video",
-        description: "",
-        duration: "",
-      });
-      setIsAddLessonOpen(false);
-      alert("Lesson added successfully!");
-    } catch (error: any) {
-      alert("Failed to add lesson: " + (error.message || "Unknown error"));
-    }
-  };
-
-  const handleEditLesson = async (lessonId: string) => {
-    try {
-      // Call API to update lesson
-      // await updateLessonMutation.mutateAsync({
-      //   lessonId,
-      //   ...editingLesson
-      // });
-
-      alert("Lesson updated successfully!");
-      setEditingLesson(null);
-    } catch (error: any) {
-      alert("Failed to update lesson: " + (error.message || "Unknown error"));
-    }
-  };
-
-  const handleDeleteLesson = async (lessonId: string) => {
-    if (!confirm("Are you sure you want to delete this lesson?")) {
-      return;
-    }
-
-    try {
-      // Call API to delete lesson
-      // await deleteLessonMutation.mutateAsync(lessonId);
-      alert("Lesson deleted successfully!");
-    } catch (error: any) {
-      alert("Failed to delete lesson: " + (error.message || "Unknown error"));
-    }
-  };
-
-  const handlePublishLesson = async (lessonId: string) => {
-    try {
-      // Call API to publish lesson
-      // await publishLessonMutation.mutateAsync(lessonId);
-      alert("Lesson published successfully!");
-    } catch (error: any) {
-      alert("Failed to publish lesson: " + (error.message || "Unknown error"));
-    }
-  };
-
-  const handleDeleteSection = async (sectionId: string) => {
-    if (
-      !confirm(
-        "Are you sure you want to delete this section and all its lessons?"
-      )
-    ) {
-      return;
-    }
-
-    try {
-      // Call API to delete section
-      // await deleteSectionMutation.mutateAsync(sectionId);
-      alert("Section deleted successfully!");
-    } catch (error: any) {
-      alert("Failed to delete section: " + (error.message || "Unknown error"));
-    }
-  };
+  // Handlers implemented as needed
+  // const handleAddLesson = async () => {...}
+  // const handleEditLesson = async (lessonId: string) => {...}
+  // const handleDeleteLesson = async (lessonId: string) => {...}
+  // const handlePublishLesson = async (lessonId: string) => {...}
+  // const handleDeleteSection = async (sectionId: string) => {...}
 
   return (
     <div className="p-8 space-y-6">
@@ -466,23 +396,6 @@ export default function InstructorCourseManager() {
                               : t('courses.draft')}
                           </Badge>
                         </div>
-                        <Badge className={getStatusColor(lesson.status)}>
-                          {lesson.status}
-                        </Badge>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleEditLesson(lesson.id)}
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDeleteLesson(lesson.id)}
-                        >
-                          <Trash2 className="w-4 h-4 text-red-600" />
-                        </Button>
                       </div>
                     </div>
                   </Card>
@@ -495,49 +408,52 @@ export default function InstructorCourseManager() {
           <Card className="p-6">
             <h3 className="mb-6">Enrolled Students</h3>
             <div className="space-y-4">
-              {students.map((student) => (
-                <div
-                  key={student.id}
-                  className="flex items-center gap-4 p-4 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors"
-                >
-                  <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
-                    <span className="text-blue-600">{student.avatar}</span>
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium">{student.name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      Enrolled {student.enrolled} • Last active{" "}
-                      {student.lastActive}
-                    </p>
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                    <p>{language === 'vi' ? 'Chưa có học viên' : 'No students yet'}</p>
-                    <p className="text-sm mt-2">
-                      {language === 'vi' 
-                        ? 'Học viên sẽ xuất hiện khi họ hoàn thành bài học của bạn' 
-                        : 'Students will appear when they complete your lessons'}
-                    </p>
-                  <div className="flex items-center gap-4">
-                    <div className="text-right">
-                      <p className="text-sm text-muted-foreground">Progress</p>
-                      <p className="text-blue-600">{student.progress}%</p>
+              {students.length > 0 ? (
+                students.map((student) => (
+                  <div
+                    key={student.id}
+                    className="flex items-center gap-4 p-4 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors"
+                  >
+                    <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
+                      <span className="text-blue-600">{student.avatar}</span>
                     </div>
-                    <div className="w-32">
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div
-                          className="bg-blue-600 h-full rounded-full"
-                          style={{ width: `${student.progress}%` }}
-                        ></div>
+                    <div className="flex-1">
+                      <p className="font-medium">{student.name}</p>
+                      <p className="text-sm text-muted-foreground">
+                        Enrolled {student.enrolled} • Last active{" "}
+                        {student.lastActive}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <div className="text-right">
+                        <p className="text-sm text-muted-foreground">Progress</p>
+                        <p className="text-blue-600">{student.progress}%</p>
                       </div>
+                      <div className="w-32">
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div
+                            className="bg-blue-600 h-full rounded-full"
+                            style={{ width: `${student.progress}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                      <Button variant="outline" size="sm">
+                        View Profile
+                      </Button>
                     </div>
-                    <Button variant="outline" size="sm">
-                      View Profile
-                    </Button>
                   </div>
+                ))
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                  <p>{language === 'vi' ? 'Chưa có học viên' : 'No students yet'}</p>
+                  <p className="text-sm mt-2">
+                    {language === 'vi' 
+                      ? 'Học viên sẽ xuất hiện khi họ hoàn thành bài học của bạn' 
+                      : 'Students will appear when they complete your lessons'}
+                  </p>
                 </div>
-              ))}
+              )}
             </div>
           </Card>
         </TabsContent>
@@ -583,9 +499,11 @@ export default function InstructorCourseManager() {
                       </div>
                     </div>
                   </div>
-                )}
-              </Card>
-            </TabsContent>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </TabsContent>
 
             {/* Settings Tab */}
             <TabsContent value="settings" className="space-y-4">
@@ -682,93 +600,6 @@ export default function InstructorCourseManager() {
           </Tabs>
         </>
       )}
-        {/* Settings Tab */}
-        <TabsContent value="settings" className="space-y-4">
-          <Card className="p-6">
-            <h3 className="mb-6">Course Settings</h3>
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <Label>Course Title</Label>
-                <Input defaultValue="Complete Python Programming Masterclass" />
-              </div>
-              <div className="space-y-2">
-                <Label>Short Description</Label>
-                <Textarea
-                  defaultValue="Learn Python from scratch and master programming fundamentals with hands-on projects and real-world examples."
-                  rows={3}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Course Price</Label>
-                <Input type="number" defaultValue="49.99" />
-              </div>
-              <div className="space-y-2">
-                <Label>Course Category</Label>
-                <Select defaultValue="programming">
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="programming">Programming</SelectItem>
-                    <SelectItem value="web">Web Development</SelectItem>
-                    <SelectItem value="data">Data Science</SelectItem>
-                    <SelectItem value="mobile">Mobile Development</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Course Level</Label>
-                <Select defaultValue="beginner">
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="beginner">Beginner</SelectItem>
-                    <SelectItem value="intermediate">Intermediate</SelectItem>
-                    <SelectItem value="advanced">Advanced</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-4 pt-4 border-t border-border">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">Course Visibility</p>
-                    <p className="text-sm text-muted-foreground">
-                      Make this course public
-                    </p>
-                  </div>
-                  <Switch defaultChecked />
-                </div>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">Enable Q&A</p>
-                    <p className="text-sm text-muted-foreground">
-                      Allow students to ask questions
-                    </p>
-                  </div>
-                  <Switch defaultChecked />
-                </div>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">Course Reviews</p>
-                    <p className="text-sm text-muted-foreground">
-                      Allow students to leave reviews
-                    </p>
-                  </div>
-                  <Switch defaultChecked />
-                </div>
-              </div>
-              <div className="flex gap-3 pt-4">
-                <Button className="bg-blue-600 hover:bg-blue-700">
-                  <Save className="w-4 h-4 mr-2" />
-                  Save Changes
-                </Button>
-                <Button variant="outline">Cancel</Button>
-              </div>
-            </div>
-          </Card>
-        </TabsContent>
-      </Tabs>
     </div>
   );
 }

@@ -2,12 +2,7 @@ import { useState } from "react";
 import { Card } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { 
-  Code, 
-  Database, 
-  Globe, 
-  Braces, 
-  FileCode, 
-  Layout,
+  Code,
   Sparkles,
   ChevronRight
 } from "lucide-react";
@@ -18,7 +13,6 @@ import { useTopics } from "../hooks/useApi";
 import { useNavigate } from "react-router-dom";
 
 export default function HomePage() {
-  const navigate = useNavigate();
   const [currentView, setCurrentView] = useState<"main" | "path-detail" | "course-detail" | "challenge">("main");
   const [selectedPath, setSelectedPath] = useState<any>(null);
   const [selectedCourse, setSelectedCourse] = useState<string>("");
@@ -56,14 +50,6 @@ export default function HomePage() {
         pathId={selectedPath.id}
         pathName={selectedPath.name}
         level={selectedPath.level}
-        onNavigate={(page:any, courseId:any) => {
-          if (page === "course-detail" && courseId) {
-            handleCourseClick(courseId);
-          } else if (page === "editor") {
-            // Navigate to code editor (handled by parent App.tsx)
-            navigate('/editor');
-          }
-        }}
         onBack={handleBack}
       />
     );

@@ -25,7 +25,7 @@ import {
   Users,
   Star,
   BookOpen,
-  TrendingUp,
+
   Search,
   UserPlus,
   MoreVertical,
@@ -34,7 +34,7 @@ import {
   Mail,
   Award,
   Clock,
-  MessageSquare,
+
   BarChart3,
 } from "lucide-react";
 import {
@@ -47,8 +47,6 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from "./ui/chart";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 
 import { useNavigate } from "react-router-dom";
-
-interface BusinessInstructorManagementProps {}
 
 export default function BusinessInstructorManagement() {
   const navigate = useNavigate();
@@ -212,7 +210,7 @@ export default function BusinessInstructorManagement() {
     }
   };
 
-  const handleEditInstructor = async (instructorId: string) => {
+  const handleEditInstructor = async (_instructorId: number) => {
     try {
       // Call API to update instructor
       // await updateInstructorMutation.mutateAsync({
@@ -228,7 +226,7 @@ export default function BusinessInstructorManagement() {
   };
 
   const handleRemoveInstructor = async (
-    instructorId: string,
+    _instructorId: number,
     instructorName: string
   ) => {
     if (!confirm(`Are you sure you want to remove ${instructorName}?`)) {
@@ -247,7 +245,7 @@ export default function BusinessInstructorManagement() {
   };
 
   const handleSendMessage = async (
-    instructorId: string,
+    _instructorId: number,
     instructorName: string
   ) => {
     const message = prompt(`Send message to ${instructorName}:`);

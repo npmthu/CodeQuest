@@ -1,5 +1,5 @@
 import { Card } from "./ui/card";
-import { Badge } from "./ui/badge";
+
 import { ArrowLeft, BookOpen, FileText, Clock } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTopics } from "../hooks/useApi";

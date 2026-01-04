@@ -10,7 +10,6 @@ import {
   UserPlus,
   Target,
   Award,
-  Clock,
   CheckCircle,
   AlertCircle,
   BarChart3,
@@ -24,20 +23,16 @@ import {
 import { 
   LineChart,
   Line,
-  BarChart,
-  Bar,
   PieChart,
   Pie,
   Cell,
   XAxis,
   YAxis,
   CartesianGrid,
-  ResponsiveContainer
+
 } from "recharts";
 
 import { useNavigate } from "react-router-dom";
-
-interface BusinessDashboardProps {}
 
 export default function BusinessDashboard() {
   const navigate = useNavigate();

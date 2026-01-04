@@ -205,7 +205,7 @@ const ReplyItem = memo<ReplyItemProps>(({
 
 ReplyItem.displayName = 'ReplyItem';
 
-export default function ForumPostDetail({ post, onBack, onUpdate }: ForumPostDetailProps) {
+export default function ForumPostDetail({ post, onBack }: ForumPostDetailProps) {
   const { user } = useAuth();
   const [showReplyForm, setShowReplyForm] = useState(false);
   const [replyContent, setReplyContent] = useState("");
@@ -235,7 +235,7 @@ export default function ForumPostDetail({ post, onBack, onUpdate }: ForumPostDet
         votableType: votableType,
         votableId: votableId,
         voteType: 'upvote',
-        postId: post.id
+        _postId: post.id
       });
       setError(null);
     } catch (err: any) {
@@ -306,7 +306,7 @@ export default function ForumPostDetail({ post, onBack, onUpdate }: ForumPostDet
     }
 
     try {
-      await deleteReplyMutation.mutateAsync({ replyId, postId: post.id });
+      await deleteReplyMutation.mutateAsync({ replyId, _postId: post.id });
       setError(null);
     } catch (err: any) {
       setError(err.message || "Failed to delete reply");

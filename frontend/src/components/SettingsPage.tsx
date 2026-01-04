@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -16,6 +16,7 @@ import {
   AlertDialogTitle,
 } from "./ui/alert-dialog";
 import { useAuth } from "../contexts/AuthContext";
+import { useLanguage } from "../contexts/LanguageContext";
 import {
   useUpdateUserProfile,
   useChangePassword,
@@ -23,7 +24,7 @@ import {
   useRevokeSession,
 } from "../hooks/useApi";
 import { toast } from "sonner";
-import { User, Bell, Lock, Palette, Globe, Shield } from "lucide-react";
+import { User, Bell, Lock, Palette } from "lucide-react";
 
 interface UserPreferences {
   theme: "light" | "dark";
@@ -383,7 +384,7 @@ export default function SettingsPage() {
                 </div>
                 <Switch
                   checked={preferences.notifications.newLessonEmail}
-                  onCheckedChange={(checked) =>
+                  onCheckedChange={(checked: boolean) =>
                     handleNotificationToggle("newLessonEmail", checked)
                   }
                 />
@@ -397,7 +398,7 @@ export default function SettingsPage() {
                 </div>
                 <Switch
                   checked={preferences.notifications.forumRepliesEmail}
-                  onCheckedChange={(checked) =>
+                  onCheckedChange={(checked: boolean) =>
                     handleNotificationToggle("forumRepliesEmail", checked)
                   }
                 />
@@ -411,7 +412,7 @@ export default function SettingsPage() {
                 </div>
                 <Switch
                   checked={preferences.notifications.achievementEmail}
-                  onCheckedChange={(checked) =>
+                  onCheckedChange={(checked: boolean) =>
                     handleNotificationToggle("achievementEmail", checked)
                   }
                 />
@@ -425,7 +426,7 @@ export default function SettingsPage() {
                 </div>
                 <Switch
                   checked={preferences.notifications.weeklyProgressEmail}
-                  onCheckedChange={(checked) =>
+                  onCheckedChange={(checked: boolean) =>
                     handleNotificationToggle("weeklyProgressEmail", checked)
                   }
                 />
@@ -439,7 +440,7 @@ export default function SettingsPage() {
                 </div>
                 <Switch
                   checked={preferences.notifications.marketingEmail}
-                  onCheckedChange={(checked) =>
+                  onCheckedChange={(checked: boolean) =>
                     handleNotificationToggle("marketingEmail", checked)
                   }
                 />
@@ -459,7 +460,7 @@ export default function SettingsPage() {
                 </div>
                 <Switch
                   checked={preferences.notifications.dailyReminder}
-                  onCheckedChange={(checked) =>
+                  onCheckedChange={(checked: boolean) =>
                     handleNotificationToggle("dailyReminder", checked)
                   }
                 />
@@ -473,7 +474,7 @@ export default function SettingsPage() {
                 </div>
                 <Switch
                   checked={preferences.notifications.streakAlerts}
-                  onCheckedChange={(checked) =>
+                  onCheckedChange={(checked: boolean) =>
                     handleNotificationToggle("streakAlerts", checked)
                   }
                 />
@@ -607,7 +608,7 @@ export default function SettingsPage() {
           <Card className="p-6">
             <div className="flex items-center justify-between mb-6">
               <h3>{t("settings.appearance")}</h3>
-              {darkMode && (
+              {preferences.theme === "dark" && (
                 <Badge className="bg-purple-100 text-purple-700">
                   {t("settings.darkModeActive")}
                 </Badge>
@@ -623,7 +624,7 @@ export default function SettingsPage() {
                 </div>
                 <Switch
                   checked={preferences.theme === "dark"}
-                  onCheckedChange={(checked) =>
+                  onCheckedChange={(checked: boolean) =>
                     handlePreferenceChange("theme", checked ? "dark" : "light")
                   }
                 />
@@ -651,7 +652,7 @@ export default function SettingsPage() {
               <h3>{t("settings.languageRegion")}</h3>
               <Badge variant="outline">
                 {language === "vi" ? "🇻🇳 Tiếng Việt" : "🇺🇸 English"} •{" "}
-                {timezone}
+                {preferences.timezone}
               </Badge>
             </div>
             <div className="space-y-4 max-w-2xl">

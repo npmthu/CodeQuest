@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuiz, useQuizResults, useQuizStatistics } from "../hooks/useApi";
 import { QuizTake } from "./quiz/QuizTake";
@@ -7,7 +7,7 @@ import type { QuizDetail } from "../interfaces/quiz.interface";
 
 export default function QuizDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
+  useNavigate();
   const { user } = useAuth();
   const [showTake, setShowTake] = useState(false);
 

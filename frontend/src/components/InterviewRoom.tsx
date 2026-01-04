@@ -950,11 +950,6 @@ export default function InterviewRoom({ sessionId: propSessionId }: InterviewRoo
     console.log('✅ Cleanup complete');
   }, []); // Empty deps - uses refs to avoid stale closures
 
-  // Get the main remote stream (first available)
-  const mainRemoteStream = remoteStreams.size > 0 
-    ? Array.from(remoteStreams.values())[0] 
-    : null;
-
   // Session ended screen
   if (sessionEnded) {
     return (

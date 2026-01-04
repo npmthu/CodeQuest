@@ -1,6 +1,6 @@
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
-import { Badge } from "./ui/badge";
+
 import {
   Select,
   SelectContent,
@@ -12,15 +12,10 @@ import {
   TrendingUp,
   TrendingDown,
   Download,
-  Calendar,
-  Users,
-  BookOpen,
-  Target,
   Award,
   DollarSign,
   Clock,
   Activity,
-  BarChart3
 } from "lucide-react";
 import { 
   ChartContainer, 
@@ -40,7 +35,7 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  ResponsiveContainer,
+
   RadarChart,
   PolarGrid,
   PolarAngleAxis,
@@ -51,8 +46,6 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useGenerateBusinessPDF, useGenerateBusinessCSV } from "../hooks/useReports";
-
-interface BusinessAnalyticsProps {}
 
 export default function BusinessAnalytics() {
   const navigate = useNavigate();
