@@ -14,13 +14,13 @@ import {
   Video as VideoIcon,
   BarChart3,
   Building,
-  Users,
   Target,
   ClipboardList,
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { useAuth } from "../contexts/AuthContext";
+import { useLanguage } from "../contexts/LanguageContext";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -32,41 +32,42 @@ export default function DashboardLayout({
   userRole = "student",
 }: DashboardLayoutProps) {
   const { signOut } = useAuth();
+  const { t } = useLanguage();
   const location = useLocation();
 
   const studentMenuItems = [
-    { path: "/dashboard", label: "Dashboard", icon: Home },
-    { path: "/courses", label: "Courses", icon: BookOpen },
-    { path: "/quizzes", label: "Quizzes", icon: ClipboardList },
-    { path: "/forum", label: "Forum", icon: MessageSquare },
-    { path: "/notebook", label: "Notebook", icon: NotebookPen },
-    { path: "/interview", label: "Interview", icon: VideoIcon },
-    { path: "/profile", label: "Profile", icon: User },
-    { path: "/settings", label: "Settings", icon: Settings },
+    { path: "/dashboard", label: t('nav.dashboard'), icon: Home },
+    { path: "/courses", label: t('nav.courses'), icon: BookOpen },
+    { path: "/quizzes", label: t('nav.quizzes'), icon: ClipboardList },
+    { path: "/forum", label: t('nav.forum'), icon: MessageSquare },
+    { path: "/notebook", label: t('nav.notebook'), icon: NotebookPen },
+    { path: "/interview", label: t('nav.interview'), icon: VideoIcon },
+    { path: "/profile", label: t('nav.profile'), icon: User },
+    { path: "/settings", label: t('nav.settings'), icon: Settings },
   ];
 
   const instructorMenuItems = [
-    { path: "/instructor/dashboard", label: "Dashboard", icon: Home },
-    { path: "/instructor/courses", label: "My Courses", icon: VideoIcon },
-    { path: "/instructor/interviews", label: "Mock Interviews", icon: VideoIcon },
-    { path: "/quizzes", label: "Quizzes", icon: ClipboardList },
-    { path: "/instructor/analytics", label: "Analytics", icon: BarChart3 },
-    { path: "/forum", label: "Forum", icon: MessageSquare },
-    { path: "/profile", label: "Profile", icon: User },
-    { path: "/settings", label: "Settings", icon: Settings },
+    { path: "/instructor/dashboard", label: t('nav.dashboard'), icon: Home },
+    { path: "/instructor/courses", label: t('nav.myCourses'), icon: VideoIcon },
+    { path: "/instructor/interviews", label: t('nav.mockInterviews'), icon: VideoIcon },
+    { path: "/quizzes", label: t('nav.quizzes'), icon: ClipboardList },
+    { path: "/instructor/analytics", label: t('nav.analytics'), icon: BarChart3 },
+    { path: "/forum", label: t('nav.forum'), icon: MessageSquare },
+    { path: "/profile", label: t('nav.profile'), icon: User },
+    { path: "/settings", label: t('nav.settings'), icon: Settings },
   ];
 
   const businessMenuItems = [
-    { path: "/business/dashboard", label: "Dashboard", icon: Home },
-    { path: "/business/account", label: "Account Mgmt", icon: Building },
+    { path: "/business/dashboard", label: t('nav.dashboard'), icon: Home },
+    { path: "/business/account", label: t('nav.accountMgmt'), icon: Building },
     {
       path: "/business/instructors",
-      label: "Instructors",
+      label: t('nav.instructors'),
       icon: GraduationCap,
     },
-    { path: "/business/performance", label: "Performance", icon: Target },
-    { path: "/business/analytics", label: "Analytics", icon: BarChart3 },
-    { path: "/settings", label: "Settings", icon: Settings },
+    { path: "/business/performance", label: t('nav.performance'), icon: Target },
+    { path: "/business/analytics", label: t('nav.analytics'), icon: BarChart3 },
+    { path: "/settings", label: t('nav.settings'), icon: Settings },
   ];
 
   const menuItems =
@@ -90,24 +91,24 @@ export default function DashboardLayout({
   const getRoleLabel = () => {
     switch (userRole) {
       case "instructor":
-        return "Instructor Mode";
+        return t('role.instructor');
       case "business":
-        return "Business Partner";
+        return t('role.business');
       default:
-        return "Student Mode";
+        return t('role.student');
     }
   };
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="min-h-screen bg-background dark:bg-gray-900 flex">
       {/* Sidebar */}
-      <aside className="w-64 bg-white border-r border-border flex flex-col">
+      <aside className="w-64 bg-white dark:bg-gray-800 border-r border-border dark:border-gray-700 flex flex-col">
         {/* Logo */}
-        <div className="h-16 flex items-center gap-3 px-6 border-b border-border">
+        <div className="h-16 flex items-center gap-3 px-6 border-b border-border dark:border-gray-700">
           <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
             <Code2 className="w-5 h-5 text-white" />
           </div>
-          <span className="text-xl text-blue-600">CodeQuest</span>
+          <span className="text-xl text-blue-600 dark:text-blue-400">CodeQuest</span>
         </div>
 
         {/* Navigation */}
@@ -132,8 +133,8 @@ export default function DashboardLayout({
                   to={item.path}
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                     isActive
-                      ? "bg-blue-50 text-blue-600"
-                      : "text-gray-700 hover:bg-gray-50"
+                      ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
+                      : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                   }`}
                 >
                   <Icon className="w-5 h-5" />
@@ -145,24 +146,24 @@ export default function DashboardLayout({
         </nav>
 
         {/* User Section */}
-        <div className="p-4 border-t border-border">
+        <div className="p-4 border-t border-border dark:border-gray-700">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-              <span className="text-blue-600">BQ</span>
+            <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
+              <span className="text-blue-600 dark:text-blue-400">BQ</span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm truncate">Bug Quýt</p>
-              <p className="text-xs text-muted-foreground">Level 5</p>
+              <p className="text-sm truncate dark:text-gray-300">Bug Quýt</p>
+              <p className="text-xs text-muted-foreground dark:text-gray-500">Level 5</p>
             </div>
           </div>
           <Button
             variant="outline"
             size="sm"
-            className="w-full"
+            className="w-full dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
             onClick={() => signOut()}
           >
             <LogOut className="w-4 h-4 mr-2" />
-            Logout
+            {t('nav.logout')}
           </Button>
         </div>
       </aside>
@@ -170,20 +171,20 @@ export default function DashboardLayout({
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
         {/* Header */}
-        <header className="h-16 bg-white border-b border-border flex items-center justify-between px-8">
+        <header className="h-16 bg-white dark:bg-gray-800 border-b border-border dark:border-gray-700 flex items-center justify-between px-8">
           <div>
-            <h3 className="capitalize">
+            <h3 className="capitalize dark:text-gray-200">
               {location.pathname.split("/").pop() || "Dashboard"}
             </h3>
           </div>
           <div className="flex items-center gap-4">
-            <button className="relative p-2 hover:bg-gray-100 rounded-lg">
-              <Bell className="w-5 h-5 text-gray-600" />
+            <button className="relative p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
+              <Bell className="w-5 h-5 text-gray-600 dark:text-gray-400" />
               <span className="absolute top-1 right-1 w-2 h-2 bg-blue-600 rounded-full"></span>
             </button>
             <Link to="/pricing">
-              <Button variant="outline" size="sm">
-                Upgrade to Pro
+              <Button variant="outline" size="sm" className="dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
+                {t('nav.upgradeToPro')}
               </Button>
             </Link>
           </div>
