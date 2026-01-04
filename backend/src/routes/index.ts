@@ -21,6 +21,7 @@ import subscriptionRoutes from "./subscriptionRoutes";
 import mockInterviewRoutes from "./mockInterviewRoutes";
 import profileRoutes from "./profile.routes";
 import reportRoutes from "./report.routes";
+import adminRoutes from "./admin.routes";
 
 const router = express.Router();
 
@@ -46,5 +47,6 @@ router.use("/subscription", subscriptionRoutes);
 router.use("/mock-interviews", mockInterviewRoutes);
 router.use("/profile", profileRoutes);
 router.use("/reports", reportRoutes);
+router.use("/admin", adminRoutes);
 
 export default router;
