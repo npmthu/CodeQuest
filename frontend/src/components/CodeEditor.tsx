@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useApi } from "../api/ApiProvider";
-import { useProblems, useProblem, useRequestCodeReview, useCodeReview } from "../hooks/useApi";
+import { useProblems, useProblem, useRequestCodeReview, useCodeReview, useForumPosts } from "../hooks/useApi";
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
@@ -17,6 +17,9 @@ import {
   AlertTriangle,
   Loader2,
   Brain,
+  MessageSquare,
+  ThumbsUp,
+  ExternalLink,
 } from "lucide-react";
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
@@ -513,7 +516,7 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
               <TabsTrigger value="discussion">Discussion</TabsTrigger>
             </TabsList>
 
-            <div className="p-6 space-y-4">
+            <TabsContent value="description" className="p-6 space-y-4 m-0">
               <div className="text-sm text-gray-600">
                 <div className="mb-3">
                   <div className="font-medium">Input format</div>
@@ -551,22 +554,32 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
                   ))}
                 </div>
               </div>
+            </TabsContent>
 
-              <TabsContent value="hints" className="p-0 m-0">
+            <TabsContent value="hints" className="p-6 m-0">
+              <div className="mb-4">
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                  <Lightbulb className="w-5 h-5 text-blue-600" />
+                  Hints
+                </h3>
+              </div>
+              {(problem.hints || []).length > 0 ? (
                 <div className="space-y-3">
                   {(problem.hints || []).map((h: any, i: any) => (
                     <Card key={i} className="p-3 bg-blue-50 border-blue-200 flex items-start gap-3">
-                      <Lightbulb className="w-5 h-5 text-blue-600 mt-0.5" />
+                      <Lightbulb className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
                       <div className="text-sm">{h.content || h.text}</div>
                     </Card>
                   ))}
                 </div>
-              </TabsContent>
+              ) : (
+                <div className="text-sm text-gray-500">No hints available for this problem yet.</div>
+              )}
+            </TabsContent>
 
-              <TabsContent value="discussion" className="p-0 m-0">
-                <div className="text-sm text-gray-500">Discussion is not implemented in this demo.</div>
-              </TabsContent>
-            </div>
+            <TabsContent value="discussion" className="p-0 m-0">
+              <DiscussionTab problemId={problem.id} />
+            </TabsContent>
           </Tabs>
         </div>
 
@@ -976,6 +989,133 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
             </div>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------- Discussion Tab Component ----------
+interface DiscussionTabProps {
+  problemId: string;
+}
+
+function DiscussionTab({ problemId }: DiscussionTabProps) {
+  const navigate = useNavigate();
+  
+  // Fetch forum posts where related_problem_id matches this problem
+  const { data: allPosts, isLoading } = useForumPosts(null);
+  
+  // Filter posts related to this problem
+  const relatedPosts = (allPosts || []).filter(
+    (post: any) => post.relatedProblemId === problemId
+  );
+
+  const handlePostClick = (postId: string) => {
+    navigate(`/forum/${postId}`);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="p-6 flex items-center justify-center">
+        <Loader2 className="w-5 h-5 animate-spin text-gray-400 mr-2" />
+        <span className="text-sm text-gray-500">Loading discussions...</span>
+      </div>
+    );
+  }
+
+  if (relatedPosts.length === 0) {
+    return (
+      <div className="p-6">
+        <div className="text-center py-8">
+          <MessageSquare className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+          <h3 className="text-sm font-medium text-gray-700 mb-2">No discussions yet</h3>
+          <p className="text-xs text-gray-500 mb-4">
+            Be the first to start a discussion about this problem!
+          </p>
+          <Button
+            size="sm"
+            onClick={() => navigate('/forum')}
+            className="bg-blue-600 hover:bg-blue-700 text-white"
+          >
+            <MessageSquare className="w-4 h-4 mr-2" />
+            Start Discussion
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-6 space-y-3">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-sm font-semibold text-gray-700">
+          {relatedPosts.length} {relatedPosts.length === 1 ? 'Discussion' : 'Discussions'}
+        </h3>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => navigate('/forum')}
+        >
+          View All Forum
+        </Button>
+      </div>
+
+      <div className="space-y-2">
+        {relatedPosts.map((post: any) => (
+          <Card
+            key={post.id}
+            className="p-4 hover:bg-gray-50 cursor-pointer transition-colors border-gray-200"
+            onClick={() => handlePostClick(post.id)}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1 min-w-0">
+                <h4 className="text-sm font-medium text-gray-900 mb-1 line-clamp-2">
+                  {post.title}
+                </h4>
+                
+                <div className="flex items-center gap-3 text-xs text-gray-500">
+                  <span className="flex items-center gap-1">
+                    <ThumbsUp className="w-3 h-3" />
+                    {post.upvotes || 0}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <MessageSquare className="w-3 h-3" />
+                    {post.replyCount || 0}
+                  </span>
+                  {post.hasAcceptedAnswer && (
+                    <Badge className="bg-green-100 text-green-800 text-xs px-1.5 py-0">
+                      <CheckCircle2 className="w-3 h-3 mr-1" />
+                      Solved
+                    </Badge>
+                  )}
+                </div>
+
+                {post.tags && post.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {post.tags.slice(0, 3).map((tag: string, idx: number) => (
+                      <Badge
+                        key={idx}
+                        variant="outline"
+                        className="text-xs px-1.5 py-0"
+                      >
+                        {tag}
+                      </Badge>
+                    ))}
+                    {post.tags.length > 3 && (
+                      <span className="text-xs text-gray-400">+{post.tags.length - 3}</span>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <ExternalLink className="w-4 h-4 text-gray-400 flex-shrink-0" />
+            </div>
+
+            <div className="mt-2 text-xs text-gray-500">
+              by {post.author?.displayName || 'Anonymous'} • {new Date(post.createdAt).toLocaleDateString()}
+            </div>
+          </Card>
+        ))}
       </div>
     </div>
   );
