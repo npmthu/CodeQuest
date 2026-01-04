@@ -432,10 +432,16 @@ export function useBusinessActivities() {
 }
 
 // Forum Hooks
-export function useForumPosts() {
+
+/**
+ * Fetch forum posts with optional tag filter
+ * @param tag - Optional tag to filter posts by
+ */
+export function useForumPosts(tag?: string | null) {
   return useQuery({
-    queryKey: ["forumPosts"],
-    queryFn: () => forumService.getPosts(),
+    // Include tag in query key to refetch when tag changes
+    queryKey: ["forumPosts", tag || "all"],
+    queryFn: () => forumService.getPosts(tag || undefined),
   });
 }
 
@@ -790,7 +796,7 @@ export function useInterviewSessions() {
   return useQuery({
     queryKey: ["interviewSessions"],
     queryFn: async () => {
-      const result = await apiFetch("/interview/sessions");
+      const result = await apiFetch("/interview/sessions?limit=1000");
       return result.data || [];
     },
   });
