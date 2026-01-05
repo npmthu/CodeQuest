@@ -320,7 +320,7 @@ export default function ForumPage() {
           />
         </div>
         <Select value={sortBy} onValueChange={(value: "recent" | "popular" | "mostReplies") => setSortBy(value)}>
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-[180px] border-2 border-gray-300 shadow-md">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -393,7 +393,7 @@ export default function ForumPage() {
           sortedPosts.map((post: ForumPostWithAuthor) => (
             <Card 
               key={post.id} 
-              className="p-6 hover:shadow-md transition-shadow cursor-pointer"
+              className="p-6 hover:shadow-lg transition-shadow cursor-pointer border-2 border-gray-300 shadow-md"
               onClick={() => handleViewPost(post)}
             >
               <div className="flex gap-4">
@@ -449,11 +449,11 @@ export default function ForumPage() {
 
                   {/* Stats */}
                   <div className="flex items-center gap-6 mt-4 text-sm text-muted-foreground">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-md" style={{ backgroundColor: '#B6DA9F' }}>
                       <MessageSquare className="w-4 h-4" />
                       <span>{post.replyCount || 0} replies</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-md" style={{ backgroundColor: '#FFB3C6' }}>
                       <ThumbsUp className="w-4 h-4" />
                       <span>{post.upvotes || 0}</span>
                     </div>
