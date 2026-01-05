@@ -231,16 +231,16 @@ export default function ReportsAnalytics() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-[#1E3A8A]">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 via-blue-900 to-blue-800 bg-clip-text text-transparent">
             Reports & Analytics
           </h1>
-          <p className="text-gray-600 mt-1">
+          <p className="text-gray-500 mt-1">
             Comprehensive platform insights and metrics
           </p>
         </div>
         <div className="flex items-center gap-3">
           <Select value={dateRange} onValueChange={setDateRange}>
-            <SelectTrigger className="w-40">
+            <SelectTrigger className="w-40 h-11 rounded-xl">
               <Calendar className="w-4 h-4 mr-2" />
               <SelectValue />
             </SelectTrigger>
@@ -251,7 +251,11 @@ export default function ReportsAnalytics() {
               <SelectItem value="year">This Year</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="outline" onClick={() => handleExport("full")}>
+          <Button
+            variant="outline"
+            onClick={() => handleExport("full")}
+            className="rounded-xl hover:bg-blue-50 hover:border-blue-200"
+          >
             <Download className="w-4 h-4 mr-2" />
             Export All
           </Button>
@@ -262,21 +266,35 @@ export default function ReportsAnalytics() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {kpiMetrics.map((metric) => {
           const Icon = metric.icon;
+          const gradientClasses: Record<string, string> = {
+            "bg-green-100 text-green-600":
+              "bg-gradient-to-br from-green-400 to-emerald-500 shadow-green-500/30",
+            "bg-blue-100 text-blue-600":
+              "bg-gradient-to-br from-blue-400 to-indigo-500 shadow-blue-500/30",
+            "bg-purple-100 text-purple-600":
+              "bg-gradient-to-br from-purple-400 to-violet-500 shadow-purple-500/30",
+            "bg-yellow-100 text-yellow-600":
+              "bg-gradient-to-br from-yellow-400 to-orange-500 shadow-yellow-500/30",
+          };
           return (
             <Card
               key={metric.label}
-              className="hover:shadow-lg transition-shadow"
+              className="rounded-2xl border-0 shadow-lg shadow-gray-200/50 hover:shadow-xl transition-all"
             >
               <CardContent className="p-5">
                 <div className="flex items-center justify-between">
                   <div
-                    className={`w-12 h-12 rounded-xl flex items-center justify-center ${metric.color}`}
+                    className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-lg ${
+                      gradientClasses[metric.color] || metric.color
+                    }`}
                   >
-                    <Icon className="w-6 h-6" />
+                    <Icon className="w-6 h-6 text-white" />
                   </div>
                   <div
-                    className={`flex items-center gap-1 text-sm ${
-                      metric.trend === "up" ? "text-green-600" : "text-red-600"
+                    className={`flex items-center gap-1 text-sm px-2 py-1 rounded-full ${
+                      metric.trend === "up"
+                        ? "text-green-600 bg-green-50"
+                        : "text-red-600 bg-red-50"
                     }`}
                   >
                     {metric.trend === "up" ? (
@@ -288,7 +306,9 @@ export default function ReportsAnalytics() {
                   </div>
                 </div>
                 <div className="mt-4">
-                  <p className="text-2xl font-bold">{metric.value}</p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {metric.value}
+                  </p>
                   <p className="text-sm text-gray-500">{metric.label}</p>
                 </div>
               </CardContent>
@@ -299,24 +319,39 @@ export default function ReportsAnalytics() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="overview">
+        <TabsList className="bg-gray-100 p-1 rounded-xl">
+          <TabsTrigger
+            value="overview"
+            className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
+          >
             <BarChart3 className="w-4 h-4 mr-2" />
             Overview
           </TabsTrigger>
-          <TabsTrigger value="revenue">
+          <TabsTrigger
+            value="revenue"
+            className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
+          >
             <DollarSign className="w-4 h-4 mr-2" />
             Revenue
           </TabsTrigger>
-          <TabsTrigger value="users">
+          <TabsTrigger
+            value="users"
+            className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
+          >
             <Users className="w-4 h-4 mr-2" />
             Users
           </TabsTrigger>
-          <TabsTrigger value="courses">
+          <TabsTrigger
+            value="courses"
+            className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
+          >
             <BookOpen className="w-4 h-4 mr-2" />
             Courses
           </TabsTrigger>
-          <TabsTrigger value="engagement">
+          <TabsTrigger
+            value="engagement"
+            className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
+          >
             <Zap className="w-4 h-4 mr-2" />
             Engagement
           </TabsTrigger>
@@ -326,9 +361,9 @@ export default function ReportsAnalytics() {
         <TabsContent value="overview" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Revenue Trend */}
-            <Card>
+            <Card className="rounded-2xl border-0 shadow-lg shadow-gray-200/50">
               <CardHeader>
-                <CardTitle>Revenue Trend</CardTitle>
+                <CardTitle className="text-gray-900">Revenue Trend</CardTitle>
                 <CardDescription>Monthly revenue breakdown</CardDescription>
               </CardHeader>
               <CardContent>

@@ -1,10 +1,10 @@
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
-import { 
-  Users, 
-  GraduationCap, 
-  BookOpen, 
+import {
+  Users,
+  GraduationCap,
+  BookOpen,
   TrendingUp,
   TrendingDown,
   UserPlus,
@@ -13,14 +13,10 @@ import {
   CheckCircle,
   AlertCircle,
   BarChart3,
-  Download
+  Download,
 } from "lucide-react";
-import { 
-  ChartContainer, 
-  ChartTooltip, 
-  ChartTooltipContent 
-} from "./ui/chart";
-import { 
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "./ui/chart";
+import {
   LineChart,
   Line,
   PieChart,
@@ -29,7 +25,6 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-
 } from "recharts";
 
 import { useNavigate } from "react-router-dom";
@@ -37,37 +32,37 @@ import { useNavigate } from "react-router-dom";
 export default function BusinessDashboard() {
   const navigate = useNavigate();
   const stats = [
-    { 
-      label: "Total Learners", 
-      value: 1247, 
+    {
+      label: "Total Learners",
+      value: 1247,
       change: "+124 this month",
       trend: "up",
-      icon: Users, 
-      color: "bg-blue-500" 
+      icon: Users,
+      color: "bg-blue-500",
     },
-    { 
-      label: "Active Instructors", 
-      value: 18, 
+    {
+      label: "Active Instructors",
+      value: 18,
       change: "+3 this month",
       trend: "up",
-      icon: GraduationCap, 
-      color: "bg-green-500" 
+      icon: GraduationCap,
+      color: "bg-green-500",
     },
-    { 
-      label: "Enrolled Courses", 
-      value: 45, 
+    {
+      label: "Enrolled Courses",
+      value: 45,
       change: "+8 this month",
       trend: "up",
-      icon: BookOpen, 
-      color: "bg-purple-500" 
+      icon: BookOpen,
+      color: "bg-purple-500",
     },
-    { 
-      label: "Avg. Completion", 
-      value: "78%", 
+    {
+      label: "Avg. Completion",
+      value: "78%",
       change: "-2.3% from last month",
       trend: "down",
-      icon: Target, 
-      color: "bg-orange-500" 
+      icon: Target,
+      color: "bg-orange-500",
     },
   ];
 
@@ -80,7 +75,7 @@ export default function BusinessDashboard() {
       courses: 12,
       progress: 72,
       startDate: "Jan 2024",
-      status: "Active"
+      status: "Active",
     },
     {
       id: 2,
@@ -90,7 +85,7 @@ export default function BusinessDashboard() {
       courses: 8,
       progress: 68,
       startDate: "Feb 2024",
-      status: "Active"
+      status: "Active",
     },
     {
       id: 3,
@@ -100,7 +95,7 @@ export default function BusinessDashboard() {
       courses: 15,
       progress: 85,
       startDate: "Dec 2023",
-      status: "Active"
+      status: "Active",
     },
     {
       id: 4,
@@ -110,7 +105,7 @@ export default function BusinessDashboard() {
       courses: 10,
       progress: 45,
       startDate: "Mar 2024",
-      status: "Active"
+      status: "Active",
     },
   ];
 
@@ -132,45 +127,45 @@ export default function BusinessDashboard() {
   ];
 
   const topPerformers = [
-    { 
-      name: "Alice Johnson", 
+    {
+      name: "Alice Johnson",
       department: "Engineering",
-      courses: 8, 
-      completion: 95, 
+      courses: 8,
+      completion: 95,
       avatar: "AJ",
-      score: 2850 
+      score: 2850,
     },
-    { 
-      name: "Bob Smith", 
+    {
+      name: "Bob Smith",
       department: "Data Science",
-      courses: 6, 
-      completion: 92, 
+      courses: 6,
+      completion: 92,
       avatar: "BS",
-      score: 2720 
+      score: 2720,
     },
-    { 
-      name: "Carol White", 
+    {
+      name: "Carol White",
       department: "Engineering",
-      courses: 7, 
-      completion: 90, 
+      courses: 7,
+      completion: 90,
       avatar: "CW",
-      score: 2580 
+      score: 2580,
     },
-    { 
-      name: "David Lee", 
+    {
+      name: "David Lee",
       department: "Design",
-      courses: 5, 
-      completion: 88, 
+      courses: 5,
+      completion: 88,
       avatar: "DL",
-      score: 2410 
+      score: 2410,
     },
-    { 
-      name: "Emma Wilson", 
+    {
+      name: "Emma Wilson",
       department: "Marketing",
-      courses: 6, 
-      completion: 85, 
+      courses: 6,
+      completion: 85,
       avatar: "EW",
-      score: 2290 
+      score: 2290,
     },
   ];
 
@@ -180,48 +175,58 @@ export default function BusinessDashboard() {
       user: "John Doe",
       action: "enrolled in",
       target: "Python Masterclass",
-      time: "2 hours ago"
+      time: "2 hours ago",
     },
     {
       type: "completion",
       user: "Sarah Miller",
       action: "completed",
       target: "Web Development Course",
-      time: "5 hours ago"
+      time: "5 hours ago",
     },
     {
       type: "instructor",
       user: "Mike Chen",
       action: "was assigned as instructor to",
       target: "Data Science Cohort",
-      time: "1 day ago"
+      time: "1 day ago",
     },
     {
       type: "achievement",
       user: "Lisa Brown",
       action: "earned certification in",
       target: "React Development",
-      time: "2 days ago"
+      time: "2 days ago",
     },
   ];
 
   const getActivityIcon = (type: string) => {
     switch (type) {
-      case "enrollment": return UserPlus;
-      case "completion": return CheckCircle;
-      case "instructor": return GraduationCap;
-      case "achievement": return Award;
-      default: return AlertCircle;
+      case "enrollment":
+        return UserPlus;
+      case "completion":
+        return CheckCircle;
+      case "instructor":
+        return GraduationCap;
+      case "achievement":
+        return Award;
+      default:
+        return AlertCircle;
     }
   };
 
   const getActivityColor = (type: string) => {
     switch (type) {
-      case "enrollment": return "bg-blue-100 text-blue-600";
-      case "completion": return "bg-green-100 text-green-600";
-      case "instructor": return "bg-purple-100 text-purple-600";
-      case "achievement": return "bg-yellow-100 text-yellow-600";
-      default: return "bg-gray-100 text-gray-600";
+      case "enrollment":
+        return "bg-blue-100 text-blue-600";
+      case "completion":
+        return "bg-green-100 text-green-600";
+      case "instructor":
+        return "bg-purple-100 text-purple-600";
+      case "achievement":
+        return "bg-yellow-100 text-yellow-600";
+      default:
+        return "bg-gray-100 text-gray-600";
     }
   };
 
@@ -230,19 +235,25 @@ export default function BusinessDashboard() {
       {/* Welcome Section */}
       <div className="flex items-center justify-between">
         <div>
-          <h2>Business Partner Dashboard</h2>
-          <p className="text-muted-foreground mt-1">
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-gray-900 via-blue-900 to-blue-800 bg-clip-text text-transparent">
+            Business Partner Dashboard
+          </h2>
+          <p className="text-gray-500 mt-1">
             Welcome back! Here's your organization's learning overview
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="outline" onClick={() => navigate('/business/analytics')}>
+          <Button
+            variant="outline"
+            onClick={() => navigate("/business/analytics")}
+            className="rounded-xl hover:bg-blue-50 hover:border-blue-200"
+          >
             <BarChart3 className="w-4 h-4 mr-2" />
             View Reports
           </Button>
-          <Button 
-            className="bg-blue-600 hover:bg-blue-700"
-            onClick={() => navigate('/business/account')}
+          <Button
+            className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 rounded-xl shadow-lg shadow-blue-500/25 transition-all hover:shadow-xl hover:-translate-y-0.5"
+            onClick={() => navigate("/business/account")}
           >
             <UserPlus className="w-4 h-4 mr-2" />
             Add Learners
@@ -255,22 +266,51 @@ export default function BusinessDashboard() {
         {stats.map((stat) => {
           const Icon = stat.icon;
           const TrendIcon = stat.trend === "up" ? TrendingUp : TrendingDown;
+          const gradientColors: Record<string, string> = {
+            "bg-blue-500":
+              "bg-gradient-to-br from-blue-500 to-indigo-600 shadow-blue-500/30",
+            "bg-green-500":
+              "bg-gradient-to-br from-green-500 to-emerald-600 shadow-green-500/30",
+            "bg-purple-500":
+              "bg-gradient-to-br from-purple-500 to-violet-600 shadow-purple-500/30",
+            "bg-orange-500":
+              "bg-gradient-to-br from-orange-500 to-amber-600 shadow-orange-500/30",
+          };
           return (
-            <Card key={stat.label} className="p-6">
+            <Card
+              key={stat.label}
+              className="p-6 rounded-2xl border-0 shadow-lg shadow-gray-200/50 hover:shadow-xl transition-all"
+            >
               <div className="flex items-center justify-between mb-4">
-                <div className={`w-12 h-12 ${stat.color} rounded-xl flex items-center justify-center`}>
+                <div
+                  className={`w-12 h-12 ${
+                    gradientColors[stat.color] || stat.color
+                  } rounded-xl flex items-center justify-center shadow-lg`}
+                >
                   <Icon className="w-6 h-6 text-white" />
+                </div>
+                <div
+                  className={`flex items-center gap-1 text-sm px-2 py-1 rounded-full ${
+                    stat.trend === "up"
+                      ? "text-green-600 bg-green-50"
+                      : "text-red-600 bg-red-50"
+                  }`}
+                >
+                  <TrendIcon className="w-4 h-4" />
                 </div>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">{stat.label}</p>
-                <h3 className="mt-1">{stat.value}</h3>
-                <div className={`flex items-center gap-1 mt-2 ${
-                  stat.trend === "up" ? "text-green-600" : "text-red-600"
-                }`}>
-                  <TrendIcon className="w-4 h-4" />
-                  <p className="text-xs">{stat.change}</p>
-                </div>
+                <p className="text-sm text-gray-500">{stat.label}</p>
+                <h3 className="mt-1 text-2xl font-bold text-gray-900">
+                  {stat.value}
+                </h3>
+                <p
+                  className={`text-xs mt-2 ${
+                    stat.trend === "up" ? "text-green-600" : "text-red-600"
+                  }`}
+                >
+                  {stat.change}
+                </p>
               </div>
             </Card>
           );
@@ -278,10 +318,16 @@ export default function BusinessDashboard() {
       </div>
 
       {/* Engagement Trend Chart */}
-      <Card className="p-6">
+      <Card className="p-6 rounded-2xl border-0 shadow-lg shadow-gray-200/50">
         <div className="flex items-center justify-between mb-6">
-          <h3>Learner Engagement Trend</h3>
-          <Button variant="outline" size="sm">
+          <h3 className="text-lg font-semibold text-gray-900">
+            Learner Engagement Trend
+          </h3>
+          <Button
+            variant="outline"
+            size="sm"
+            className="rounded-xl hover:bg-blue-50"
+          >
             <Download className="w-4 h-4 mr-2" />
             Export
           </Button>
@@ -303,7 +349,11 @@ export default function BusinessDashboard() {
             <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
             <XAxis dataKey="month" tick={{ fontSize: 12 }} />
             <YAxis yAxisId="left" tick={{ fontSize: 12 }} />
-            <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 12 }} />
+            <YAxis
+              yAxisId="right"
+              orientation="right"
+              tick={{ fontSize: 12 }}
+            />
             <ChartTooltip content={<ChartTooltipContent />} />
             <Line
               yAxisId="left"
@@ -330,27 +380,35 @@ export default function BusinessDashboard() {
         {/* Active Cohorts */}
         <div className="lg:col-span-2">
           <div className="flex items-center justify-between mb-4">
-            <h3>Active Cohorts</h3>
-            <Button 
-              variant="outline" 
+            <h3 className="text-lg font-semibold text-gray-900">
+              Active Cohorts
+            </h3>
+            <Button
+              variant="outline"
               size="sm"
-              onClick={() => navigate('/business/account')}
+              onClick={() => navigate("/business/account")}
+              className="rounded-xl hover:bg-blue-50"
             >
               View All
             </Button>
           </div>
           <div className="space-y-4">
             {cohorts.map((cohort) => (
-              <Card key={cohort.id} className="p-6 hover:shadow-lg transition-all cursor-pointer">
+              <Card
+                key={cohort.id}
+                className="p-6 rounded-2xl border-0 shadow-lg shadow-gray-200/50 hover:shadow-xl transition-all cursor-pointer"
+              >
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
-                      <h4>{cohort.name}</h4>
+                      <h4 className="font-semibold text-gray-900">
+                        {cohort.name}
+                      </h4>
                       <Badge className="bg-green-100 text-green-700">
                         {cohort.status}
                       </Badge>
                     </div>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-gray-500">
                       Started {cohort.startDate}
                     </p>
                   </div>
@@ -368,7 +426,9 @@ export default function BusinessDashboard() {
                     <GraduationCap className="w-4 h-4 text-green-600" />
                     <div>
                       <p className="text-sm">{cohort.instructors}</p>
-                      <p className="text-xs text-muted-foreground">Instructors</p>
+                      <p className="text-xs text-muted-foreground">
+                        Instructors
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -382,7 +442,9 @@ export default function BusinessDashboard() {
 
                 <div>
                   <div className="flex justify-between text-sm mb-2">
-                    <span className="text-muted-foreground">Overall Progress</span>
+                    <span className="text-muted-foreground">
+                      Overall Progress
+                    </span>
                     <span className="text-blue-600">{cohort.progress}%</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
@@ -399,8 +461,10 @@ export default function BusinessDashboard() {
 
         {/* Performance by Department */}
         <div>
-          <h3 className="mb-4">Performance by Department</h3>
-          <Card className="p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            Performance by Department
+          </h3>
+          <Card className="p-6 rounded-2xl border-0 shadow-lg shadow-gray-200/50">
             <ChartContainer
               config={{
                 value: {
@@ -429,15 +493,20 @@ export default function BusinessDashboard() {
             </ChartContainer>
             <div className="space-y-2 mt-4">
               {performanceByDepartment.map((dept) => (
-                <div key={dept.name} className="flex items-center justify-between">
+                <div
+                  key={dept.name}
+                  className="flex items-center justify-between"
+                >
                   <div className="flex items-center gap-2">
-                    <div 
-                      className="w-3 h-3 rounded-full" 
+                    <div
+                      className="w-3 h-3 rounded-full"
                       style={{ backgroundColor: dept.color }}
                     ></div>
                     <span className="text-sm">{dept.name}</span>
                   </div>
-                  <span className="text-sm text-muted-foreground">{dept.value}%</span>
+                  <span className="text-sm text-muted-foreground">
+                    {dept.value}%
+                  </span>
                 </div>
               ))}
             </div>
@@ -448,30 +517,48 @@ export default function BusinessDashboard() {
       {/* Top Performers & Recent Activities */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Top Performers */}
-        <Card className="p-6">
+        <Card className="p-6 rounded-2xl border-0 shadow-lg shadow-gray-200/50">
           <div className="flex items-center justify-between mb-6">
-            <h3>Top Performers</h3>
-            <Award className="w-5 h-5 text-yellow-500" />
+            <h3 className="text-lg font-semibold text-gray-900">
+              Top Performers
+            </h3>
+            <div className="w-10 h-10 bg-gradient-to-br from-yellow-400 to-amber-500 rounded-xl flex items-center justify-center shadow-lg shadow-yellow-500/30">
+              <Award className="w-5 h-5 text-white" />
+            </div>
           </div>
           <div className="space-y-3">
             {topPerformers.map((performer, index) => (
               <div
                 key={index}
-                className={`flex items-center gap-4 p-4 rounded-lg ${
-                  index === 0 ? "bg-yellow-50 border border-yellow-200" : "bg-gray-50"
+                className={`flex items-center gap-4 p-4 rounded-xl transition-all ${
+                  index === 0
+                    ? "bg-gradient-to-r from-yellow-50 to-amber-50 border border-yellow-200 shadow-md"
+                    : "bg-gray-50 hover:bg-gray-100"
                 }`}
               >
-                <div className="text-sm text-muted-foreground w-8">#{index + 1}</div>
-                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                  <span className="text-sm text-blue-600">{performer.avatar}</span>
+                <div className="text-sm text-gray-500 w-8 font-medium">
+                  #{index + 1}
+                </div>
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center">
+                  <span className="text-sm text-white font-medium">
+                    {performer.avatar}
+                  </span>
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-medium">{performer.name}</p>
-                  <p className="text-xs text-muted-foreground">{performer.department}</p>
+                  <p className="text-sm font-medium text-gray-900">
+                    {performer.name}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {performer.department}
+                  </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-medium text-blue-600">{performer.completion}%</p>
-                  <p className="text-xs text-muted-foreground">{performer.courses} courses</p>
+                  <p className="text-sm font-semibold text-blue-600">
+                    {performer.completion}%
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {performer.courses} courses
+                  </p>
                 </div>
               </div>
             ))}
@@ -479,24 +566,37 @@ export default function BusinessDashboard() {
         </Card>
 
         {/* Recent Activities */}
-        <Card className="p-6">
-          <h3 className="mb-6">Recent Activities</h3>
+        <Card className="p-6 rounded-2xl border-0 shadow-lg shadow-gray-200/50">
+          <h3 className="text-lg font-semibold text-gray-900 mb-6">
+            Recent Activities
+          </h3>
           <div className="space-y-3">
             {recentActivities.map((activity, index) => {
               const Icon = getActivityIcon(activity.type);
               const colorClass = getActivityColor(activity.type);
               return (
-                <div key={index} className="flex items-start gap-3">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${colorClass}`}>
+                <div
+                  key={index}
+                  className="flex items-start gap-3 p-3 rounded-xl hover:bg-gray-50 transition-all"
+                >
+                  <div
+                    className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${colorClass}`}
+                  >
                     <Icon className="w-4 h-4" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm">
-                      <span className="font-medium">{activity.user}</span>
+                    <p className="text-sm text-gray-700">
+                      <span className="font-medium text-gray-900">
+                        {activity.user}
+                      </span>
                       {` ${activity.action} `}
-                      <span className="text-blue-600">{activity.target}</span>
+                      <span className="text-blue-600 font-medium">
+                        {activity.target}
+                      </span>
                     </p>
-                    <p className="text-xs text-muted-foreground mt-1">{activity.time}</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {activity.time}
+                    </p>
                   </div>
                 </div>
               );

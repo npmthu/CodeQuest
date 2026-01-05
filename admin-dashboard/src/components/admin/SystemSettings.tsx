@@ -243,15 +243,17 @@ export default function SystemSettings() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-[#1E3A8A]">System Settings</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 via-blue-900 to-blue-800 bg-clip-text text-transparent">
+            System Settings
+          </h1>
+          <p className="text-gray-500 mt-1">
             Configure platform settings and preferences
           </p>
         </div>
         <Button
           onClick={handleSave}
           disabled={saving}
-          className="bg-blue-600 hover:bg-blue-700"
+          className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 rounded-xl shadow-lg shadow-blue-500/25 transition-all hover:shadow-xl"
         >
           {saving ? (
             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -263,9 +265,9 @@ export default function SystemSettings() {
       </div>
 
       {/* System Status */}
-      <Card>
+      <Card className="rounded-2xl border-0 shadow-lg shadow-gray-200/50">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-gray-900">
             <Server className="w-5 h-5" />
             System Status
           </CardTitle>
@@ -275,17 +277,23 @@ export default function SystemSettings() {
             {Object.entries(systemStatus).map(([service, status]) => (
               <div
                 key={service}
-                className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg"
+                className="flex items-center gap-3 p-4 bg-gradient-to-r from-gray-50 to-transparent rounded-xl hover:from-blue-50 transition-colors"
               >
                 {status === "healthy" ? (
-                  <CheckCircle className="w-5 h-5 text-green-500" />
+                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center shadow-lg shadow-green-500/30">
+                    <CheckCircle className="w-5 h-5 text-white" />
+                  </div>
                 ) : (
-                  <AlertTriangle className="w-5 h-5 text-red-500" />
+                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-red-400 to-rose-500 flex items-center justify-center shadow-lg shadow-red-500/30">
+                    <AlertTriangle className="w-5 h-5 text-white" />
+                  </div>
                 )}
                 <div>
-                  <p className="text-sm font-medium capitalize">{service}</p>
+                  <p className="text-sm font-medium capitalize text-gray-900">
+                    {service}
+                  </p>
                   <p
-                    className={`text-xs ${
+                    className={`text-xs font-medium ${
                       status === "healthy" ? "text-green-600" : "text-red-600"
                     }`}
                   >
@@ -296,7 +304,12 @@ export default function SystemSettings() {
             ))}
           </div>
           <div className="flex gap-2 mt-4">
-            <Button variant="outline" size="sm" onClick={handleClearCache}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleClearCache}
+              className="rounded-xl hover:bg-blue-50"
+            >
               <RefreshCw className="w-4 h-4 mr-2" />
               Clear Cache
             </Button>
@@ -306,28 +319,46 @@ export default function SystemSettings() {
 
       {/* Settings Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-6 w-full">
-          <TabsTrigger value="general">
+        <TabsList className="grid grid-cols-6 w-full bg-gray-100 p-1 rounded-xl">
+          <TabsTrigger
+            value="general"
+            className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
+          >
             <Globe className="w-4 h-4 mr-2" />
             General
           </TabsTrigger>
-          <TabsTrigger value="users">
+          <TabsTrigger
+            value="users"
+            className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
+          >
             <Shield className="w-4 h-4 mr-2" />
             Users
           </TabsTrigger>
-          <TabsTrigger value="payment">
+          <TabsTrigger
+            value="payment"
+            className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
+          >
             <CreditCard className="w-4 h-4 mr-2" />
             Payment
           </TabsTrigger>
-          <TabsTrigger value="email">
+          <TabsTrigger
+            value="email"
+            className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
+          >
             <Mail className="w-4 h-4 mr-2" />
             Email
           </TabsTrigger>
-          <TabsTrigger value="security">
+          <TabsTrigger
+            value="security"
+            className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
+          >
             <Lock className="w-4 h-4 mr-2" />
             Security
           </TabsTrigger>
-          <TabsTrigger value="content">
+          <TabsTrigger
+            value="content"
+            className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
+          >
             <Palette className="w-4 h-4 mr-2" />
             Content
           </TabsTrigger>
@@ -335,9 +366,11 @@ export default function SystemSettings() {
 
         {/* General Settings */}
         <TabsContent value="general" className="space-y-4">
-          <Card>
+          <Card className="rounded-2xl border-0 shadow-lg shadow-gray-200/50">
             <CardHeader>
-              <CardTitle>Site Configuration</CardTitle>
+              <CardTitle className="text-gray-900">
+                Site Configuration
+              </CardTitle>
               <CardDescription>
                 Basic site settings and information
               </CardDescription>

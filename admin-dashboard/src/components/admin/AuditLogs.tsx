@@ -352,12 +352,18 @@ export default function AuditLogs() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-[#1E3A8A]">Audit Logs</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 via-blue-900 to-blue-800 bg-clip-text text-transparent">
+            Audit Logs
+          </h1>
+          <p className="text-gray-500 mt-1">
             Track all administrative actions and system changes
           </p>
         </div>
-        <Button onClick={handleExport} variant="outline">
+        <Button
+          onClick={handleExport}
+          variant="outline"
+          className="rounded-xl hover:bg-blue-50 hover:border-blue-200"
+        >
           <Download className="w-4 h-4 mr-2" />
           Export Logs
         </Button>
@@ -365,54 +371,62 @@ export default function AuditLogs() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                <History className="w-5 h-5 text-blue-600" />
+        <Card className="rounded-2xl border-0 shadow-lg shadow-gray-200/50 hover:shadow-xl transition-all">
+          <CardContent className="p-5">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/30">
+                <History className="w-6 h-6 text-white" />
               </div>
               <div>
                 <p className="text-sm text-gray-500">Total Actions</p>
-                <p className="text-2xl font-bold">{totalActions}</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {totalActions}
+                </p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                <CheckCircle className="w-5 h-5 text-green-600" />
+        <Card className="rounded-2xl border-0 shadow-lg shadow-gray-200/50 hover:shadow-xl transition-all">
+          <CardContent className="p-5">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-green-400 to-emerald-500 rounded-xl flex items-center justify-center shadow-lg shadow-green-500/30">
+                <CheckCircle className="w-6 h-6 text-white" />
               </div>
               <div>
                 <p className="text-sm text-gray-500">Successful</p>
-                <p className="text-2xl font-bold">{successfulActions}</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {successfulActions}
+                </p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-                <XCircle className="w-5 h-5 text-red-600" />
+        <Card className="rounded-2xl border-0 shadow-lg shadow-gray-200/50 hover:shadow-xl transition-all">
+          <CardContent className="p-5">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-red-400 to-rose-500 rounded-xl flex items-center justify-center shadow-lg shadow-red-500/30">
+                <XCircle className="w-6 h-6 text-white" />
               </div>
               <div>
                 <p className="text-sm text-gray-500">Failed</p>
-                <p className="text-2xl font-bold">{failedActions}</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {failedActions}
+                </p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
-                <Shield className="w-5 h-5 text-orange-600" />
+        <Card className="rounded-2xl border-0 shadow-lg shadow-gray-200/50 hover:shadow-xl transition-all">
+          <CardContent className="p-5">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-orange-400 to-amber-500 rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/30">
+                <Shield className="w-6 h-6 text-white" />
               </div>
               <div>
                 <p className="text-sm text-gray-500">Security Events</p>
-                <p className="text-2xl font-bold">{securityActions}</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {securityActions}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -420,8 +434,8 @@ export default function AuditLogs() {
       </div>
 
       {/* Filters */}
-      <Card>
-        <CardContent className="p-4">
+      <Card className="rounded-2xl border-0 shadow-lg shadow-gray-200/50">
+        <CardContent className="p-5">
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -429,11 +443,11 @@ export default function AuditLogs() {
                 placeholder="Search logs..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
+                className="pl-10 h-11 rounded-xl border-gray-200 focus:border-blue-300"
               />
             </div>
             <Select value={actionFilter} onValueChange={setActionFilter}>
-              <SelectTrigger className="w-full md:w-40">
+              <SelectTrigger className="w-full md:w-40 h-11 rounded-xl">
                 <SelectValue placeholder="Action Type" />
               </SelectTrigger>
               <SelectContent>
@@ -447,7 +461,7 @@ export default function AuditLogs() {
               </SelectContent>
             </Select>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full md:w-40">
+              <SelectTrigger className="w-full md:w-40 h-11 rounded-xl">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -458,7 +472,7 @@ export default function AuditLogs() {
               </SelectContent>
             </Select>
             <Select value={dateRange} onValueChange={setDateRange}>
-              <SelectTrigger className="w-full md:w-40">
+              <SelectTrigger className="w-full md:w-40 h-11 rounded-xl">
                 <SelectValue placeholder="Time Range" />
               </SelectTrigger>
               <SelectContent>
@@ -473,11 +487,11 @@ export default function AuditLogs() {
       </Card>
 
       {/* Logs Table */}
-      <Card>
+      <Card className="rounded-2xl border-0 shadow-lg shadow-gray-200/50 overflow-hidden">
         <CardContent className="p-0">
           <Table>
             <TableHeader>
-              <TableRow>
+              <TableRow className="bg-gradient-to-r from-gray-50 to-blue-50/30">
                 <TableHead>Action</TableHead>
                 <TableHead>User</TableHead>
                 <TableHead>Resource</TableHead>
@@ -489,7 +503,10 @@ export default function AuditLogs() {
             </TableHeader>
             <TableBody>
               {filteredLogs.map((log) => (
-                <TableRow key={log.id} className="hover:bg-gray-50">
+                <TableRow
+                  key={log.id}
+                  className="hover:bg-blue-50/30 transition-colors"
+                >
                   <TableCell>
                     <div className="flex items-center gap-2">
                       {getActionIcon(log.actionType)}
@@ -498,8 +515,8 @@ export default function AuditLogs() {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      <Avatar className="w-8 h-8">
-                        <AvatarFallback className="text-xs">
+                      <Avatar className="w-8 h-8 ring-2 ring-white shadow-md">
+                        <AvatarFallback className="text-xs bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-semibold">
                           {log.userName
                             .split(" ")
                             .map((n) => n[0])
