@@ -217,6 +217,85 @@ export class AdminController {
   }
 
   /**
+   * DELETE /api/admin/plans/:id
+   * Delete a subscription plan
+   */
+  async deletePlan(req: AuthRequest, res: Response) {
+    try {
+      const { id } = req.params;
+
+      if (!id) {
+        return res.status(400).json({
+          success: false,
+          error: "Plan ID is required",
+        });
+      }
+
+      // Check if plan exists
+      const { data: plan, error: fetchError } = await supabaseAdmin
+        .from("subscription_plans")
+        .select("id, name")
+        .eq("id", id)
+        .single();
+
+      if (fetchError || !plan) {
+        return res.status(404).json({
+          success: false,
+          error: "Subscription plan not found",
+        });
+      }
+
+      // Check if any active subscriptions are using this plan
+      const { data: activeSubscriptions, error: subsError } =
+        await supabaseAdmin
+          .from("subscriptions")
+          .select("id")
+          .eq("plan_id", id)
+          .eq("status", "active")
+          .limit(1);
+
+      if (subsError) {
+        throw new Error(`Failed to check subscriptions: ${subsError.message}`);
+      }
+
+      if (activeSubscriptions && activeSubscriptions.length > 0) {
+        return res.status(400).json({
+          success: false,
+          error:
+            "Cannot delete plan with active subscriptions. Please deactivate the plan instead.",
+        });
+      }
+
+      // Delete the plan
+      const { error: deleteError } = await supabaseAdmin
+        .from("subscription_plans")
+        .delete()
+        .eq("id", id);
+
+      if (deleteError) {
+        throw new Error(`Failed to delete plan: ${deleteError.message}`);
+      }
+
+      console.log("🗑️ Admin deleted subscription plan:", {
+        planId: id,
+        planName: plan.name,
+        adminId: req.user?.id,
+      });
+
+      res.json({
+        success: true,
+        message: "Subscription plan deleted successfully",
+      });
+    } catch (error: any) {
+      console.error("❌ Error deleting subscription plan:", error);
+      res.status(500).json({
+        success: false,
+        error: error.message || "Failed to delete subscription plan",
+      });
+    }
+  }
+
+  /**
    * POST /api/admin/users/:userId/cancel-subscription
    * Cancel a user's subscription - Fixes TC_ADMIN_SUB_02 and TC_ADMIN_SUB_05
    */

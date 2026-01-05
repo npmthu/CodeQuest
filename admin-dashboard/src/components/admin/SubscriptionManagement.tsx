@@ -102,6 +102,7 @@ export default function SubscriptionManagement() {
   const [showCreatePlanModal, setShowCreatePlanModal] = useState(false);
   const [showEditPlanModal, setShowEditPlanModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [showDeletePlanModal, setShowDeletePlanModal] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(
     null
   );
@@ -396,6 +397,34 @@ export default function SubscriptionManagement() {
     setShowEditPlanModal(true);
   };
 
+  const handleDeletePlan = async () => {
+    if (!selectedPlan) return;
+
+    setIsSubmitting(true);
+    try {
+      const response = await adminApi.deletePlan(selectedPlan.id);
+
+      if (response.success) {
+        toast.success(`Plan '${selectedPlan.name}' deleted successfully`);
+        setShowDeletePlanModal(false);
+        setSelectedPlan(null);
+        await fetchPlans();
+      } else {
+        toast.error(response.error || "Failed to delete plan");
+      }
+    } catch (error: any) {
+      console.error("Error deleting plan:", error);
+      toast.error(error.message || "Failed to delete subscription plan");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const openDeletePlanModal = (plan: SubscriptionPlan) => {
+    setSelectedPlan(plan);
+    setShowDeletePlanModal(true);
+  };
+
   const openCancelModal = (subscription: UserSubscription) => {
     // TC-09-04: Check if subscription is already expired before showing modal
     const periodEnd = new Date(subscription.current_period_end);
@@ -601,6 +630,14 @@ export default function SubscriptionManagement() {
                       >
                         <Edit2 className="w-4 h-4 mr-1" />
                         Edit
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => openDeletePlanModal(plan)}
+                      >
+                        <Trash2 className="w-4 h-4 mr-1" />
+                        Delete
                       </Button>
                     </div>
                   </div>
@@ -1048,6 +1085,54 @@ export default function SubscriptionManagement() {
                 </>
               ) : (
                 "Confirm"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Plan Confirmation Modal */}
+      <AlertDialog
+        open={showDeletePlanModal}
+        onOpenChange={setShowDeletePlanModal}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Subscription Plan</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this subscription plan? This
+              action cannot be undone.
+              {selectedPlan && (
+                <span className="block mt-2 font-medium text-red-600">
+                  Plan: {selectedPlan.name}
+                </span>
+              )}
+              <span className="block mt-2 text-sm text-gray-600">
+                Note: Plans with active subscriptions cannot be deleted.
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              onClick={() => {
+                setSelectedPlan(null);
+              }}
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeletePlan}
+              disabled={isSubmitting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete Plan"
               )}
             </AlertDialogAction>
           </AlertDialogFooter>

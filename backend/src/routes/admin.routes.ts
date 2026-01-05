@@ -20,6 +20,7 @@ router.get("/stats", adminController.getAdminStats.bind(adminController));
 router.get("/plans", adminController.getPlans.bind(adminController));
 router.post("/plans", adminController.createPlan.bind(adminController));
 router.put("/plans/:id", adminController.updatePlan.bind(adminController));
+router.delete("/plans/:id", adminController.deletePlan.bind(adminController));
 
 // Get all subscriptions with user details (for admin dashboard)
 router.get(

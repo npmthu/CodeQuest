@@ -96,6 +96,12 @@ export const adminApi = {
       body: JSON.stringify(updateData),
     }),
 
+  // Delete a subscription plan
+  deletePlan: (planId: string) =>
+    apiRequest<any>(`/admin/plans/${planId}`, {
+      method: "DELETE",
+    }),
+
   // Get user subscription
   getUserSubscription: (userId: string) =>
     apiRequest<any>(`/admin/users/${userId}/subscription`),
