@@ -114,7 +114,7 @@ export default function DashboardLayout({
   return (
     <div className="min-h-screen bg-background dark:bg-gray-900 flex">
       {/* Sidebar */}
-      <aside className="w-64 bg-white dark:bg-gray-800 border-r border-border dark:border-gray-700 flex flex-col">
+      <aside className="w-64 bg-white dark:bg-gray-800 flex flex-col" style={{ borderRight: '4px solid #B9D6F3' }}>
         {/* Logo */}
         <div className="h-16 flex items-center gap-3 px-6 border-b border-border dark:border-gray-700">
           <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">

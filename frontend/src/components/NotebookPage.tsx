@@ -158,7 +158,7 @@ export default function NotebookPage() {
       {/* Notes List */}
       <div className="w-80 border-r border-border bg-white flex flex-col">
         {/* Header */}
-        <div className="p-4 border-b border-border">
+        <div className="p-4 border-b border-border" style={{ backgroundColor: '#B9D6F3' }}>
           <div className="flex items-center justify-between mb-4">
             <h3>My Notes</h3>
             <Dialog
@@ -216,7 +216,7 @@ export default function NotebookPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               placeholder="Search notes..."
-              className="pl-9"
+              className="pl-9 border-2 border-gray-300 shadow-sm rounded-md"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -240,10 +240,10 @@ export default function NotebookPage() {
               <button
                 key={note.id}
                 onClick={() => handleNotebookClick(note.id)}
-                className={`w-full text-left p-4 rounded-lg mb-2 transition-colors ${
+                className={`w-full text-left p-4 rounded-lg mb-2 transition-shadow border-2 ${
                   selectedNote === note.id
-                    ? "bg-blue-50 border border-blue-200"
-                    : "hover:bg-gray-50"
+                    ? "bg-blue-50 border-blue-200 shadow-md"
+                    : "border-gray-200 hover:shadow-md"
                 }`}
               >
                 <div className="flex items-start justify-between gap-2 mb-2">
