@@ -497,7 +497,23 @@ export default function InstructorCourseManager() {
               ? "Tạo bài học đầu tiên để bắt đầu"
               : "Create your first lesson to get started"}
           </p>
-          <Button className="bg-blue-600 hover:bg-blue-700">
+          <Button
+            className="bg-blue-600 hover:bg-blue-700"
+            onClick={() => {
+              // Create a default topic if none exist, then open lesson modal
+              if (topics.length === 0) {
+                const newTopic = createEmptyTopic();
+                newTopic.title =
+                  language === "vi"
+                    ? "Phần 1: Giới thiệu"
+                    : "Section 1: Introduction";
+                setTopics([newTopic]);
+                openLessonModal(newTopic.id);
+              } else {
+                openLessonModal(topics[0].id);
+              }
+            }}
+          >
             <Plus className="w-4 h-4 mr-2" />
             {language === "vi" ? "Tạo bài học" : "Create Lesson"}
           </Button>
