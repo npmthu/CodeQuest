@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import {
@@ -6,6 +7,9 @@ import {
   Search,
   FileText,
   MoreVertical,
+  Trash2,
+  Share2,
+  Copy,
 } from "lucide-react";
 import {
   Dialog,
@@ -15,23 +19,54 @@ import {
   DialogTitle,
   DialogFooter,
 } from "./ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
 import { Label } from "./ui/label";
 import NotebookDetailPlaceholder from "./NotebookDetail";
-import { useNotes, useCreateNote } from "../hooks/useApi";
+import { useNotes, useCreateNote, useDeleteNote } from "../hooks/useApi";
 import type { Note } from "../interfaces";
+import { toast } from "sonner";
 
 export default function NotebookPage() {
+  const { noteId } = useParams<{ noteId: string }>();
+  const navigate = useNavigate();
+  
   const [selectedNote, setSelectedNote] = useState<string | null>(null);
   const [currentView, setCurrentView] = useState<"list" | "detail">("list");
   const [isNewNotebookOpen, setIsNewNotebookOpen] = useState(false);
   const [newNoteTitle, setNewNoteTitle] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   // Fetch notes from API
   const { data: notesData, isLoading } = useNotes();
   const createNoteMutation = useCreateNote();
+  const deleteNoteMutation = useDeleteNote();
 
   const notes = notesData || [];
+
+  // Handle URL-based navigation
+  useEffect(() => {
+    if (noteId) {
+      const noteExists = notes.find(n => n.id === noteId);
+      if (noteExists) {
+        setSelectedNote(noteId);
+        setCurrentView("detail");
+      } else if (!isLoading) {
+        // Note doesn't exist, redirect to list
+        navigate('/notebook');
+      }
+    } else if (!noteId && currentView === "detail") {
+      // If no noteId in URL but we're in detail view, go back to list
+      setCurrentView("list");
+      setSelectedNote(null);
+    }
+  }, [noteId, notes, isLoading, currentView, navigate]);
 
   // Filter notes based on search query
   const filteredNotes = notes.filter((note: Note) => {
@@ -47,7 +82,7 @@ export default function NotebookPage() {
     if (!newNoteTitle.trim()) return;
 
     try {
-      await createNoteMutation.mutateAsync({
+      const result = await createNoteMutation.mutateAsync({
         title: newNoteTitle,
         contentMarkdown: "",
         isPrivate: true,
@@ -56,18 +91,46 @@ export default function NotebookPage() {
 
       setIsNewNotebookOpen(false);
       setNewNoteTitle("");
+      
+      // Navigate to the newly created note
+      if (result?.data?.id) {
+        navigate(`/notebook/${result.data.id}`);
+      }
     } catch (error) {
       console.error("Error creating note:", error);
+      toast.error("Failed to create note");
     }
   };
 
   const handleNotebookClick = (noteId: string) => {
-    setSelectedNote(noteId);
-    setCurrentView("detail");
+    navigate(`/notebook/${noteId}`);
   };
 
   const handleBack = () => {
-    setCurrentView("list");
+    navigate('/notebook');
+  };
+
+  const handleDeleteNote = async (noteId: string) => {
+    try {
+      await deleteNoteMutation.mutateAsync(noteId);
+      toast.success("Note deleted successfully");
+      
+      // If we're viewing the deleted note, go back to list
+      if (selectedNote === noteId) {
+        navigate('/notebook');
+      }
+      
+      setDeleteConfirmId(null);
+    } catch (error) {
+      console.error("Error deleting note:", error);
+      toast.error("Failed to delete note");
+    }
+  };
+
+  const handleCopyLink = (noteId: string) => {
+    const url = `${window.location.origin}/notebook/${noteId}`;
+    navigator.clipboard.writeText(url);
+    toast.success("Link copied to clipboard");
   };
 
   const selectedNoteData = notes.find((note: Note) => note.id === selectedNote);
@@ -190,16 +253,50 @@ export default function NotebookPage() {
                       {note.title || "Untitled"}
                     </span>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <span
-                      className="p-1 hover:bg-gray-200 rounded cursor-pointer inline-flex"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                      }}
-                    >
-                      <MoreVertical className="w-3 h-3 text-gray-400" />
-                    </span>
-                  </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        className="p-1 hover:bg-gray-200 rounded inline-flex"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                        }}
+                      >
+                        <MoreVertical className="w-3 h-3 text-gray-400" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCopyLink(note.id);
+                        }}
+                      >
+                        <Copy className="w-4 h-4 mr-2" />
+                        Copy Link
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          // Could implement share functionality here
+                          toast.info("Share functionality coming soon");
+                        }}
+                      >
+                        <Share2 className="w-4 h-4 mr-2" />
+                        Share
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteConfirmId(note.id);
+                        }}
+                        className="text-red-600 focus:text-red-600"
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
                 <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
                   {note.contentMarkdown?.substring(0, 100) || "No content"}
@@ -233,6 +330,33 @@ export default function NotebookPage() {
           </div>
         </div>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={!!deleteConfirmId} onOpenChange={() => setDeleteConfirmId(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Notebook</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this notebook? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteConfirmId(null)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => deleteConfirmId && handleDeleteNote(deleteConfirmId)}
+              disabled={deleteNoteMutation.isPending}
+            >
+              {deleteNoteMutation.isPending ? "Deleting..." : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

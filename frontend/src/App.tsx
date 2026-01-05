@@ -186,6 +186,14 @@ function AppContent() {
         }
       />
       <Route
+        path="/notebook/:noteId"
+        element={
+          <DashboardRoute>
+            <NotebookPage />
+          </DashboardRoute>
+        }
+      />
+      <Route
         path="/interview"
         element={
           <DashboardRoute>
