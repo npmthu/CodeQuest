@@ -1,4 +1,4 @@
-import { ReactNode, useState } from "react";
+import { ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
   Home,
@@ -16,12 +16,12 @@ import {
   Building,
   Target,
   ClipboardList,
+  FileCode,
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { useAuth } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
-import NotificationModal from "./NotificationModal";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -35,7 +35,6 @@ export default function DashboardLayout({
   const { signOut } = useAuth();
   const { t } = useLanguage();
   const location = useLocation();
-  const [notificationOpen, setNotificationOpen] = useState(false);
 
   const studentMenuItems = [
     { path: "/dashboard", label: t("nav.dashboard"), icon: Home },
@@ -51,6 +50,7 @@ export default function DashboardLayout({
   const instructorMenuItems = [
     { path: "/instructor/dashboard", label: t("nav.dashboard"), icon: Home },
     { path: "/instructor/courses", label: t("nav.myCourses"), icon: VideoIcon },
+    { path: "/instructor/problems", label: t("nav.myProblems"), icon: FileCode },
     {
       path: "/instructor/interviews",
       label: t("nav.mockInterviews"),
@@ -116,10 +116,7 @@ export default function DashboardLayout({
   return (
     <div className="min-h-screen bg-background dark:bg-gray-900 flex">
       {/* Sidebar */}
-      <aside
-        className="w-64 bg-white dark:bg-gray-800 flex flex-col"
-        style={{ borderRight: "4px solid #B9D6F3" }}
-      >
+      <aside className="w-64 bg-white dark:bg-gray-800 flex flex-col" style={{ borderRight: '4px solid #B9D6F3' }}>
         {/* Logo */}
         <div className="h-16 flex items-center gap-3 px-6 border-b border-border dark:border-gray-700">
           <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
@@ -199,17 +196,10 @@ export default function DashboardLayout({
             </h3>
           </div>
           <div className="flex items-center gap-4">
-            <button
-              className="relative p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-              onClick={() => setNotificationOpen(true)}
-            >
+            <button className="relative p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
               <Bell className="w-5 h-5 text-gray-600 dark:text-gray-400" />
               <span className="absolute top-1 right-1 w-2 h-2 bg-blue-600 rounded-full"></span>
             </button>
-            <NotificationModal
-              open={notificationOpen}
-              onOpenChange={setNotificationOpen}
-            />
             <Link to="/pricing">
               <Button
                 variant="outline"
