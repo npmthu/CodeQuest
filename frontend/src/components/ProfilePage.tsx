@@ -108,7 +108,7 @@ export default function ProfilePage() {
   return (
     <div className="p-8 space-y-6">
       {/* Profile Header */}
-      <Card className="p-8">
+      <Card className="p-8 border-2 border-gray-300 shadow-md" style={{ backgroundColor: '#D5E7F2' }}>
         <div className="flex items-start gap-8">
           {/* Avatar */}
           <div className="flex-shrink-0">
@@ -246,28 +246,28 @@ export default function ProfilePage() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="p-6">
+        <Card className="p-6 border-2 border-gray-300 shadow-md" style={{ backgroundColor: '#B9D6F3' }}>
           <div className="flex items-center justify-between mb-2">
             <Code className="w-8 h-8 text-blue-600" />
           </div>
           <h3>{stats?.problemsSolved || 0}</h3>
           <p className="text-sm text-muted-foreground">Problems Solved</p>
         </Card>
-        <Card className="p-6">
+        <Card className="p-6 border-2 border-gray-300 shadow-md" style={{ backgroundColor: '#B6DA9F' }}>
           <div className="flex items-center justify-between mb-2">
             <BookOpen className="w-8 h-8 text-green-600" />
           </div>
           <h3>{stats?.lessonsCompleted || 0}</h3>
           <p className="text-sm text-muted-foreground">Lessons Completed</p>
         </Card>
-        <Card className="p-6">
+        <Card className="p-6 border-2 border-gray-300 shadow-md" style={{ backgroundColor: '#E0B0FF' }}>
           <div className="flex items-center justify-between mb-2">
             <Target className="w-8 h-8 text-purple-600" />
           </div>
           <h3>{stats?.acceptanceRate || 0}%</h3>
           <p className="text-sm text-muted-foreground">Acceptance Rate</p>
         </Card>
-        <Card className="p-6">
+        <Card className="p-6 border-2 border-gray-300 shadow-md" style={{ backgroundColor: '#F7D7A9' }}>
           <div className="flex items-center justify-between mb-2">
             <Calendar className="w-8 h-8 text-orange-600" />
           </div>
