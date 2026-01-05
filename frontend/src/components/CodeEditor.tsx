@@ -24,7 +24,7 @@ import {
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import type { 
   Problem, 
   TestCaseResult, 
@@ -32,7 +32,9 @@ import type {
   ExecutionResult, 
   ProblemSummary, 
   Language, 
-  TestCase 
+  TestCase,
+  ProblemIO,
+  IOParameter 
 } from "../interfaces";
 
 // ---------- Component Props ----------
@@ -44,54 +46,123 @@ interface CodeEditorProps {
 const difficultyText = (d: number) => (d === 1 ? "Easy" : d === 2 ? "Medium" : "Hard");
 const difficultyColor = (d: number) => (d === 1 ? "green" : d === 2 ? "yellow" : "red");
 
-// ---------- Starter Code Templates ----------
-const STARTER_CODE: Record<string, string> = {
-  python: `# Write your solution here
-def solution():
-    """
-    Your code implementation goes here
-    """
-    pass
+// Type mapping helper
+const mapTypeToLanguage = (type: string, lang: string): string => {
+  const typeMap: Record<string, Record<string, string>> = {
+    python: {
+      int: 'int',
+      float: 'float',
+      string: 'str',
+      bool: 'bool',
+      array: 'List',
+      object: 'Dict',
+    },
+    java: {
+      int: 'int',
+      float: 'double',
+      string: 'String',
+      bool: 'boolean',
+      array: '[]',
+      object: 'Map<String, Object>',
+    },
+    cpp: {
+      int: 'int',
+      float: 'double',
+      string: 'string',
+      bool: 'bool',
+      array: 'vector',
+      object: 'map<string, any>',
+    }
+  };
+  return typeMap[lang]?.[type] || type;
+};
 
-# Test your code
-if __name__ == "__main__":
-    result = solution()
-    print(result)
-`,
-  java: `public class Solution {
-    /**
-     * Your code implementation goes here
-     */
-    public static void main(String[] args) {
-        Solution solution = new Solution();
-        // Test your code here
-        System.out.println("Result: ");
+// Generate function signature from problem IO
+const generateFunctionSignature = (problemIO: ProblemIO | undefined, lang: string): { name: string; params: string; returnType: string } => {
+  if (!problemIO) {
+    return { name: 'solve', params: '', returnType: 'void' };
+  }
+
+  const params = problemIO.input.params.map((param: IOParameter) => {
+    const baseType = mapTypeToLanguage(param.type, lang);
+    let fullType = baseType;
+    
+    if (param.type === 'array' && param.element_type) {
+      const elementType = mapTypeToLanguage(param.element_type, lang);
+      if (lang === 'python') fullType = `List[${elementType}]`;
+      else if (lang === 'java') fullType = `${elementType}[]`;
+      else if (lang === 'cpp') fullType = `vector<${elementType}>`;
     }
     
-    // Add your methods here
-}
-`,
-  cpp: `#include <iostream>
-#include <vector>
-#include <string>
+    if (lang === 'python') return `${param.name}: ${fullType}`;
+    else if (lang === 'java') return `${fullType} ${param.name}`;
+    else if (lang === 'cpp') return `${fullType} ${param.name}`;
+    return `${param.name}`;
+  }).join(', ');
 
+  const returnType = (() => {
+    const baseType = mapTypeToLanguage(problemIO.output.type, lang);
+    if (problemIO.output.type === 'array' && problemIO.output.element_type) {
+      const elementType = mapTypeToLanguage(problemIO.output.element_type, lang);
+      if (lang === 'python') return `List[${elementType}]`;
+      else if (lang === 'java') return `${elementType}[]`;
+      else if (lang === 'cpp') return `vector<${elementType}>`;
+    }
+    return baseType;
+  })();
+
+  // Generate function name (default to 'solve' or use first parameter name logic)
+  const functionName = 'solve';
+
+  return { name: functionName, params, returnType };
+};
+
+// ---------- Starter Code Templates (LeetCode style) ----------
+const generateStarterCode = (problemIO: ProblemIO | undefined, lang: string): string => {
+  const sig = generateFunctionSignature(problemIO, lang);
+
+  if (lang === 'python') {
+    return `from typing import List, Dict, Any
+
+class Solution:
+    def ${sig.name}(self${sig.params ? ', ' + sig.params : ''}) -> ${sig.returnType}:
+        # Write your solution here
+        pass
+`;
+  } else if (lang === 'java') {
+    return `import java.util.*;
+
+class Solution {
+    public ${sig.returnType} ${sig.name}(${sig.params}) {
+        // Write your solution here
+        return ${sig.returnType === 'int' ? '0' : sig.returnType === 'boolean' ? 'false' : 'null'};
+    }
+}
+`;
+  } else if (lang === 'cpp') {
+    return `#include <vector>
+#include <string>
+#include <map>
 using namespace std;
 
-/**
- * Your code implementation goes here
- */
-int main() {
-    // Test your code here
-    cout << "Result: " << endl;
-    return 0;
-}
-`,
+class Solution {
+public:
+    ${sig.returnType} ${sig.name}(${sig.params}) {
+        // Write your solution here
+        ${sig.returnType === 'int' ? 'return 0;' : sig.returnType === 'bool' ? 'return false;' : 'return {};'}
+    }
+};
+`;
+  }
+  
+  return `// Starter code not available for this language`;
 };
 
 // ---------- Component ----------
 export default function CodeEditor({ apiBase }: CodeEditorProps) {
   const navigate = useNavigate();
-  const [selectedProblemId, setSelectedProblemId] = useState<string | null>(null);
+  const { problemId: urlProblemId } = useParams<{ problemId: string }>();
+  const [selectedProblemId, setSelectedProblemId] = useState<string | null>(urlProblemId || null);
 
   // derive effective API base: prop override -> Vite env -> default
   const effectiveApiBase: string =
@@ -138,20 +209,23 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
   const requestCodeReviewMutation = useRequestCodeReview();
   const { data: codeReviewData } = useCodeReview(lastSubmissionId || undefined);
 
-  // Select first problem on mount
+  // Select problem from URL or first problem on mount
   useEffect(() => {
-    if (problemList && problemList.length > 0 && !selectedProblemId) {
+    if (urlProblemId) {
+      // Always use URL problem ID if present
+      setSelectedProblemId(urlProblemId);
+    } else if (problemList && problemList.length > 0 && !selectedProblemId) {
+      // Only fallback to first problem if no URL ID and no selected problem
       setSelectedProblemId(problemList[0].id);
     }
-  }, [problemList, selectedProblemId]);
+  }, [problemList, urlProblemId]);
 
   // Update code when problem or language changes
   useEffect(() => {
     if (problem) {
-      // Use backend starter code if available, otherwise use default templates
-      const backendStarterCode = problem.starterCode?.[language.name];
-      const defaultStarterCode = STARTER_CODE[language.name] || "";
-      setCode(backendStarterCode || defaultStarterCode);
+      // Generate starter code based on problemIO
+      const starterCode = generateStarterCode(problem.problemIO, language.name);
+      setCode(starterCode);
       
       // initialize test case states
       const tstates: Record<number, "not_run" | "running" | "passed" | "failed"> = {};
@@ -163,10 +237,9 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
   // Reset handler
   const handleReset = () => {
     if (!problem) return;
-    // Use backend starter code if available, otherwise use default templates
-    const backendStarterCode = problem.starterCode?.[language.name];
-    const defaultStarterCode = STARTER_CODE[language.name] || "";
-    setCode(backendStarterCode || defaultStarterCode);
+    // Generate starter code based on problemIO
+    const starterCode = generateStarterCode(problem.problemIO, language.name);
+    setCode(starterCode);
     
     setOutput("");
     setTestCaseResults([]);
@@ -310,17 +383,9 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
         setOutput(displayOutput || JSON.stringify(r, null, 2));
         if (r?.ai_review) setAiReview(r.ai_review);
         
-        // Auto-request AI review for this submission
-        try {
-          requestCodeReviewMutation.mutate({
-            submissionId,
-            code,
-            language: language.name,
-            problemTitle: problem.title,
-          });
-        } catch (e) {
-          console.error('Failed to trigger AI review mutation:', e);
-        }
+        // Don't auto-request AI review - let user click the button
+        // Store submissionId for manual review request
+        setLastSubmissionId(submissionId);
 
         setLoadingAction(false);
         return;
@@ -375,19 +440,9 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
             setOutput(displayOutput || JSON.stringify(r, null, 2));
             if (r?.ai_review) setAiReview(r.ai_review);
 
-            // Auto-request AI review for this submission when polling finishes
-            try {
-              requestCodeReviewMutation.mutate({
-                submissionId,
-                code,
-                language: language.name,
-                problemTitle: problem.title,
-              });
-              // Switch to AI Review tab to show the suggestions
-              setTimeout(() => setActiveTab("ai-review"), 500);
-            } catch (e) {
-              console.error('Failed to trigger AI review mutation (poll):', e);
-            }
+            // Don't auto-request AI review - let user click the button
+            // Store submissionId for manual review request
+            setLastSubmissionId(submissionId);
 
             if (pollRef.current) {
               window.clearInterval(pollRef.current);
@@ -455,7 +510,14 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button
-              onClick={() => navigate('/dashboard')}
+              onClick={() => {
+                // Navigate back to the topic page if problem has topic_id
+                if (problem.topicId) {
+                  navigate(`/topics/${problem.topicId}/lessons`);
+                } else {
+                  navigate('/dashboard');
+                }
+              }}
               className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900"
             >
               <ArrowLeft className="w-4 h-4" /> Back
@@ -508,15 +570,15 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
       {/* Main */}
       <div className="flex-1 flex overflow-hidden">
         {/* Left - Problem */}
-        <div className="w-2/5 border-r border-gray-200 overflow-auto bg-white">
-          <Tabs defaultValue="description" className="h-full flex flex-col">
-            <TabsList className="w-full justify-start rounded-none border-b border-gray-200 px-6 bg-white">
+        <div className="w-2/5 border-r border-gray-200 overflow-hidden bg-white flex flex-col min-h-0">
+          <Tabs defaultValue="description" className="h-full flex flex-col min-h-0">
+            <TabsList className="w-full justify-start rounded-none border-b border-gray-200 px-6 bg-white flex-shrink-0 h-12">
               <TabsTrigger value="description">Description</TabsTrigger>
               <TabsTrigger value="hints">Hints</TabsTrigger>
               <TabsTrigger value="discussion">Discussion</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="description" className="p-6 space-y-4 m-0">
+            <TabsContent value="description" className="flex-1 min-h-0 overflow-y-auto p-6 space-y-4 m-0">
               <div className="text-sm text-gray-600">
                 <div className="mb-3">
                   <div className="font-medium">Input format</div>
@@ -545,10 +607,15 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
                   {(problem.sampleTestCases || []).map((tc:TestCase, idx: any) => (
                     <Card key={idx} className="p-3 bg-gray-50 border-gray-200">
                       <div className="text-sm">
-                        <div className="font-medium">Input</div>
-                        <pre className="whitespace-pre-wrap">{tc.inputEncrypted}</pre>
-                        <div className="font-medium">Output</div>
-                        <pre className="whitespace-pre-wrap">{tc.expectedOutputEncrypted}</pre>
+                        {tc.name && <div className="font-semibold mb-2">{tc.name}</div>}
+                        <div className="font-medium">Input:</div>
+                        <pre className="whitespace-pre-wrap bg-white p-2 rounded border text-xs">
+                          {JSON.stringify(tc.input, null, 2)}
+                        </pre>
+                        <div className="font-medium mt-2">Expected Output:</div>
+                        <pre className="whitespace-pre-wrap bg-white p-2 rounded border text-xs">
+                          {JSON.stringify(tc.expectedOutput, null, 2)}
+                        </pre>
                       </div>
                     </Card>
                   ))}
@@ -556,7 +623,7 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
               </div>
             </TabsContent>
 
-            <TabsContent value="hints" className="p-6 m-0">
+            <TabsContent value="hints" className="flex-1 min-h-0 overflow-y-auto p-6 m-0">
               <div className="mb-4">
                 <h3 className="text-lg font-semibold flex items-center gap-2">
                   <Lightbulb className="w-5 h-5 text-blue-600" />
@@ -577,7 +644,7 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
               )}
             </TabsContent>
 
-            <TabsContent value="discussion" className="p-0 m-0">
+            <TabsContent value="discussion" className="flex-1 min-h-0 overflow-y-auto p-0 m-0">
               <DiscussionTab problemId={problem.id} />
             </TabsContent>
           </Tabs>
@@ -677,9 +744,9 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
           </div>
 
           {/* Bottom panels */}
-          <div className="h-56 border-t border-gray-200 bg-white flex flex-col">
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
-              <TabsList className="w-full justify-start rounded-none border-b border-gray-200 px-6 bg-white">
+          <div className="h-56 border-t border-gray-200 bg-white" style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+            <Tabs value={activeTab} onValueChange={setActiveTab} style={{ height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+              <TabsList className="w-full justify-start rounded-none border-b border-gray-200 px-6 bg-white" style={{ flexShrink: 0, height: '48px' }}>
                 <TabsTrigger value="output">Output</TabsTrigger>
                 <TabsTrigger value="testcases">Test Cases</TabsTrigger>
                 <TabsTrigger value="ai-review" className="flex items-center gap-2">
@@ -692,7 +759,7 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
                 </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="output" className="flex-1 overflow-auto p-6 m-0">
+              <TabsContent value="output" className="p-6 m-0" style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
                 {error && (
                   <div className="mb-3 text-sm text-red-600 flex items-center gap-2">
                     <AlertTriangle className="w-4 h-4" /> {error}
@@ -708,7 +775,7 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
                 <div className="text-sm font-mono whitespace-pre-wrap">{output || "Click Run to execute code"}</div>
               </TabsContent>
 
-              <TabsContent value="testcases" className="flex-1 overflow-auto p-6 m-0">
+              <TabsContent value="testcases" className="p-6 m-0" style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
                 <div className="space-y-3">
                   {testCaseResults.length > 0 ? (
                     // Show actual test results from execution
@@ -750,7 +817,7 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
                             <div>
                               <div className="font-medium text-gray-700">Input:</div>
                               <pre className="bg-gray-100 p-2 rounded mt-1 whitespace-pre-wrap overflow-auto max-h-24">
-                                {result.input || '[Hidden]'}
+                                {result.input ? (typeof result.input === 'object' ? JSON.stringify(result.input, null, 2) : result.input) : '[Hidden]'}
                               </pre>
                             </div>
                             
@@ -758,7 +825,7 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
                               <div>
                                 <div className="font-medium text-gray-700">Expected Output:</div>
                                 <pre className="bg-gray-100 p-2 rounded mt-1 whitespace-pre-wrap overflow-auto max-h-24">
-                                  {result.expected_output || '[Hidden]'}
+                                  {result.expected_output ? (typeof result.expected_output === 'object' ? JSON.stringify(result.expected_output, null, 2) : result.expected_output) : '[Hidden]'}
                                 </pre>
                               </div>
                               
@@ -811,11 +878,11 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
                             <div className="font-medium">Test case {i + 1} — {state.replace("_", " ")}</div>
                             <div className="text-xs text-gray-600 mt-1">
                               <div>Input:</div>
-                              <pre className="whitespace-pre-wrap bg-gray-100 p-1 rounded mt-0.5">{tc.inputEncrypted}</pre>
+                              <pre className="whitespace-pre-wrap bg-gray-100 p-1 rounded mt-0.5">{JSON.stringify(tc.input, null, 2)}</pre>
                             </div>
                             <div className="text-xs text-gray-600 mt-2">
                               <div>Expected Output:</div>
-                              <pre className="whitespace-pre-wrap bg-gray-100 p-1 rounded mt-0.5">{tc.expectedOutputEncrypted}</pre>
+                              <pre className="whitespace-pre-wrap bg-gray-100 p-1 rounded mt-0.5">{JSON.stringify(tc.expectedOutput, null, 2)}</pre>
                             </div>
                           </div>
                         </div>
@@ -829,11 +896,10 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
                 </div>
               </TabsContent>
 
-              <TabsContent value="ai-review" className="flex-1 overflow-auto p-6 m-0 space-y-4">
-                {/* AI Review Request Button */}
-                {lastSubmissionId && !codeReviewData && (
+              <TabsContent value="ai-review" className="p-6 m-0" style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
+                <div className="space-y-4">
+                  {/* AI Review Request/Re-review Button */}
                   <Button
-                    variant="outline"
                     onClick={() => {
                       if (!lastSubmissionId || !problem) return;
                       requestCodeReviewMutation.mutate({
@@ -843,11 +909,16 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
                         problemTitle: problem.title,
                       });
                     }}
-                    disabled={requestCodeReviewMutation.isPending}
+                    disabled={requestCodeReviewMutation.isPending || !lastSubmissionId}
+                    className="w-full"
                   >
                     {requestCodeReviewMutation.isPending ? (
                       <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Analyzing...
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Analyzing Your Code...
+                      </>
+                    ) : codeReviewData ? (
+                      <>
+                        <Brain className="w-4 h-4 mr-2" /> Re-analyze Code
                       </>
                     ) : (
                       <>
@@ -855,7 +926,12 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
                       </>
                     )}
                   </Button>
-                )}
+                  
+                  {!lastSubmissionId && (
+                    <div className="text-sm text-gray-500 text-center">
+                      Submit your code first to request an AI review
+                    </div>
+                  )}
 
                 {/* AI Review Error */}
                 {requestCodeReviewMutation.isError && (
@@ -951,13 +1027,7 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
                     <div className="text-sm whitespace-pre-wrap">{aiReview}</div>
                   </Card>
                 )}
-
-                {/* No Review State */}
-                {!aiReview && !codeReviewData && !lastSubmissionId && (
-                  <div className="text-sm text-gray-500">
-                    Submit your code first to request an AI code review.
-                  </div>
-                )}
+                </div>
               </TabsContent>
             </Tabs>
           </div>

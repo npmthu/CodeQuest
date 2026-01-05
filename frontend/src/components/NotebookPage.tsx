@@ -53,7 +53,7 @@ export default function NotebookPage() {
   // Handle URL-based navigation
   useEffect(() => {
     if (noteId) {
-      const noteExists = notes.find(n => n.id === noteId);
+      const noteExists = notes.find((n: Note) => n.id === noteId);
       if (noteExists) {
         setSelectedNote(noteId);
         setCurrentView("detail");
@@ -264,9 +264,9 @@ export default function NotebookPage() {
                         <MoreVertical className="w-3 h-3 text-gray-400" />
                       </button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                    <DropdownMenuContent align="end" onClick={(e: React.MouseEvent) => e.stopPropagation()}>
                       <DropdownMenuItem
-                        onClick={(e) => {
+                        onClick={(e: React.MouseEvent) => {
                           e.stopPropagation();
                           handleCopyLink(note.id);
                         }}
@@ -275,7 +275,7 @@ export default function NotebookPage() {
                         Copy Link
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        onClick={(e) => {
+                        onClick={(e: React.MouseEvent) => {
                           e.stopPropagation();
                           // Could implement share functionality here
                           toast.info("Share functionality coming soon");
@@ -286,7 +286,7 @@ export default function NotebookPage() {
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
-                        onClick={(e) => {
+                        onClick={(e: React.MouseEvent) => {
                           e.stopPropagation();
                           setDeleteConfirmId(note.id);
                         }}

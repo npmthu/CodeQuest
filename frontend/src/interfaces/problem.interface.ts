@@ -2,6 +2,31 @@
 
 import { Hint, TestCase } from "./testcase.interface";
 
+// Problem IO structures
+export interface IOParameter {
+  name: string;
+  type: string;
+  element_type?: string;
+  constraints?: Record<string, any>;
+}
+
+export interface IOInput {
+  style: 'function';
+  params: IOParameter[];
+}
+
+export interface IOOutput {
+  type: string;
+  element_type?: string;
+  constraints?: Record<string, any>;
+  comparator?: string;
+}
+
+export interface ProblemIO {
+  input: IOInput;
+  output: IOOutput;
+}
+
 export interface Problem {
   id: string;
   slug: string;
@@ -18,8 +43,10 @@ export interface Problem {
   acceptanceRate?: number;
   totalSubmissions: number;
   totalAccepted: number;
+  topicId?: string;
   createdAt?: string;
   // Additional fields for CodeEditor
+  problemIO?: ProblemIO;
   starterCode?: { [key: string]: string }; // { "python": "...", "javascript": "..." }
   sampleTestCases?: TestCase[];
   hints?: Hint[];

@@ -130,11 +130,12 @@ export async function checkCourseCompletion(
 
   const topicIds = topics.map((t) => t.id);
 
-  // Get all lessons for these topics
+  // Get all published lessons for these topics
   const { data: lessons, error: lessonsError } = await supabaseAdmin
     .from("lessons")
     .select("id")
-    .in("topic_id", topicIds);
+    .in("topic_id", topicIds)
+    .eq("is_published", true);
 
   if (lessonsError) throw lessonsError;
   if (!lessons || lessons.length === 0) {

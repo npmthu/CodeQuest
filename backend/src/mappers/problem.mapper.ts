@@ -27,6 +27,7 @@ export function mapProblemToDTO(problem: Problem): ProblemDTO {
     acceptanceRate: problem.acceptance_rate,
     totalSubmissions: problem.total_submissions || 0,
     totalAccepted: problem.total_accepted || 0,
+    topicId: problem.topic_id,
     createdAt: problem.created_at
   };
 }
@@ -57,6 +58,7 @@ export function mapProblemToListItemDTO(problem: Problem, userSolved?: boolean):
     difficulty: problem.difficulty,
     isPremium: problem.is_premium || false,
     acceptanceRate: problem.acceptance_rate,
+    topicId: problem.topic_id,
     userSolved
   };
 }
@@ -65,9 +67,9 @@ export function mapTestCaseToDTO(testCase: TestCase): TestCaseDTO {
   return {
     id: testCase.id,
     name: testCase.name,
-    // input and expectedOutput chỉ trả về nếu là sample (đã decrypt)
-    input: testCase.is_sample ? testCase.input_encrypted : undefined,
-    expectedOutput: testCase.is_sample ? testCase.expected_output_encrypted : undefined,
+    // input and expectedOutput as JSONB for sample cases
+    input: testCase.is_sample ? testCase.input : undefined,
+    expectedOutput: testCase.is_sample ? testCase.expected_output : undefined,
     isSample: testCase.is_sample || false
   };
 }

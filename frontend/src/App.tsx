@@ -162,6 +162,14 @@ function AppContent() {
         }
       />
       <Route
+        path="/topics"
+        element={
+          <DashboardRoute>
+            <TopicsPage />
+          </DashboardRoute>
+        }
+      />
+      <Route
         path="/quizzes"
         element={
           <DashboardRoute>
@@ -312,6 +320,14 @@ function AppContent() {
         }
       />
       <Route
+        path="/editor/:problemId"
+        element={
+          <ProtectedRoute>
+            <CodeEditor />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/quizzes/:id"
         element={
           <ProtectedRoute>
@@ -353,14 +369,6 @@ function AppContent() {
       />
       <Route
         path="/topics/:topicId/lessons"
-        element={
-          <ProtectedRoute>
-            <LessonPage />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/courses/:courseId/topics/:topicId/lessons"
         element={
           <ProtectedRoute>
             <LessonPage />

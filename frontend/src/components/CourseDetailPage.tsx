@@ -18,8 +18,8 @@ import {
   useCourse,
   useTopics,
   useCourseProgress,
-  useCourseCertificate,
   useClaimCertificate,
+  useDownloadCertificatePDF,
 } from "../hooks/useApi";
 
 export default function CourseDetailPage() {
@@ -29,9 +29,8 @@ export default function CourseDetailPage() {
   const { data: course, isLoading: loadingCourse } = useCourse(courseId || "");
   const { data: topicsData, isLoading: loadingTopics } = useTopics();
   const { data: progressData } = useCourseProgress(courseId || "");
-  const { data: certificate, isLoading: loadingCertificate } =
-    useCourseCertificate(courseId || "");
   const claimCertificate = useClaimCertificate();
+  const downloadCertificate = useDownloadCertificatePDF();
 
   // Filter topics by courseId
   const topics = courseId
@@ -41,18 +40,28 @@ export default function CourseDetailPage() {
   // Get progress stats
   const completedLessons = progressData?.completedLessons || 0;
   const totalLessons = progressData?.totalLessons || 0;
-  const progressPercent = progressData?.progressPercent || 0;
+  const progressPercent = Number(progressData?.progressPercent) || 0;
   const topicStats = progressData?.topicStats || {};
 
-  // Check if course is completed (100% progress)
-  const isCourseCompleted = progressPercent === 100 && totalLessons > 0;
+  // Check if course is completed - use completedLessons === totalLessons as primary check
+  const isCourseCompleted =
+    totalLessons > 0 && completedLessons >= totalLessons;
+
+  // Debug log
+  console.log("Progress Debug:", {
+    completedLessons,
+    totalLessons,
+    progressPercent,
+    isCourseCompleted,
+  });
 
   // Handle claiming certificate
   const handleClaimCertificate = async () => {
     if (!courseId) return;
     try {
       const newCertificate = await claimCertificate.mutateAsync(courseId);
-      navigate(`/certificate/${newCertificate.id}`);
+      // Automatically download the PDF after claiming
+      await downloadCertificate.mutateAsync(newCertificate.id);
     } catch (error) {
       console.error("Failed to claim certificate:", error);
     }
@@ -184,7 +193,7 @@ export default function CourseDetailPage() {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center gap-4 mt-6">
+              <div className="flex flex-wrap items-center gap-4 mt-6">
                 {topics.length > 0 && (
                   <Button
                     size="lg"
@@ -192,9 +201,7 @@ export default function CourseDetailPage() {
                     onClick={() => {
                       // Navigate to first topic
                       const firstTopic = topics[0];
-                      navigate(
-                        `/courses/${courseId}/topics/${firstTopic.id}/lessons`
-                      );
+                      navigate(`/topics/${firstTopic.id}/lessons`);
                     }}
                   >
                     <PlayCircle className="w-5 h-5 mr-2" />
@@ -210,42 +217,26 @@ export default function CourseDetailPage() {
                   View Syllabus
                 </Button>
 
-                {/* Certificate Buttons - Only show when course is completed */}
-                {isCourseCompleted && !loadingCertificate && (
-                  <>
-                    {certificate ? (
-                      <Button
-                        size="lg"
-                        className="bg-green-600 hover:bg-green-700 text-white"
-                        onClick={() =>
-                          navigate(`/certificate/${certificate.id}`)
-                        }
-                      >
-                        <Award className="w-5 h-5 mr-2" />
-                        View Certificate
-                      </Button>
-                    ) : (
-                      <Button
-                        size="lg"
-                        className="bg-amber-500 hover:bg-amber-600 text-white"
-                        onClick={handleClaimCertificate}
-                        disabled={claimCertificate.isPending}
-                      >
-                        {claimCertificate.isPending ? (
-                          <>
-                            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                            Generating...
-                          </>
-                        ) : (
-                          <>
-                            <Award className="w-5 h-5 mr-2" />
-                            Claim Certificate
-                          </>
-                        )}
-                      </Button>
-                    )}
-                  </>
-                )}
+                {/* Certificate Button */}
+                <button
+                  style={{
+                    backgroundColor: "#f59e0b",
+                    color: "white",
+                    padding: "12px 24px",
+                    borderRadius: "8px",
+                    border: "none",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    fontSize: "16px",
+                    fontWeight: "bold",
+                  }}
+                  onClick={handleClaimCertificate}
+                >
+                  <Award className="w-5 h-5" />
+                  Claim Certificate
+                </button>
               </div>
             </div>
           </div>
@@ -296,11 +287,7 @@ export default function CourseDetailPage() {
                   <Card
                     key={topic.id}
                     className="p-6 hover:shadow-lg transition-all cursor-pointer bg-white border-2 hover:border-blue-300"
-                    onClick={() =>
-                      navigate(
-                        `/courses/${courseId}/topics/${topic.id}/lessons`
-                      )
-                    }
+                    onClick={() => navigate(`/topics/${topic.id}/lessons`)}
                   >
                     <div className="flex items-start gap-6">
                       {/* Topic Number */}

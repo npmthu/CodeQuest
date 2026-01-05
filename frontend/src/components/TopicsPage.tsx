@@ -29,11 +29,11 @@ export default function TopicsPage() {
       <div>
         {courseId && (
           <button
-            onClick={() => navigate(`/courses`)}
+            onClick={() => navigate(`/courses/${courseId}`)}
             className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to selected course
+            Back to Course
           </button>
         )}
         <h2 className="text-3xl font-bold">
@@ -61,13 +61,7 @@ export default function TopicsPage() {
             <Card
               key={topic.id}
               className="p-6 hover:shadow-lg transition-shadow cursor-pointer"
-              onClick={() =>
-                navigate(
-                  courseId
-                    ? `/courses/${courseId}/topics/${topic.id}/lessons`
-                    : `/topics/${topic.id}/lessons`
-                )
-              }
+              onClick={() => navigate(`/topics/${topic.id}/lessons`)}
             >
               {/* Topic Icon */}
               <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">

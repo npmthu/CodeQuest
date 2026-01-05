@@ -2,12 +2,10 @@
 
 export interface TestCase {
   id: string;
-  problemId: string;
-  inputEncrypted: string;
-  expectedOutputEncrypted: string;
+  name?: string;
+  input?: any; // JSONB object for sample test cases
+  expectedOutput?: any; // JSONB object for sample test cases
   isSample: boolean;
-  orderIndex: number;
-  createdAt?: string;
 }
 
 export interface TestCaseResult {

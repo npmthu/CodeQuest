@@ -229,11 +229,31 @@ export async function getCourseCompletionStats(
   userId: string,
   courseId: string
 ) {
-  // Get all published lessons for this course with their topic_id
+  // First, get all topics for this course
+  const { data: topics, error: topicsError } = await supabaseAdmin
+    .from("topics")
+    .select("id")
+    .eq("course_id", courseId);
+
+  if (topicsError) throw topicsError;
+
+  const topicIds = (topics || []).map((t) => t.id);
+
+  // If no topics, return empty stats
+  if (!topicIds.length) {
+    return {
+      totalLessons: 0,
+      completedLessons: 0,
+      progressPercent: 0,
+      topicStats: {},
+    };
+  }
+
+  // Get all published lessons for these topics
   const { data: lessons, error: lessonsError } = await supabaseAdmin
     .from("lessons")
     .select("id, topic_id")
-    .eq("course_id", courseId)
+    .in("topic_id", topicIds)
     .eq("is_published", true);
 
   if (lessonsError) throw lessonsError;
