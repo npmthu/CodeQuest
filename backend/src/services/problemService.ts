@@ -1,9 +1,10 @@
 import { supabaseAdmin } from '../config/database';
 import type { Problem } from '../models/Problem';
 
-export async function listProblems(limit = 50, publishedOnly = true) {
+export async function listProblems(limit = 50, publishedOnly = true, topicId?: string) {
   let q = supabaseAdmin.from('problems').select('*').limit(limit);
   if (publishedOnly) q = q.eq('is_published', true);
+  if (topicId) q = q.eq('topic_id', topicId);
   const { data, error } = await q;
   if (error) throw error;
   return data ?? [];

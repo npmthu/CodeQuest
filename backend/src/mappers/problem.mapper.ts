@@ -27,6 +27,7 @@ export function mapProblemToDTO(problem: Problem): ProblemDTO {
     acceptanceRate: problem.acceptance_rate,
     totalSubmissions: problem.total_submissions || 0,
     totalAccepted: problem.total_accepted || 0,
+    topicId: problem.topic_id,
     createdAt: problem.created_at
   };
 }
@@ -57,6 +58,7 @@ export function mapProblemToListItemDTO(problem: Problem, userSolved?: boolean):
     difficulty: problem.difficulty,
     isPremium: problem.is_premium || false,
     acceptanceRate: problem.acceptance_rate,
+    topicId: problem.topic_id,
     userSolved
   };
 }

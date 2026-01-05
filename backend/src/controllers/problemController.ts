@@ -5,7 +5,8 @@ import { mapProblemToListItemDTO, mapProblemToDetailDTO } from '../mappers/probl
 
 export async function listProblemsHandler(req: Request, res: Response) {
   try {
-    const problems = await problemService.listProblems();
+    const topicId = req.query.topic_id as string | undefined;
+    const problems = await problemService.listProblems(50, true, topicId);
     const problemsDTO = problems.map(p => mapProblemToListItemDTO(p));
     res.json({ success: true, data: problemsDTO });
   } catch (err: any) {

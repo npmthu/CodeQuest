@@ -16,6 +16,7 @@ export interface ProblemDTO {
   acceptanceRate?: number;
   totalSubmissions: number;
   totalAccepted: number;
+  topicId?: string;
   createdAt?: string;
 }
 
@@ -39,6 +40,7 @@ export interface ProblemListItemDTO {
   difficulty: number;
   isPremium: boolean;
   acceptanceRate?: number;
+  topicId?: string;
   userSolved?: boolean;
 }
 

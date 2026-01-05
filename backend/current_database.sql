@@ -42,6 +42,19 @@ CREATE TABLE public.ai_generated_content (
   CONSTRAINT ai_generated_content_pkey PRIMARY KEY (id),
   CONSTRAINT ai_generated_content_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
+CREATE TABLE public.ai_suggestion_logs (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  suggestion_type character varying NOT NULL CHECK (suggestion_type::text = ANY (ARRAY['topic_suggestion'::character varying, 'summary'::character varying, 'mindmap'::character varying, 'hint'::character varying, 'code_review'::character varying]::text[])),
+  input_content text,
+  output_content jsonb,
+  context_metadata jsonb,
+  tokens_used integer DEFAULT 0,
+  processing_time_ms integer,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT ai_suggestion_logs_pkey PRIMARY KEY (id),
+  CONSTRAINT ai_suggestion_logs_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
 CREATE TABLE public.analytics_events (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
   user_id uuid,
@@ -179,22 +192,46 @@ CREATE TABLE public.instructors (
   CONSTRAINT instructors_partner_id_fkey FOREIGN KEY (partner_id) REFERENCES public.partners(id),
   CONSTRAINT instructors_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
-CREATE TABLE public.interview_feedback (
-  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+CREATE TABLE public.interview_bookings (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
   session_id uuid NOT NULL,
-  from_user_id uuid NOT NULL,
-  to_user_id uuid NOT NULL,
-  overall_rating integer,
-  communication_rating integer,
-  problem_solving_rating integer,
-  technical_knowledge_rating integer,
-  feedback_text text,
-  recommended_topics jsonb,
-  created_at timestamp without time zone DEFAULT now(),
+  learner_id uuid NOT NULL,
+  booking_status character varying DEFAULT 'pending'::character varying CHECK (booking_status::text = ANY (ARRAY['pending'::character varying, 'confirmed'::character varying, 'cancelled'::character varying, 'completed'::character varying, 'no_show'::character varying]::text[])),
+  payment_status character varying DEFAULT 'pending'::character varying CHECK (payment_status::text = ANY (ARRAY['pending'::character varying, 'paid'::character varying, 'refunded'::character varying, 'failed'::character varying]::text[])),
+  payment_amount numeric,
+  payment_id character varying,
+  booked_at timestamp with time zone DEFAULT now(),
+  confirmed_at timestamp with time zone,
+  cancelled_at timestamp with time zone,
+  notes text,
+  no_show_reported boolean DEFAULT false,
+  CONSTRAINT interview_bookings_pkey PRIMARY KEY (id),
+  CONSTRAINT interview_bookings_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.mock_interview_sessions(id),
+  CONSTRAINT interview_bookings_learner_id_fkey FOREIGN KEY (learner_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.interview_feedback (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  booking_id uuid UNIQUE,
+  instructor_id uuid NOT NULL,
+  learner_id uuid,
+  overall_rating integer CHECK (overall_rating >= 1 AND overall_rating <= 5),
+  technical_rating integer CHECK (technical_rating >= 1 AND technical_rating <= 5),
+  communication_rating integer CHECK (communication_rating >= 1 AND communication_rating <= 5),
+  problem_solving_rating integer CHECK (problem_solving_rating >= 1 AND problem_solving_rating <= 5),
+  strengths text,
+  areas_for_improvement text,
+  recommendations text,
+  detailed_feedback jsonb,
+  feedback_date timestamp with time zone DEFAULT now(),
+  is_public boolean DEFAULT false,
+  session_id uuid,
+  comments text,
+  feedback_type character varying DEFAULT 'learner_feedback'::character varying CHECK (feedback_type::text = ANY (ARRAY['learner_feedback'::character varying, 'instructor_system'::character varying, 'peer_review'::character varying]::text[])),
   CONSTRAINT interview_feedback_pkey PRIMARY KEY (id),
-  CONSTRAINT interview_feedback_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.interview_sessions(id),
-  CONSTRAINT interview_feedback_from_user_id_fkey FOREIGN KEY (from_user_id) REFERENCES public.users(id),
-  CONSTRAINT interview_feedback_to_user_id_fkey FOREIGN KEY (to_user_id) REFERENCES public.users(id)
+  CONSTRAINT interview_feedback_booking_id_fkey FOREIGN KEY (booking_id) REFERENCES public.interview_bookings(id),
+  CONSTRAINT interview_feedback_instructor_id_fkey FOREIGN KEY (instructor_id) REFERENCES public.users(id),
+  CONSTRAINT interview_feedback_learner_id_fkey FOREIGN KEY (learner_id) REFERENCES public.users(id),
+  CONSTRAINT interview_feedback_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.mock_interview_sessions(id)
 );
 CREATE TABLE public.interview_sessions (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
@@ -256,6 +293,30 @@ CREATE TABLE public.lessons (
   CONSTRAINT lessons_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id),
   CONSTRAINT lessons_course_id_fkey FOREIGN KEY (course_id) REFERENCES public.courses(id)
 );
+CREATE TABLE public.mock_interview_sessions (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  instructor_id uuid NOT NULL,
+  title character varying NOT NULL,
+  description text,
+  topic character varying NOT NULL,
+  difficulty_level character varying CHECK (difficulty_level::text = ANY (ARRAY['beginner'::character varying, 'intermediate'::character varying, 'advanced'::character varying]::text[])),
+  session_date timestamp with time zone NOT NULL,
+  duration_minutes integer NOT NULL CHECK (duration_minutes > 0),
+  price numeric NOT NULL DEFAULT 0.00,
+  max_slots integer NOT NULL CHECK (max_slots > 0),
+  slots_available integer NOT NULL CHECK (slots_available >= 0),
+  session_link character varying,
+  requirements text,
+  status character varying DEFAULT 'scheduled'::character varying CHECK (status::text = ANY (ARRAY['scheduled'::character varying, 'in_progress'::character varying, 'completed'::character varying, 'cancelled'::character varying]::text[])),
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  session_type character varying DEFAULT 'individual'::character varying CHECK (session_type::text = ANY (ARRAY['individual'::character varying, 'group'::character varying]::text[])),
+  max_participants integer DEFAULT 5 CHECK (max_participants >= 1 AND max_participants <= 20),
+  communication_mode character varying DEFAULT 'video'::character varying CHECK (communication_mode::text = ANY (ARRAY['video'::character varying, 'audio'::character varying, 'text'::character varying]::text[])),
+  room_config jsonb DEFAULT '{"topology": "mesh", "recordingEnabled": false}'::jsonb,
+  CONSTRAINT mock_interview_sessions_pkey PRIMARY KEY (id),
+  CONSTRAINT mock_interview_sessions_instructor_id_fkey FOREIGN KEY (instructor_id) REFERENCES public.users(id)
+);
 CREATE TABLE public.notes (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
   user_id uuid NOT NULL,
@@ -300,8 +361,10 @@ CREATE TABLE public.problems (
   updated_at timestamp without time zone DEFAULT now(),
   metadata jsonb DEFAULT '{}'::jsonb,
   editorial_markdown text,
+  topic_id uuid,
   CONSTRAINT problems_pkey PRIMARY KEY (id),
-  CONSTRAINT problems_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id)
+  CONSTRAINT problems_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id),
+  CONSTRAINT problems_topic_id_fkey FOREIGN KEY (topic_id) REFERENCES public.topics(id)
 );
 CREATE TABLE public.quiz_attempts (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
@@ -346,6 +409,35 @@ CREATE TABLE public.quizzes (
   CONSTRAINT quizzes_pkey PRIMARY KEY (id),
   CONSTRAINT quizzes_topic_id_fkey FOREIGN KEY (topic_id) REFERENCES public.topics(id),
   CONSTRAINT quizzes_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id)
+);
+CREATE TABLE public.session_join_logs (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  session_id uuid NOT NULL,
+  user_id uuid NOT NULL,
+  user_role character varying CHECK (user_role::text = ANY (ARRAY['instructor'::character varying, 'learner'::character varying]::text[])),
+  joined_at timestamp with time zone DEFAULT now(),
+  left_at timestamp with time zone,
+  session_duration_minutes integer,
+  CONSTRAINT session_join_logs_pkey PRIMARY KEY (id),
+  CONSTRAINT session_join_logs_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.mock_interview_sessions(id),
+  CONSTRAINT session_join_logs_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.session_participants (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  session_id uuid NOT NULL,
+  user_id uuid NOT NULL,
+  participant_role character varying NOT NULL CHECK (participant_role::text = ANY (ARRAY['instructor'::character varying, 'learner'::character varying, 'observer'::character varying, 'co_instructor'::character varying]::text[])),
+  status character varying DEFAULT 'registered'::character varying CHECK (status::text = ANY (ARRAY['registered'::character varying, 'waiting'::character varying, 'joined'::character varying, 'left'::character varying, 'kicked'::character varying, 'no_show'::character varying, 'reconnecting'::character varying]::text[])),
+  registered_at timestamp with time zone DEFAULT now(),
+  joined_at timestamp with time zone,
+  left_at timestamp with time zone,
+  connection_quality character varying DEFAULT 'unknown'::character varying CHECK (connection_quality::text = ANY (ARRAY['excellent'::character varying, 'good'::character varying, 'fair'::character varying, 'poor'::character varying, 'unknown'::character varying]::text[])),
+  media_state jsonb DEFAULT '{"audioEnabled": true, "videoEnabled": true, "screenShareEnabled": false}'::jsonb,
+  device_info jsonb,
+  notes text,
+  CONSTRAINT session_participants_pkey PRIMARY KEY (id),
+  CONSTRAINT session_participants_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.mock_interview_sessions(id),
+  CONSTRAINT session_participants_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
 CREATE TABLE public.submissions (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),

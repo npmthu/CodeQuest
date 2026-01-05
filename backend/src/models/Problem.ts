@@ -17,6 +17,7 @@ export interface Problem {
   acceptance_rate?: number;
   total_submissions?: number;
   total_accepted?: number;
+  topic_id?: string;
   created_at?: string;
   updated_at?: string;
   metadata?: Record<string, any>;
