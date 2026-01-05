@@ -52,13 +52,21 @@ export default function DashboardLayout({
   const instructorMenuItems = [
     { path: "/instructor/dashboard", label: t("nav.dashboard"), icon: Home },
     { path: "/instructor/courses", label: t("nav.myCourses"), icon: VideoIcon },
-    { path: "/instructor/problems", label: t("nav.myProblems"), icon: FileCode },
+    {
+      path: "/instructor/quizzes",
+      label: t("nav.quizManager"),
+      icon: ClipboardList,
+    },
+    {
+      path: "/instructor/problems",
+      label: t("nav.myProblems"),
+      icon: FileCode,
+    },
     {
       path: "/instructor/interviews",
       label: t("nav.mockInterviews"),
       icon: VideoIcon,
     },
-    { path: "/quizzes", label: t("nav.quizzes"), icon: ClipboardList },
     {
       path: "/instructor/analytics",
       label: t("nav.analytics"),

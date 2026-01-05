@@ -28,6 +28,7 @@ import SettingsPage from "./components/SettingsPage";
 import PricingPage from "./components/PricingPage";
 import InstructorDashboard from "./components/InstructorDashboard";
 import InstructorCourseManager from "./components/InstructorCourseManager";
+import InstructorQuizManager from "./components/InstructorQuizManager";
 import InstructorAnalytics from "./components/InstructorAnalytics";
 import InstructorCreateCourse from "./components/InstructorCreateCourse";
 import InstructorProblemsPage from "./components/InstructorProblemsPage";
@@ -242,6 +243,14 @@ function AppContent() {
         element={
           <DashboardRoute>
             <InstructorCourseManager />
+          </DashboardRoute>
+        }
+      />
+      <Route
+        path="/instructor/quizzes"
+        element={
+          <DashboardRoute>
+            <InstructorQuizManager />
           </DashboardRoute>
         }
       />
