@@ -250,7 +250,7 @@ export default function StudentInterviews() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="p-4">
+        <Card className="p-4" style={{ backgroundColor: '#B9D6F3' }}>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
               <Video className="w-5 h-5 text-blue-600" />
@@ -262,7 +262,7 @@ export default function StudentInterviews() {
           </div>
         </Card>
         
-        <Card className="p-4">
+        <Card className="p-4" style={{ backgroundColor: '#B6DA9F' }}>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
               <Calendar className="w-5 h-5 text-green-600" />
@@ -274,7 +274,7 @@ export default function StudentInterviews() {
           </div>
         </Card>
         
-        <Card className="p-4">
+        <Card className="p-4" style={{ backgroundColor: '#E0B0FF' }}>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
               <Crown className="w-5 h-5 text-purple-600" />
@@ -286,7 +286,7 @@ export default function StudentInterviews() {
           </div>
         </Card>
         
-        <Card className="p-4">
+        <Card className="p-4" style={{ backgroundColor: '#F7D7A9' }}>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center">
               <DollarSign className="w-5 h-5 text-yellow-600" />
