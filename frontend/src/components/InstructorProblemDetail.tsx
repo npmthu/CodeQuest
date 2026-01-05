@@ -661,14 +661,14 @@ export default function InstructorProblemDetail() {
 
       {/* Suspicion Breakdown Modal */}
       {suspicionModalData && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden">
           <div
             className="fixed inset-0 bg-black/50"
             onClick={closeSuspicionModal}
           />
-          <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-hidden">
+          <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 flex flex-col" style={{ maxHeight: 'calc(100vh - 40px)' }}>
             {/* Modal Header */}
-            <div className="flex items-center justify-between p-4 border-b">
+            <div className="flex items-center justify-between p-4 border-b flex-shrink-0">
               <div className="flex items-center gap-3">
                 <AlertTriangle className="w-5 h-5 text-orange-500" />
                 <div>
@@ -688,8 +688,8 @@ export default function InstructorProblemDetail() {
               </Button>
             </div>
 
-            {/* Modal Body */}
-            <div className="p-4 overflow-y-auto max-h-[60vh]">
+            {/* Modal Body - Scrollable */}
+            <div className="p-4 flex-1 overflow-y-auto" style={{ overflowY: 'auto' }}>
               {/* Overall Score */}
               <div className="mb-6 p-4 bg-gray-50 rounded-lg">
                 <div className="flex items-center justify-between mb-3">
@@ -806,7 +806,7 @@ export default function InstructorProblemDetail() {
             </div>
 
             {/* Modal Footer */}
-            <div className="flex justify-end p-4 border-t">
+            <div className="flex justify-end p-4 border-t flex-shrink-0">
               <Button variant="outline" onClick={closeSuspicionModal}>
                 Close
               </Button>
