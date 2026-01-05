@@ -6,8 +6,29 @@ import { supabaseAdmin } from "../config/database";
 
 export class AdminController {
   /**
+   * GET /api/admin/plans
+   * Get all subscription plans (including inactive) for admin
+   */
+  async getPlans(req: AuthRequest, res: Response) {
+    try {
+      const plans = await subscriptionService.getAllPlans();
+      res.json({
+        success: true,
+        data: plans,
+      });
+    } catch (error: any) {
+      console.error("❌ Error fetching plans:", error);
+      res.status(500).json({
+        success: false,
+        error: error.message || "Failed to fetch plans",
+      });
+    }
+  }
+
+  /**
    * GET /api/admin/subscriptions
    * Get all subscriptions with user details for admin dashboard
+   * Supports filtering by status: active, inactive, canceled, all
    */
   async getAllSubscriptions(req: AuthRequest, res: Response) {
     try {
@@ -21,15 +42,24 @@ export class AdminController {
           *,
           plan:subscription_plans(id, name, slug, price_monthly),
           user:users(id, email, display_name)
-        `
+        `,
+          { count: "exact" }
         )
         .order("created_at", { ascending: false })
         .range(offset, offset + Number(limit) - 1);
 
+      // Filter by status
       if (status && status !== "all") {
         if (status === "canceled") {
           query = query.eq("cancel_at_period_end", true);
+        } else if (status === "inactive") {
+          // Explicitly filter for inactive subscriptions
+          query = query.eq("status", "inactive");
+        } else if (status === "active") {
+          // Filter for active subscriptions
+          query = query.eq("status", "active");
         } else {
+          // For any other status value
           query = query.eq("status", status);
         }
       }
@@ -87,14 +117,17 @@ export class AdminController {
             count: "exact",
           }
         )
-        .order("created_at", { ascending: false })
-        .range(offset, offset + Number(limit) - 1);
+        .neq("role", "admin")
+        .order("created_at", { ascending: false });
 
       if (search) {
         query = query.or(
           `email.ilike.%${search}%,display_name.ilike.%${search}%`
         );
       }
+
+      // Apply range LAST to get correct count
+      query = query.range(offset, offset + Number(limit) - 1);
 
       const { data, error, count } = await query;
 

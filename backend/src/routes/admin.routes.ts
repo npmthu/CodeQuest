@@ -17,6 +17,7 @@ router.use(requireAdmin);
 router.get("/stats", adminController.getAdminStats.bind(adminController));
 
 // Subscription Plan Management - Fixes TC_ADMIN_SUB_01, TC_ADMIN_SUB_03
+router.get("/plans", adminController.getPlans.bind(adminController));
 router.post("/plans", adminController.createPlan.bind(adminController));
 router.put("/plans/:id", adminController.updatePlan.bind(adminController));
 

@@ -77,12 +77,12 @@ export default function UserManagement() {
     try {
       const response = await adminApi.getUsers(
         page,
-        20,
+        8,
         searchTerm || undefined
       );
-      if (response.success && response.data) {
-        setUsers(response.data.users || response.data || []);
-        setTotal(response.data.pagination?.total || response.data.length || 0);
+      if (response.success) {
+        setUsers(response.data || []);
+        setTotal(response.pagination?.total || 0);
       } else {
         toast.error(response.error || "Failed to fetch users");
       }
@@ -116,7 +116,7 @@ export default function UserManagement() {
 
   const getUserRole = (user: User) => {
     // Handle null, undefined, or empty role
-    const role = (user.role || "learner").toLowerCase().trim();
+    const role = user.role.toLowerCase().trim();
     if (!role || role === "") return "Learner";
     if (role === "admin") return "Admin";
     if (role === "instructor") return "Instructor";
@@ -125,10 +125,6 @@ export default function UserManagement() {
   };
 
   const filteredUsers = users.filter((user) => {
-    // Exclude admin role from user list
-    const role = (user.role || "learner").toLowerCase().trim();
-    if (role === "admin") return false;
-
     const userRole = getUserRole(user).toLowerCase();
     const userStatus = getUserStatus(user).toLowerCase();
     const matchesRole = filterRole === "all" || userRole === filterRole;
@@ -352,29 +348,27 @@ export default function UserManagement() {
         </div>
 
         {/* Pagination */}
-        {total > 20 && (
-          <div className="flex items-center justify-between px-4 py-3 border-t">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page === 1}
-            >
-              Previous
-            </Button>
-            <span className="text-sm text-gray-600">
-              Page {page} of {Math.ceil(total / 20)}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage((p) => p + 1)}
-              disabled={page * 20 >= total}
-            >
-              Next
-            </Button>
-          </div>
-        )}
+        <div className="flex items-center justify-between px-6 py-4 border-t bg-gray-50">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page === 1 || loading}
+          >
+            Previous
+          </Button>
+          <span className="text-sm text-gray-600">
+            Page {page} of {Math.ceil(total / 8) || 1}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPage((p) => p + 1)}
+            disabled={page * 8 >= total || loading}
+          >
+            Next
+          </Button>
+        </div>
       </div>
     </div>
   );

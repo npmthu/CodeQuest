@@ -70,8 +70,8 @@ export async function apiRequest<T>(
 
 // Admin Subscription API
 export const adminApi = {
-  // Get all subscription plans (public endpoint)
-  getPlans: () => apiRequest<any[]>("/subscription/plans"),
+  // Get all subscription plans including inactive (admin only)
+  getPlans: () => apiRequest<any[]>("/admin/plans"),
 
   // Create a new subscription plan (TC-09-01)
   createPlan: (planData: {

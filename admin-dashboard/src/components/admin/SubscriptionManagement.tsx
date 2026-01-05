@@ -1,11 +1,17 @@
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { Label } from '../ui/label';
-import { Badge } from '../ui/badge';
-import { Switch } from '../ui/switch';
-import { Textarea } from '../ui/textarea';
+import { useState, useEffect } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "../ui/card";
+import { Button } from "../ui/button";
+import { Input } from "../ui/input";
+import { Label } from "../ui/label";
+import { Badge } from "../ui/badge";
+import { Switch } from "../ui/switch";
+import { Textarea } from "../ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -13,7 +19,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '../ui/dialog';
+} from "../ui/dialog";
 import {
   Table,
   TableBody,
@@ -21,14 +27,14 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '../ui/table';
+} from "../ui/table";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '../ui/select';
+} from "../ui/select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -38,22 +44,22 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '../ui/alert-dialog';
-import { 
-  Plus, 
-  Edit2, 
-  Trash2, 
-  DollarSign, 
-  Users, 
-  Crown, 
+} from "../ui/alert-dialog";
+import {
+  Plus,
+  Edit2,
+  Trash2,
+  DollarSign,
+  Users,
+  Crown,
   Loader2,
   Check,
   X,
   AlertCircle,
-  Search
-} from 'lucide-react';
-import { toast } from 'sonner';
-import { adminApi } from '../../services/api';
+  Search,
+} from "lucide-react";
+import { toast } from "sonner";
+import { adminApi } from "../../services/api";
 
 interface SubscriptionPlan {
   id: string;
@@ -75,7 +81,7 @@ interface UserSubscription {
   user_name?: string;
   plan_id: string;
   plan_name?: string;
-  status: 'active' | 'canceled' | 'expired' | 'past_due';
+  status: "active" | "inactive" | "canceled" | "expired" | "past_due";
   current_period_end: string;
   cancel_at_period_end: boolean;
   created_at: string;
@@ -90,43 +96,51 @@ export default function SubscriptionManagement() {
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [subscriptions, setSubscriptions] = useState<UserSubscription[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'plans' | 'users'>('plans');
-  
+  const [activeTab, setActiveTab] = useState<"plans" | "users">("plans");
+
   // Modal states
   const [showCreatePlanModal, setShowCreatePlanModal] = useState(false);
   const [showEditPlanModal, setShowEditPlanModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(null);
-  const [selectedSubscription, setSelectedSubscription] = useState<UserSubscription | null>(null);
-  
+  const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(
+    null
+  );
+  const [selectedSubscription, setSelectedSubscription] =
+    useState<UserSubscription | null>(null);
+
   // Form states
   const [formData, setFormData] = useState({
-    name: '',
-    slug: '',
-    description: '',
-    price_monthly: '',
-    price_yearly: '',
-    user_limit: '',
+    name: "",
+    slug: "",
+    description: "",
+    price_monthly: "",
+    price_yearly: "",
     is_active: true,
     features: {
       maxNotes: 100,
+      aiMindmap: true,
       aiGeneration: true,
-      advancedAnalytics: false,
-      prioritySupport: false
-    }
+    },
   });
-  const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
-  const [cancelReason, setCancelReason] = useState('');
+  const [validationErrors, setValidationErrors] = useState<ValidationError[]>(
+    []
+  );
+  const [cancelReason, setCancelReason] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   // Search
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
 
   useEffect(() => {
     fetchPlans();
     fetchSubscriptions();
   }, []);
+
+  // Refetch subscriptions when status filter changes
+  useEffect(() => {
+    fetchSubscriptions();
+  }, [statusFilter]);
 
   const fetchPlans = async () => {
     try {
@@ -135,20 +149,22 @@ export default function SubscriptionManagement() {
         setPlans(response.data);
       }
     } catch (error) {
-      console.error('Error fetching plans:', error);
-      toast.error('Failed to load subscription plans');
+      console.error("Error fetching plans:", error);
+      toast.error("Failed to load subscription plans");
     }
   };
 
   const fetchSubscriptions = async () => {
     try {
       setLoading(true);
-      const response = await adminApi.getAllSubscriptions();
+      const response = await adminApi.getAllSubscriptions(
+        statusFilter !== "all" ? statusFilter : undefined
+      );
       if (response.success && response.data) {
         setSubscriptions(response.data);
       }
     } catch (error) {
-      console.error('Error fetching subscriptions:', error);
+      console.error("Error fetching subscriptions:", error);
     } finally {
       setLoading(false);
     }
@@ -157,46 +173,61 @@ export default function SubscriptionManagement() {
   // TC-09-03: Validate plan data
   const validatePlanData = (): ValidationError[] => {
     const errors: ValidationError[] = [];
-    
+
     // Name validation
     if (!formData.name.trim()) {
-      errors.push({ field: 'name', message: 'Plan name is required.' });
-    } else if (plans.some((p: SubscriptionPlan) => p.name.toLowerCase() === formData.name.toLowerCase() && p.id !== selectedPlan?.id)) {
-      errors.push({ field: 'name', message: 'Plan name already exists.' });
+      errors.push({ field: "name", message: "Plan name is required." });
+    } else if (
+      plans.some(
+        (p: SubscriptionPlan) =>
+          p.name.toLowerCase() === formData.name.toLowerCase() &&
+          p.id !== selectedPlan?.id
+      )
+    ) {
+      errors.push({ field: "name", message: "Plan name already exists." });
     }
-    
+
     // Slug validation
     if (!formData.slug.trim()) {
-      errors.push({ field: 'slug', message: 'Slug is required.' });
+      errors.push({ field: "slug", message: "Slug is required." });
     } else if (!/^[a-z0-9-]+$/.test(formData.slug)) {
-      errors.push({ field: 'slug', message: 'Slug must be lowercase letters, numbers, and hyphens only.' });
-    } else if (plans.some((p: SubscriptionPlan) => p.slug === formData.slug && p.id !== selectedPlan?.id)) {
-      errors.push({ field: 'slug', message: 'Slug already exists.' });
+      errors.push({
+        field: "slug",
+        message: "Slug must be lowercase letters, numbers, and hyphens only.",
+      });
+    } else if (
+      plans.some(
+        (p: SubscriptionPlan) =>
+          p.slug === formData.slug && p.id !== selectedPlan?.id
+      )
+    ) {
+      errors.push({ field: "slug", message: "Slug already exists." });
     }
-    
+
     // Price validation
     const priceMonthly = parseFloat(formData.price_monthly);
     if (isNaN(priceMonthly)) {
-      errors.push({ field: 'price_monthly', message: 'Monthly price is required.' });
+      errors.push({
+        field: "price_monthly",
+        message: "Monthly price is required.",
+      });
     } else if (priceMonthly < 0) {
-      errors.push({ field: 'price_monthly', message: 'Price must be a positive number.' });
+      errors.push({
+        field: "price_monthly",
+        message: "Price must be a positive number.",
+      });
     }
-    
+
     if (formData.price_yearly) {
       const priceYearly = parseFloat(formData.price_yearly);
       if (isNaN(priceYearly) || priceYearly < 0) {
-        errors.push({ field: 'price_yearly', message: 'Yearly price must be a positive number.' });
+        errors.push({
+          field: "price_yearly",
+          message: "Yearly price must be a positive number.",
+        });
       }
     }
-    
-    // User limit validation
-    if (formData.user_limit) {
-      const userLimit = parseInt(formData.user_limit);
-      if (isNaN(userLimit) || userLimit < 0) {
-        errors.push({ field: 'user_limit', message: 'User limit must be a positive number.' });
-      }
-    }
-    
+
     return errors;
   };
 
@@ -204,12 +235,12 @@ export default function SubscriptionManagement() {
   const handleCreatePlan = async () => {
     const errors = validatePlanData();
     setValidationErrors(errors);
-    
+
     if (errors.length > 0) {
-      toast.error('Please fix validation errors before submitting.');
+      toast.error("Please fix validation errors before submitting.");
       return;
     }
-    
+
     setIsSubmitting(true);
     try {
       const planData = {
@@ -217,28 +248,31 @@ export default function SubscriptionManagement() {
         slug: formData.slug.trim(),
         description: formData.description.trim(),
         price_monthly: parseFloat(formData.price_monthly),
-        price_yearly: formData.price_yearly ? parseFloat(formData.price_yearly) : undefined,
-        user_limit: formData.user_limit ? parseInt(formData.user_limit) : undefined,
+        price_yearly: formData.price_yearly
+          ? parseFloat(formData.price_yearly)
+          : null,
         is_active: formData.is_active,
-        features: formData.features
+        features: formData.features,
       };
-      
+
       const response = await adminApi.createPlan(planData);
-      
+
       if (response.success) {
         toast.success(`New tier '${formData.name}' created successfully`);
         setShowCreatePlanModal(false);
         resetForm();
         await fetchPlans();
       } else {
-        if (response.error?.includes('already exists')) {
-          setValidationErrors([{ field: 'slug', message: 'Plan name already exists.' }]);
+        if (response.error?.includes("already exists")) {
+          setValidationErrors([
+            { field: "slug", message: "Plan name already exists." },
+          ]);
         }
-        toast.error(response.error || 'Failed to create plan');
+        toast.error(response.error || "Failed to create plan");
       }
     } catch (error: any) {
-      console.error('Error creating plan:', error);
-      toast.error(error.message || 'Failed to create subscription plan');
+      console.error("Error creating plan:", error);
+      toast.error(error.message || "Failed to create subscription plan");
     } finally {
       setIsSubmitting(false);
     }
@@ -247,37 +281,37 @@ export default function SubscriptionManagement() {
   // TC-09-02: Cancel user subscription
   const handleCancelSubscription = async () => {
     if (!selectedSubscription) return;
-    
+
     // TC-09-04: Check if subscription is already expired
     const periodEnd = new Date(selectedSubscription.current_period_end);
-    if (periodEnd < new Date() || selectedSubscription.status === 'expired') {
-      toast.error('Cannot cancel a subscription that is already expired');
+    if (periodEnd < new Date() || selectedSubscription.status === "expired") {
+      toast.error("Cannot cancel a subscription that is already expired");
       return;
     }
-    
+
     setIsSubmitting(true);
     try {
       const response = await adminApi.cancelUserSubscription(
         selectedSubscription.user_id,
         cancelReason
       );
-      
+
       if (response.success) {
-        toast.success('Subscription cancelled successfully');
+        toast.success("Subscription cancelled successfully");
         setShowCancelModal(false);
-        setCancelReason('');
+        setCancelReason("");
         setSelectedSubscription(null);
         await fetchSubscriptions();
       } else {
-        if (response.error?.includes('already expired')) {
-          toast.error('Cannot cancel a subscription that is already expired');
+        if (response.error?.includes("already expired")) {
+          toast.error("Cannot cancel a subscription that is already expired");
         } else {
-          toast.error(response.error || 'Failed to cancel subscription');
+          toast.error(response.error || "Failed to cancel subscription");
         }
       }
     } catch (error: any) {
-      console.error('Error cancelling subscription:', error);
-      toast.error(error.message || 'Failed to cancel subscription');
+      console.error("Error cancelling subscription:", error);
+      toast.error(error.message || "Failed to cancel subscription");
     } finally {
       setIsSubmitting(false);
     }
@@ -285,41 +319,42 @@ export default function SubscriptionManagement() {
 
   const handleUpdatePlan = async () => {
     if (!selectedPlan) return;
-    
+
     const errors = validatePlanData();
     setValidationErrors(errors);
-    
+
     if (errors.length > 0) {
-      toast.error('Please fix validation errors before submitting.');
+      toast.error("Please fix validation errors before submitting.");
       return;
     }
-    
+
     setIsSubmitting(true);
     try {
       const updateData = {
         name: formData.name.trim(),
         description: formData.description.trim(),
         price_monthly: parseFloat(formData.price_monthly),
-        price_yearly: formData.price_yearly ? parseFloat(formData.price_yearly) : undefined,
-        user_limit: formData.user_limit ? parseInt(formData.user_limit) : undefined,
+        price_yearly: formData.price_yearly
+          ? parseFloat(formData.price_yearly)
+          : null,
         is_active: formData.is_active,
-        features: formData.features
+        features: formData.features,
       };
-      
+
       const response = await adminApi.updatePlan(selectedPlan.id, updateData);
-      
+
       if (response.success) {
-        toast.success('Subscription plan updated successfully');
+        toast.success("Subscription plan updated successfully");
         setShowEditPlanModal(false);
         setSelectedPlan(null);
         resetForm();
         await fetchPlans();
       } else {
-        toast.error(response.error || 'Failed to update plan');
+        toast.error(response.error || "Failed to update plan");
       }
     } catch (error: any) {
-      console.error('Error updating plan:', error);
-      toast.error(error.message || 'Failed to update subscription plan');
+      console.error("Error updating plan:", error);
+      toast.error(error.message || "Failed to update subscription plan");
     } finally {
       setIsSubmitting(false);
     }
@@ -327,19 +362,17 @@ export default function SubscriptionManagement() {
 
   const resetForm = () => {
     setFormData({
-      name: '',
-      slug: '',
-      description: '',
-      price_monthly: '',
-      price_yearly: '',
-      user_limit: '',
+      name: "",
+      slug: "",
+      description: "",
+      price_monthly: "",
+      price_yearly: "",
       is_active: true,
       features: {
         maxNotes: 100,
+        aiMindmap: true,
         aiGeneration: true,
-        advancedAnalytics: false,
-        prioritySupport: false
-      }
+      },
     });
     setValidationErrors([]);
   };
@@ -349,12 +382,15 @@ export default function SubscriptionManagement() {
     setFormData({
       name: plan.name,
       slug: plan.slug,
-      description: plan.description || '',
+      description: plan.description || "",
       price_monthly: plan.price_monthly.toString(),
-      price_yearly: plan.price_yearly?.toString() || '',
-      user_limit: plan.user_limit?.toString() || '',
+      price_yearly: plan.price_yearly?.toString() || "",
       is_active: plan.is_active,
-      features: plan.features || {}
+      features: plan.features || {
+        maxNotes: 100,
+        aiMindmap: true,
+        aiGeneration: true,
+      },
     });
     setValidationErrors([]);
     setShowEditPlanModal(true);
@@ -363,36 +399,52 @@ export default function SubscriptionManagement() {
   const openCancelModal = (subscription: UserSubscription) => {
     // TC-09-04: Check if subscription is already expired before showing modal
     const periodEnd = new Date(subscription.current_period_end);
-    if (periodEnd < new Date() || subscription.status === 'expired') {
-      toast.error('Cannot cancel a subscription that is already expired');
+    if (periodEnd < new Date() || subscription.status === "expired") {
+      toast.error("Cannot cancel a subscription that is already expired");
       return;
     }
-    
+
     if (subscription.cancel_at_period_end) {
-      toast.error('Subscription is already scheduled for cancellation');
+      toast.error("Subscription is already scheduled for cancellation");
       return;
     }
-    
+
     setSelectedSubscription(subscription);
     setShowCancelModal(true);
   };
 
   const getFieldError = (field: string) => {
-    return validationErrors.find((e: ValidationError) => e.field === field)?.message;
+    return validationErrors.find((e: ValidationError) => e.field === field)
+      ?.message;
   };
 
   const getStatusBadge = (subscription: UserSubscription) => {
     const periodEnd = new Date(subscription.current_period_end);
     const isExpired = periodEnd < new Date();
-    
-    if (isExpired || subscription.status === 'expired') {
-      return <Badge variant="secondary" className="bg-gray-100 text-gray-700">Expired</Badge>;
+
+    if (isExpired || subscription.status === "expired") {
+      return (
+        <Badge variant="secondary" className="bg-gray-100 text-gray-700">
+          Expired
+        </Badge>
+      );
     }
     if (subscription.cancel_at_period_end) {
-      return <Badge variant="destructive" className="bg-red-100 text-red-700">Canceled</Badge>;
+      return (
+        <Badge variant="destructive" className="bg-red-100 text-red-700">
+          Canceled
+        </Badge>
+      );
     }
-    if (subscription.status === 'active') {
+    if (subscription.status === "active") {
       return <Badge className="bg-green-100 text-green-700">Active</Badge>;
+    }
+    if (subscription.status === "inactive") {
+      return (
+        <Badge variant="secondary" className="bg-yellow-100 text-yellow-700">
+          Inactive
+        </Badge>
+      );
     }
     return <Badge variant="secondary">{subscription.status}</Badge>;
   };
@@ -400,54 +452,69 @@ export default function SubscriptionManagement() {
   // TC-09-04: Check if cancel button should be disabled
   const isCancelDisabled = (subscription: UserSubscription) => {
     const periodEnd = new Date(subscription.current_period_end);
-    const isExpired = periodEnd < new Date() || subscription.status === 'expired';
+    const isExpired =
+      periodEnd < new Date() || subscription.status === "expired";
     return isExpired || subscription.cancel_at_period_end;
   };
 
-  const filteredSubscriptions = subscriptions.filter((sub: UserSubscription) => {
-    const matchesSearch = 
-      (sub.user_email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-       sub.user_name?.toLowerCase().includes(searchTerm.toLowerCase()));
-    
-    if (statusFilter === 'all') return matchesSearch;
-    if (statusFilter === 'active') return matchesSearch && sub.status === 'active' && !sub.cancel_at_period_end;
-    if (statusFilter === 'canceled') return matchesSearch && sub.cancel_at_period_end;
-    if (statusFilter === 'expired') {
-      const periodEnd = new Date(sub.current_period_end);
-      return matchesSearch && (periodEnd < new Date() || sub.status === 'expired');
+  const filteredSubscriptions = subscriptions.filter(
+    (sub: UserSubscription) => {
+      const matchesSearch =
+        sub.user_email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        sub.user_name?.toLowerCase().includes(searchTerm.toLowerCase());
+
+      if (statusFilter === "all") return matchesSearch;
+      if (statusFilter === "active")
+        return (
+          matchesSearch && sub.status === "active" && !sub.cancel_at_period_end
+        );
+      if (statusFilter === "inactive")
+        return matchesSearch && sub.status === "inactive";
+      if (statusFilter === "canceled")
+        return matchesSearch && sub.cancel_at_period_end;
+      if (statusFilter === "expired") {
+        const periodEnd = new Date(sub.current_period_end);
+        return (
+          matchesSearch && (periodEnd < new Date() || sub.status === "expired")
+        );
+      }
+      return matchesSearch;
     }
-    return matchesSearch;
-  });
+  );
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Subscription Management</h1>
-          <p className="text-gray-500">Manage subscription tiers and user subscriptions</p>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Subscription Management
+          </h1>
+          <p className="text-gray-500">
+            Manage subscription tiers and user subscriptions
+          </p>
         </div>
       </div>
 
       {/* Tabs */}
       <div className="flex gap-2 border-b border-gray-200">
         <button
-          onClick={() => setActiveTab('plans')}
+          onClick={() => setActiveTab("plans")}
           className={`px-4 py-2 font-medium border-b-2 transition-colors ${
-            activeTab === 'plans' 
-              ? 'border-blue-600 text-blue-600' 
-              : 'border-transparent text-gray-500 hover:text-gray-700'
+            activeTab === "plans"
+              ? "border-blue-600 text-blue-600"
+              : "border-transparent text-gray-500 hover:text-gray-700"
           }`}
         >
           <Crown className="w-4 h-4 inline mr-2" />
           Subscription Tiers
         </button>
         <button
-          onClick={() => setActiveTab('users')}
+          onClick={() => setActiveTab("users")}
           className={`px-4 py-2 font-medium border-b-2 transition-colors ${
-            activeTab === 'users' 
-              ? 'border-blue-600 text-blue-600' 
-              : 'border-transparent text-gray-500 hover:text-gray-700'
+            activeTab === "users"
+              ? "border-blue-600 text-blue-600"
+              : "border-transparent text-gray-500 hover:text-gray-700"
           }`}
         >
           <Users className="w-4 h-4 inline mr-2" />
@@ -456,10 +523,15 @@ export default function SubscriptionManagement() {
       </div>
 
       {/* Plans Tab */}
-      {activeTab === 'plans' && (
+      {activeTab === "plans" && (
         <div className="space-y-4">
           <div className="flex justify-end">
-            <Button onClick={() => { resetForm(); setShowCreatePlanModal(true); }}>
+            <Button
+              onClick={() => {
+                resetForm();
+                setShowCreatePlanModal(true);
+              }}
+            >
               <Plus className="w-4 h-4 mr-2" />
               Create New Tier
             </Button>
@@ -467,12 +539,15 @@ export default function SubscriptionManagement() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {plans.map((plan: SubscriptionPlan) => (
-              <Card key={plan.id} className={`relative ${!plan.is_active ? 'opacity-60' : ''}`}>
+              <Card
+                key={plan.id}
+                className={`relative ${!plan.is_active ? "opacity-60" : ""}`}
+              >
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-lg">{plan.name}</CardTitle>
-                    <Badge variant={plan.is_active ? 'default' : 'secondary'}>
-                      {plan.is_active ? 'Active' : 'Inactive'}
+                    <Badge variant={plan.is_active ? "default" : "secondary"}>
+                      {plan.is_active ? "Active" : "Inactive"}
                     </Badge>
                   </div>
                   <CardDescription>{plan.description}</CardDescription>
@@ -480,7 +555,9 @@ export default function SubscriptionManagement() {
                 <CardContent>
                   <div className="space-y-4">
                     <div className="flex items-baseline gap-1">
-                      <span className="text-3xl font-bold">${plan.price_monthly}</span>
+                      <span className="text-3xl font-bold">
+                        ${plan.price_monthly}
+                      </span>
                       <span className="text-gray-500">/month</span>
                     </div>
                     {plan.price_yearly && (
@@ -491,20 +568,37 @@ export default function SubscriptionManagement() {
                     <div className="pt-4 border-t border-gray-200">
                       <p className="text-sm font-medium mb-2">Features:</p>
                       <ul className="text-sm text-gray-600 space-y-1">
-                        {Object.entries(plan.features || {}).slice(0, 4).map(([key, value]) => (
-                          <li key={key} className="flex items-center gap-2">
-                            {typeof value === 'boolean' ? (
-                              value ? <Check className="w-4 h-4 text-green-500" /> : <X className="w-4 h-4 text-red-500" />
-                            ) : (
-                              <Check className="w-4 h-4 text-green-500" />
-                            )}
-                            <span>{key}: {typeof value === 'boolean' ? (value ? 'Yes' : 'No') : value}</span>
-                          </li>
-                        ))}
+                        {Object.entries(plan.features || {})
+                          .slice(0, 4)
+                          .map(([key, value]) => (
+                            <li key={key} className="flex items-center gap-2">
+                              {typeof value === "boolean" ? (
+                                value ? (
+                                  <Check className="w-4 h-4 text-green-500" />
+                                ) : (
+                                  <X className="w-4 h-4 text-red-500" />
+                                )
+                              ) : (
+                                <Check className="w-4 h-4 text-green-500" />
+                              )}
+                              <span>
+                                {key}:{" "}
+                                {typeof value === "boolean"
+                                  ? value
+                                    ? "Yes"
+                                    : "No"
+                                  : value}
+                              </span>
+                            </li>
+                          ))}
                       </ul>
                     </div>
                     <div className="flex gap-2 pt-4">
-                      <Button variant="outline" size="sm" onClick={() => openEditModal(plan)}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openEditModal(plan)}
+                      >
                         <Edit2 className="w-4 h-4 mr-1" />
                         Edit
                       </Button>
@@ -518,7 +612,7 @@ export default function SubscriptionManagement() {
       )}
 
       {/* Users Tab */}
-      {activeTab === 'users' && (
+      {activeTab === "users" && (
         <div className="space-y-4">
           {/* Search and Filter */}
           <Card className="p-4">
@@ -541,6 +635,7 @@ export default function SubscriptionManagement() {
                 <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
                   <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
                   <SelectItem value="canceled">Canceled</SelectItem>
                   <SelectItem value="expired">Expired</SelectItem>
                 </SelectContent>
@@ -569,7 +664,10 @@ export default function SubscriptionManagement() {
                   </TableRow>
                 ) : filteredSubscriptions.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8 text-gray-500">
+                    <TableCell
+                      colSpan={5}
+                      className="text-center py-8 text-gray-500"
+                    >
                       No subscriptions found
                     </TableCell>
                   </TableRow>
@@ -578,11 +676,15 @@ export default function SubscriptionManagement() {
                     <TableRow key={sub.id}>
                       <TableCell>
                         <div>
-                          <p className="font-medium">{sub.user_name || 'Unknown'}</p>
-                          <p className="text-sm text-gray-500">{sub.user_email}</p>
+                          <p className="font-medium">
+                            {sub.user_name || "Unknown"}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            {sub.user_email}
+                          </p>
                         </div>
                       </TableCell>
-                      <TableCell>{sub.plan_name || 'N/A'}</TableCell>
+                      <TableCell>{sub.plan_name || "N/A"}</TableCell>
                       <TableCell>{getStatusBadge(sub)}</TableCell>
                       <TableCell>
                         {new Date(sub.current_period_end).toLocaleDateString()}
@@ -593,7 +695,11 @@ export default function SubscriptionManagement() {
                           size="sm"
                           onClick={() => openCancelModal(sub)}
                           disabled={isCancelDisabled(sub)}
-                          title={isCancelDisabled(sub) ? 'Cannot cancel expired or already canceled subscription' : 'Cancel subscription'}
+                          title={
+                            isCancelDisabled(sub)
+                              ? "Cannot cancel expired or already canceled subscription"
+                              : "Cancel subscription"
+                          }
                         >
                           Cancel
                         </Button>
@@ -616,21 +722,23 @@ export default function SubscriptionManagement() {
               Add a new subscription tier to the platform
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="name">Tier Name *</Label>
               <Input
                 id="name"
                 value={formData.name}
-                onChange={(e) => setFormData({...formData, name: e.target.value})}
-                placeholder="e.g., Enterprise"
-                className={getFieldError('name') ? 'border-red-500' : ''}
+                onChange={(e) =>
+                  setFormData({ ...formData, name: e.target.value })
+                }
+                placeholder="e.g., Premium"
+                className={getFieldError("name") ? "border-red-500" : ""}
               />
-              {getFieldError('name') && (
+              {getFieldError("name") && (
                 <p className="text-sm text-red-500 flex items-center gap-1">
                   <AlertCircle className="w-4 h-4" />
-                  {getFieldError('name')}
+                  {getFieldError("name")}
                 </p>
               )}
             </div>
@@ -640,14 +748,19 @@ export default function SubscriptionManagement() {
               <Input
                 id="slug"
                 value={formData.slug}
-                onChange={(e) => setFormData({...formData, slug: e.target.value.toLowerCase()})}
-                placeholder="e.g., enterprise"
-                className={getFieldError('slug') ? 'border-red-500' : ''}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    slug: e.target.value.toLowerCase(),
+                  })
+                }
+                placeholder="e.g., individual-premium"
+                className={getFieldError("slug") ? "border-red-500" : ""}
               />
-              {getFieldError('slug') && (
+              {getFieldError("slug") && (
                 <p className="text-sm text-red-500 flex items-center gap-1">
                   <AlertCircle className="w-4 h-4" />
-                  {getFieldError('slug')}
+                  {getFieldError("slug")}
                 </p>
               )}
             </div>
@@ -662,15 +775,46 @@ export default function SubscriptionManagement() {
                   min="0"
                   step="0.01"
                   value={formData.price_monthly}
-                  onChange={(e) => setFormData({...formData, price_monthly: e.target.value})}
-                  placeholder="499"
-                  className={`pl-8 ${getFieldError('price_monthly') ? 'border-red-500' : ''}`}
+                  onChange={(e) =>
+                    setFormData({ ...formData, price_monthly: e.target.value })
+                  }
+                  placeholder="39.00"
+                  className={`pl-10 ${
+                    getFieldError("price_monthly") ? "border-red-500" : ""
+                  }`}
                 />
               </div>
-              {getFieldError('price_monthly') && (
+              {getFieldError("price_monthly") && (
                 <p className="text-sm text-red-500 flex items-center gap-1">
                   <AlertCircle className="w-4 h-4" />
-                  {getFieldError('price_monthly')}
+                  {getFieldError("price_monthly")}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="price_yearly">Price (Yearly)</Label>
+              <div className="relative">
+                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Input
+                  id="price_yearly"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={formData.price_yearly}
+                  onChange={(e) =>
+                    setFormData({ ...formData, price_yearly: e.target.value })
+                  }
+                  placeholder="300.00"
+                  className={`pl-10 ${
+                    getFieldError("price_yearly") ? "border-red-500" : ""
+                  }`}
+                />
+              </div>
+              {getFieldError("price_yearly") && (
+                <p className="text-sm text-red-500 flex items-center gap-1">
+                  <AlertCircle className="w-4 h-4" />
+                  {getFieldError("price_yearly")}
                 </p>
               )}
             </div>
@@ -680,48 +824,36 @@ export default function SubscriptionManagement() {
               <Textarea
                 id="description"
                 value={formData.description}
-                onChange={(e) => setFormData({...formData, description: e.target.value})}
-                placeholder="Description for the enterprise plan..."
+                onChange={(e) =>
+                  setFormData({ ...formData, description: e.target.value })
+                }
+                placeholder="Full access to the entire content library..."
                 rows={3}
               />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="user_limit">User Limits</Label>
-              <Input
-                id="user_limit"
-                type="number"
-                min="0"
-                value={formData.user_limit}
-                onChange={(e) => setFormData({...formData, user_limit: e.target.value})}
-                placeholder="e.g., 100"
-                className={getFieldError('user_limit') ? 'border-red-500' : ''}
-              />
-              {getFieldError('user_limit') && (
-                <p className="text-sm text-red-500 flex items-center gap-1">
-                  <AlertCircle className="w-4 h-4" />
-                  {getFieldError('user_limit')}
-                </p>
-              )}
             </div>
 
             <div className="flex items-center justify-between">
               <Label htmlFor="is_active">Status</Label>
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-500">
-                  {formData.is_active ? 'Active' : 'Inactive'}
+                  {formData.is_active ? "Active" : "Inactive"}
                 </span>
                 <Switch
                   id="is_active"
                   checked={formData.is_active}
-                  onCheckedChange={(checked) => setFormData({...formData, is_active: checked})}
+                  onCheckedChange={(checked) =>
+                    setFormData({ ...formData, is_active: checked })
+                  }
                 />
               </div>
             </div>
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreatePlanModal(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setShowCreatePlanModal(false)}
+            >
               Cancel
             </Button>
             <Button onClick={handleCreatePlan} disabled={isSubmitting}>
@@ -731,7 +863,7 @@ export default function SubscriptionManagement() {
                   Creating...
                 </>
               ) : (
-                'Create'
+                "Create"
               )}
             </Button>
           </DialogFooter>
@@ -747,18 +879,20 @@ export default function SubscriptionManagement() {
               Update subscription tier details
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="edit-name">Tier Name *</Label>
               <Input
                 id="edit-name"
                 value={formData.name}
-                onChange={(e) => setFormData({...formData, name: e.target.value})}
-                className={getFieldError('name') ? 'border-red-500' : ''}
+                onChange={(e) =>
+                  setFormData({ ...formData, name: e.target.value })
+                }
+                className={getFieldError("name") ? "border-red-500" : ""}
               />
-              {getFieldError('name') && (
-                <p className="text-sm text-red-500">{getFieldError('name')}</p>
+              {getFieldError("name") && (
+                <p className="text-sm text-red-500">{getFieldError("name")}</p>
               )}
             </div>
 
@@ -772,12 +906,44 @@ export default function SubscriptionManagement() {
                   min="0"
                   step="0.01"
                   value={formData.price_monthly}
-                  onChange={(e) => setFormData({...formData, price_monthly: e.target.value})}
-                  className={`pl-8 ${getFieldError('price_monthly') ? 'border-red-500' : ''}`}
+                  onChange={(e) =>
+                    setFormData({ ...formData, price_monthly: e.target.value })
+                  }
+                  className={`pl-10 ${
+                    getFieldError("price_monthly") ? "border-red-500" : ""
+                  }`}
                 />
               </div>
-              {getFieldError('price_monthly') && (
-                <p className="text-sm text-red-500">{getFieldError('price_monthly')}</p>
+              {getFieldError("price_monthly") && (
+                <p className="text-sm text-red-500">
+                  {getFieldError("price_monthly")}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-price-yearly">Price (Yearly)</Label>
+              <div className="relative">
+                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Input
+                  id="edit-price-yearly"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={formData.price_yearly}
+                  onChange={(e) =>
+                    setFormData({ ...formData, price_yearly: e.target.value })
+                  }
+                  placeholder="300.00"
+                  className={`pl-10 ${
+                    getFieldError("price_yearly") ? "border-red-500" : ""
+                  }`}
+                />
+              </div>
+              {getFieldError("price_yearly") && (
+                <p className="text-sm text-red-500">
+                  {getFieldError("price_yearly")}
+                </p>
               )}
             </div>
 
@@ -786,7 +952,9 @@ export default function SubscriptionManagement() {
               <Textarea
                 id="edit-description"
                 value={formData.description}
-                onChange={(e) => setFormData({...formData, description: e.target.value})}
+                onChange={(e) =>
+                  setFormData({ ...formData, description: e.target.value })
+                }
                 rows={3}
               />
             </div>
@@ -795,18 +963,23 @@ export default function SubscriptionManagement() {
               <Label>Status</Label>
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-500">
-                  {formData.is_active ? 'Active' : 'Inactive'}
+                  {formData.is_active ? "Active" : "Inactive"}
                 </span>
                 <Switch
                   checked={formData.is_active}
-                  onCheckedChange={(checked) => setFormData({...formData, is_active: checked})}
+                  onCheckedChange={(checked) =>
+                    setFormData({ ...formData, is_active: checked })
+                  }
                 />
               </div>
             </div>
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowEditPlanModal(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setShowEditPlanModal(false)}
+            >
               Cancel
             </Button>
             <Button onClick={handleUpdatePlan} disabled={isSubmitting}>
@@ -816,7 +989,7 @@ export default function SubscriptionManagement() {
                   Saving...
                 </>
               ) : (
-                'Save Changes'
+                "Save Changes"
               )}
             </Button>
           </DialogFooter>
@@ -829,17 +1002,21 @@ export default function SubscriptionManagement() {
           <AlertDialogHeader>
             <AlertDialogTitle>Cancel Subscription</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to cancel this user's subscription? 
+              Are you sure you want to cancel this user's subscription?
               {selectedSubscription && (
                 <span className="block mt-2 font-medium">
-                  User: {selectedSubscription.user_name || selectedSubscription.user_email}
+                  User:{" "}
+                  {selectedSubscription.user_name ||
+                    selectedSubscription.user_email}
                 </span>
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          
+
           <div className="my-4">
-            <Label htmlFor="cancel-reason">Cancellation Reason (optional)</Label>
+            <Label htmlFor="cancel-reason">
+              Cancellation Reason (optional)
+            </Label>
             <Textarea
               id="cancel-reason"
               value={cancelReason}
@@ -849,15 +1026,17 @@ export default function SubscriptionManagement() {
               rows={3}
             />
           </div>
-          
+
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => {
-              setCancelReason('');
-              setSelectedSubscription(null);
-            }}>
+            <AlertDialogCancel
+              onClick={() => {
+                setCancelReason("");
+                setSelectedSubscription(null);
+              }}
+            >
               Cancel
             </AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={handleCancelSubscription}
               disabled={isSubmitting}
               className="bg-red-600 hover:bg-red-700"
@@ -868,7 +1047,7 @@ export default function SubscriptionManagement() {
                   Cancelling...
                 </>
               ) : (
-                'Confirm'
+                "Confirm"
               )}
             </AlertDialogAction>
           </AlertDialogFooter>
