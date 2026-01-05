@@ -356,13 +356,13 @@ export function useProblems() {
 
 export function useProblemsByTopic(topicId?: string | null) {
   return useQuery({
-    queryKey: ['problems', 'topic', topicId],
+    queryKey: ["problems", "topic", topicId],
     queryFn: async () => {
       if (!topicId) return [];
       const result = await apiFetch(`/problems?topic_id=${topicId}`);
       return result.data || [];
     },
-    enabled: !!topicId
+    enabled: !!topicId,
   });
 }
 
@@ -914,7 +914,7 @@ export function useVoteForumItem() {
       }
       if (context?.previousVotes) {
         queryClient.setQueryData(
-          ["userVotes", variables. _postId],
+          ["userVotes", variables._postId],
           context.previousVotes
         );
       }
@@ -1495,6 +1495,50 @@ export function useClaimCertificate() {
         queryKey: ["courseCertificate", courseId],
       });
       queryClient.invalidateQueries({ queryKey: ["certificates"] });
+    },
+  });
+}
+
+// Download certificate as PDF
+export function useDownloadCertificatePDF() {
+  return useMutation({
+    mutationFn: async (certificateId: string) => {
+      const headers = await getAuthHeaders();
+      const response = await fetch(
+        `${API_BASE}/certificates/${certificateId}/download`,
+        {
+          headers,
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          `Failed to download certificate: ${response.statusText}`
+        );
+      }
+
+      // Get the filename from the Content-Disposition header
+      const contentDisposition = response.headers.get("content-disposition");
+      let filename = "certificate.pdf";
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="(.+?)"/);
+        if (filenameMatch) {
+          filename = filenameMatch[1];
+        }
+      }
+
+      // Get the blob and trigger download
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(link);
+
+      return filename;
     },
   });
 }

@@ -6,6 +6,11 @@ import {
   createCertificate,
   getUserCertificates,
 } from "../services/certificateService";
+import {
+  generateCertificatePDF,
+  generateCertificateFileName,
+} from "../services/pdfService";
+import { supabaseAdmin } from "../config/database";
 
 /**
  * Get a certificate by ID
@@ -198,6 +203,70 @@ export async function getMyCertificatesHandler(
     return res.status(500).json({
       success: false,
       error: error.message || "Failed to fetch certificates",
+    });
+  }
+}
+
+/**
+ * Download certificate as PDF
+ * GET /api/certificates/:id/download
+ */
+export async function downloadCertificatePDFHandler(
+  req: AuthRequest,
+  res: Response
+) {
+  try {
+    const { id } = req.params;
+
+    const certificate = await getCertificateById(id);
+
+    if (!certificate) {
+      return res.status(404).json({
+        success: false,
+        error: "Certificate not found",
+      });
+    }
+
+    // Get course details for description
+    const { data: course } = await supabaseAdmin
+      .from("courses")
+      .select("description")
+      .eq("id", certificate.course_id)
+      .single();
+
+    // Generate PDF
+    const pdfBuffer = await generateCertificatePDF({
+      certificate,
+      courseDescription: course?.description,
+      completionDate: new Date(certificate.issued_at).toLocaleDateString(
+        "en-US",
+        {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        }
+      ),
+    });
+
+    // Generate filename
+    const filename = generateCertificateFileName(
+      certificate.user_name,
+      certificate.course_title,
+      certificate.serial_number
+    );
+
+    // Set response headers
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.setHeader("Content-Length", pdfBuffer.length);
+
+    // Send PDF buffer
+    return res.send(pdfBuffer);
+  } catch (error: any) {
+    console.error("Error downloading certificate PDF:", error);
+    return res.status(500).json({
+      success: false,
+      error: error.message || "Failed to download certificate",
     });
   }
 }
