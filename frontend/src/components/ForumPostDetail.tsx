@@ -347,7 +347,7 @@ export default function ForumPostDetail({ post, onBack }: ForumPostDetailProps) 
 
       <div className="max-w-4xl mx-auto px-8 py-8">
         <Card className="p-8 mb-6">
-          <div className="flex items-start gap-4 mb-6">
+          <div className="flex items-start gap-4 mb-6 p-4 rounded-lg border-2 border-gray-300 shadow-md" style={{ backgroundColor: '#B9D6F3' }}>
             <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
               {authorAvatar ? (
                 <img src={authorAvatar} alt={authorName} className="w-12 h-12 rounded-full object-cover" />
@@ -376,9 +376,17 @@ export default function ForumPostDetail({ post, onBack }: ForumPostDetailProps) 
             </div>
           </div>
 
-          <h2 className="mb-6">{post.title}</h2>
+          <div className="mb-2">
+            <span className="text-sm font-semibold text-gray-600">Tittle</span>
+          </div>
+          <div className="p-4 rounded-lg border-2 border-gray-300 shadow-md mb-6">
+            <h2 className="mb-0">{post.title}</h2>
+          </div>
 
-          <div className="prose prose-sm max-w-none mb-6">
+          <div className="mb-2">
+            <span className="text-sm font-semibold text-gray-600">Contents</span>
+          </div>
+          <div className="prose prose-sm max-w-none mb-6 p-4 rounded-lg border-2 border-gray-300 shadow-md">
             {post.contentMarkdown ? (
               <div className="whitespace-pre-wrap text-muted-foreground">
                 {post.contentMarkdown}
@@ -389,11 +397,11 @@ export default function ForumPostDetail({ post, onBack }: ForumPostDetailProps) 
           </div>
 
           <div className="flex items-center gap-6 pt-6 border-t border-border">
-            <div className="flex items-center gap-2 text-muted-foreground">
+            <div className="flex items-center gap-2 text-muted-foreground px-3 py-1.5 rounded-md" style={{ backgroundColor: '#FFB3C6' }}>
               <ThumbsUp className="w-5 h-5" />
               <span>{post.upvotes ?? 0} upvotes</span>
             </div>
-            <div className="flex items-center gap-2 text-muted-foreground">
+            <div className="flex items-center gap-2 text-muted-foreground px-3 py-1.5 rounded-md" style={{ backgroundColor: '#B6DA9F' }}>
               <MessageSquare className="w-5 h-5" />
               <span>{post.replyCount ?? 0} replies</span>
             </div>
