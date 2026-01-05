@@ -645,6 +645,196 @@ export class AdminController {
       });
     }
   }
+
+  /**
+   * GET /api/admin/courses
+   * Get all courses for admin management
+   */
+  async getCourses(req: AuthRequest, res: Response) {
+    try {
+      const { page = 1, limit = 100 } = req.query;
+      const offset = (Number(page) - 1) * Number(limit);
+
+      const { data, error, count } = await supabaseAdmin
+        .from("courses")
+        .select("*", { count: "exact" })
+        .order("created_at", { ascending: false })
+        .range(offset, offset + Number(limit) - 1);
+
+      if (error) throw error;
+
+      res.json({
+        success: true,
+        data: {
+          courses: data || [],
+          total: count,
+        },
+      });
+    } catch (error: any) {
+      console.error("❌ Error fetching courses:", error);
+      res.status(500).json({
+        success: false,
+        error: error.message || "Failed to fetch courses",
+      });
+    }
+  }
+
+  /**
+   * POST /api/admin/courses
+   * Create a new course
+   */
+  async createCourse(req: AuthRequest, res: Response) {
+    try {
+      const {
+        title,
+        slug,
+        description,
+        thumbnail_url,
+        difficulty,
+        is_published,
+        partner_id,
+      } = req.body;
+
+      if (!title || !slug) {
+        return res.status(400).json({
+          success: false,
+          error: "Title and slug are required",
+        });
+      }
+
+      // Check if slug already exists
+      const { data: existing } = await supabaseAdmin
+        .from("courses")
+        .select("id")
+        .eq("slug", slug)
+        .single();
+
+      if (existing) {
+        return res.status(409).json({
+          success: false,
+          error: "A course with this slug already exists",
+        });
+      }
+
+      const { data, error } = await supabaseAdmin
+        .from("courses")
+        .insert({
+          title,
+          slug,
+          description: description || null,
+          thumbnail_url: thumbnail_url || null,
+          difficulty: difficulty || "beginner",
+          is_published: is_published || false,
+          partner_id: partner_id || null,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      console.log("📚 Admin created course:", {
+        courseId: data.id,
+        title: data.title,
+        adminId: req.user?.id,
+      });
+
+      res.status(201).json({
+        success: true,
+        data,
+        message: "Course created successfully",
+      });
+    } catch (error: any) {
+      console.error("❌ Error creating course:", error);
+      res.status(500).json({
+        success: false,
+        error: error.message || "Failed to create course",
+      });
+    }
+  }
+
+  /**
+   * PUT /api/admin/courses/:id
+   * Update a course
+   */
+  async updateCourse(req: AuthRequest, res: Response) {
+    try {
+      const { id } = req.params;
+      const updateData = req.body;
+
+      // Remove id from update data if present
+      delete updateData.id;
+      delete updateData.created_at;
+
+      const { data, error } = await supabaseAdmin
+        .from("courses")
+        .update({
+          ...updateData,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      if (!data) {
+        return res.status(404).json({
+          success: false,
+          error: "Course not found",
+        });
+      }
+
+      console.log("✏️ Admin updated course:", {
+        courseId: id,
+        adminId: req.user?.id,
+      });
+
+      res.json({
+        success: true,
+        data,
+        message: "Course updated successfully",
+      });
+    } catch (error: any) {
+      console.error("❌ Error updating course:", error);
+      res.status(500).json({
+        success: false,
+        error: error.message || "Failed to update course",
+      });
+    }
+  }
+
+  /**
+   * DELETE /api/admin/courses/:id
+   * Delete a course
+   */
+  async deleteCourse(req: AuthRequest, res: Response) {
+    try {
+      const { id } = req.params;
+
+      const { error } = await supabaseAdmin
+        .from("courses")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+
+      console.log("🗑️ Admin deleted course:", {
+        courseId: id,
+        adminId: req.user?.id,
+      });
+
+      res.json({
+        success: true,
+        message: "Course deleted successfully",
+      });
+    } catch (error: any) {
+      console.error("❌ Error deleting course:", error);
+      res.status(500).json({
+        success: false,
+        error: error.message || "Failed to delete course",
+      });
+    }
+  }
 }
 
 // Helper function to calculate monthly growth

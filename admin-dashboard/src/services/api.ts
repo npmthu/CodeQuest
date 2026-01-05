@@ -142,26 +142,24 @@ export const adminApi = {
   getStats: () => apiRequest<any>("/admin/stats"),
   getDashboardStats: () => apiRequest<any>("/admin/dashboard/stats"),
 
-  // Courses
-  getCourses: (page = 1, limit = 20, topic?: string) =>
-    apiRequest<any>(
-      `/courses?page=${page}&limit=${limit}${topic ? `&topic=${topic}` : ""}`
-    ),
+  // Courses (Admin endpoints)
+  getCourses: (page = 1, limit = 100) =>
+    apiRequest<any>(`/admin/courses?page=${page}&limit=${limit}`),
 
   createCourse: (data: any) =>
-    apiRequest<any>("/courses", {
+    apiRequest<any>("/admin/courses", {
       method: "POST",
       body: JSON.stringify(data),
     }),
 
   updateCourse: (courseId: string, data: any) =>
-    apiRequest<any>(`/courses/${courseId}`, {
+    apiRequest<any>(`/admin/courses/${courseId}`, {
       method: "PUT",
       body: JSON.stringify(data),
     }),
 
   deleteCourse: (courseId: string) =>
-    apiRequest<any>(`/courses/${courseId}`, { method: "DELETE" }),
+    apiRequest<any>(`/admin/courses/${courseId}`, { method: "DELETE" }),
 
   // Forum Posts (Content Moderation)
   getForumPosts: (status?: string) =>

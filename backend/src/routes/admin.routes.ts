@@ -31,6 +31,15 @@ router.get(
 // Get all users with pagination and search
 router.get("/users", adminController.getAllUsers.bind(adminController));
 
+// Course Management
+router.get("/courses", adminController.getCourses.bind(adminController));
+router.post("/courses", adminController.createCourse.bind(adminController));
+router.put("/courses/:id", adminController.updateCourse.bind(adminController));
+router.delete(
+  "/courses/:id",
+  adminController.deleteCourse.bind(adminController)
+);
+
 // User Subscription Management - Fixes TC_ADMIN_SUB_02, TC_ADMIN_SUB_05
 router.post(
   "/users/:userId/cancel-subscription",
