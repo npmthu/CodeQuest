@@ -133,13 +133,21 @@ export class AdminController {
 
       if (error) throw error;
 
+      console.log("📊 Users query result:", {
+        page,
+        limit,
+        offset,
+        dataCount: data?.length,
+        totalCount: count,
+      });
+
       res.json({
         success: true,
         data: data || [],
         pagination: {
           page: Number(page),
           limit: Number(limit),
-          total: count,
+          total: count || 0,
         },
       });
     } catch (error: any) {

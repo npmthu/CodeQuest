@@ -216,13 +216,7 @@ export default function UserManagement() {
               <SelectItem value="business partner">Business Partner</SelectItem>
             </SelectContent>
           </Select>
-        </div>
-        <div className="mt-4 flex items-center gap-2">
-          <Filter className="w-4 h-4 text-gray-500" />
-          <span className="text-sm text-gray-600">
-            Showing {filteredUsers.length} of {total} users
-          </span>
-        </div>
+        </div>{" "}
       </div>
 
       {/* Users Table */}
@@ -244,7 +238,10 @@ export default function UserManagement() {
               {loading ? (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center py-8">
-                    <Loader2 className="w-6 h-6 animate-spin mx-auto text-blue-600" />
+                    <Loader2
+                      className="w-6 h-6 mx-auto text-blue-600"
+                      style={{ animation: "spin 1s linear infinite" }}
+                    />
                     <p className="text-gray-500 mt-2">Loading users...</p>
                   </TableCell>
                 </TableRow>

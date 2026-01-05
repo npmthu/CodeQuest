@@ -7,6 +7,11 @@ interface ApiResponse<T> {
   data?: T;
   message?: string;
   error?: string;
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+  };
 }
 
 async function getAuthHeaders(): Promise<Record<string, string>> {
@@ -58,6 +63,7 @@ export async function apiRequest<T>(
       success: true,
       data: data.data,
       message: data.message,
+      pagination: data.pagination,
     };
   } catch (error: any) {
     console.error("API request error:", error);
