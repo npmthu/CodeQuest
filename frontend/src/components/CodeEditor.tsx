@@ -1,6 +1,7 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import { useApi } from "../api/ApiProvider";
 import { useProblems, useProblem, useRequestCodeReview, useCodeReview, useForumPosts } from "../hooks/useApi";
+import { usePasteDetection, SuspicionBreakdown } from "../hooks/usePasteDetection";
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
@@ -196,6 +197,10 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
   const highlightRef = useRef<HTMLDivElement>(null);
   const lineNumbersRef = useRef<HTMLDivElement>(null);
 
+  // Paste detection for suspicious activity tracking
+  const pasteDetection = usePasteDetection();
+  const lastCodeRef = useRef<string>(""); // Track last code state for paste detection
+
   // API client for submission (still needed for complex operations)
   const { get, post } = useApi();
 
@@ -226,6 +231,10 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
       // Generate starter code based on problemIO
       const starterCode = generateStarterCode(problem.problemIO, language.name);
       setCode(starterCode);
+      lastCodeRef.current = starterCode; // Initialize last code for paste detection
+      
+      // Reset paste detection when problem changes
+      pasteDetection.reset();
       
       // initialize test case states
       const tstates: Record<number, "not_run" | "running" | "passed" | "failed"> = {};
@@ -240,6 +249,10 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
     // Generate starter code based on problemIO
     const starterCode = generateStarterCode(problem.problemIO, language.name);
     setCode(starterCode);
+    lastCodeRef.current = starterCode;
+    
+    // Reset paste detection on code reset
+    pasteDetection.reset();
     
     setOutput("");
     setTestCaseResults([]);
@@ -328,7 +341,16 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
     setTestCaseResults([]);
 
     try {
-      const json = await post(`/submissions`, { problem_id: problem.id, language, code });
+      // Compute suspicion data before submitting
+      const suspicionBreakdown = pasteDetection.computeSuspicionBreakdown();
+      
+      const json = await post(`/submissions`, { 
+        problem_id: problem.id, 
+        language, 
+        code,
+        suspicion_score: suspicionBreakdown.finalScore,
+        suspicion_breakdown: suspicionBreakdown,
+      });
       if (!json.success || !json.data) {
         setOutput(json.message ?? "Submission failed");
         setError(json.error || "Submission failed");
@@ -711,8 +733,42 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
                 <textarea
                   ref={textareaRef}
                   value={code}
-                  onChange={(e) => setCode(e.target.value)}
+                  onChange={(e) => {
+                    const newCode = e.target.value;
+                    setCode(newCode);
+                    lastCodeRef.current = newCode;
+                  }}
                   onScroll={handleScroll}
+                  onCopy={(e) => {
+                    // Track internal copy for paste detection
+                    const selection = window.getSelection()?.toString() || '';
+                    if (selection) {
+                      pasteDetection.handleInternalCopy(selection);
+                    }
+                  }}
+                  onCut={(e) => {
+                    // Track cut as internal copy for paste detection
+                    const selection = window.getSelection()?.toString() || '';
+                    if (selection) {
+                      pasteDetection.handleInternalCopy(selection);
+                    }
+                  }}
+                  onPaste={(e) => {
+                    // Track paste event for suspicion detection
+                    const pastedText = e.clipboardData.getData('text');
+                    if (pastedText) {
+                      const cursorPosition = e.currentTarget.selectionStart;
+                      // Use setTimeout to get the code after paste is applied
+                      setTimeout(() => {
+                        pasteDetection.handlePaste(
+                          pastedText,
+                          cursorPosition,
+                          lastCodeRef.current,
+                          code
+                        );
+                      }, 0);
+                    }
+                  }}
                   onKeyDown={(e) => {
                     if (e.key === 'Tab') {
                       e.preventDefault();
@@ -720,6 +776,7 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
                       const end = e.currentTarget.selectionEnd;
                       const newCode = code.substring(0, start) + '    ' + code.substring(end);
                       setCode(newCode);
+                      lastCodeRef.current = newCode;
                       // Set cursor position after the inserted spaces
                       setTimeout(() => {
                         if (textareaRef.current) {

@@ -18,10 +18,41 @@ import {
   ChevronUp,
   Loader2,
   BarChart3,
+  AlertTriangle,
+  X,
+  Clipboard,
 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useInstructorProblemDetail } from "../hooks/useApi";
 import { useState } from "react";
+import type { SuspicionBreakdown, PasteEvent } from "../hooks/usePasteDetection";
+
+// Helper function to get suspicion score badge color
+const getSuspicionBadge = (score: number | null | undefined) => {
+  if (score === null || score === undefined) {
+    return <Badge variant="outline" className="text-gray-500">N/A</Badge>;
+  }
+  if (score < 0.2) {
+    return <Badge className="bg-green-100 text-green-700">{(score * 100).toFixed(0)}%</Badge>;
+  }
+  if (score < 0.5) {
+    return <Badge className="bg-yellow-100 text-yellow-700">{(score * 100).toFixed(0)}%</Badge>;
+  }
+  if (score < 0.75) {
+    return <Badge className="bg-orange-100 text-orange-700">{(score * 100).toFixed(0)}%</Badge>;
+  }
+  return <Badge className="bg-red-100 text-red-700">{(score * 100).toFixed(0)}%</Badge>;
+};
+
+// Helper function to format timestamp
+const formatTimestamp = (ts: number) => {
+  return new Date(ts).toLocaleString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true,
+  });
+};
 
 export default function InstructorProblemDetail() {
   const { problemId } = useParams<{ problemId: string }>();
@@ -30,6 +61,11 @@ export default function InstructorProblemDetail() {
   const [expandedSubmissions, setExpandedSubmissions] = useState<Set<string>>(
     new Set()
   );
+  const [suspicionModalData, setSuspicionModalData] = useState<{
+    breakdown: SuspicionBreakdown;
+    userName: string;
+    submissionId: string;
+  } | null>(null);
 
   const toggleSubmissionExpand = (submissionId: string) => {
     setExpandedSubmissions((prev) => {
@@ -41,6 +77,14 @@ export default function InstructorProblemDetail() {
       }
       return newSet;
     });
+  };
+
+  const openSuspicionModal = (breakdown: SuspicionBreakdown, userName: string, submissionId: string) => {
+    setSuspicionModalData({ breakdown, userName, submissionId });
+  };
+
+  const closeSuspicionModal = () => {
+    setSuspicionModalData(null);
   };
 
   const getDifficultyBadge = (difficulty: number) => {
@@ -393,6 +437,12 @@ export default function InstructorProblemDetail() {
                         <th className="text-left p-3 font-medium">Status</th>
                         <th className="text-left p-3 font-medium">Test Cases</th>
                         <th className="text-left p-3 font-medium">Score</th>
+                        <th className="text-left p-3 font-medium">
+                          <div className="flex items-center gap-1">
+                            <AlertTriangle className="w-4 h-4 text-orange-500" />
+                            Suspicion
+                          </div>
+                        </th>
                         <th className="text-left p-3 font-medium">Time</th>
                         <th className="text-left p-3 font-medium">Submitted</th>
                         <th className="text-left p-3 font-medium">Actions</th>
@@ -429,6 +479,28 @@ export default function InstructorProblemDetail() {
                               </span>
                             </td>
                             <td className="p-3">
+                              <div className="flex items-center gap-2">
+                                {getSuspicionBadge(sub.suspicionScore)}
+                                {sub.suspicionBreakdown && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 w-6 p-0"
+                                    onClick={(e: React.MouseEvent) => {
+                                      e.stopPropagation();
+                                      openSuspicionModal(
+                                        sub.suspicionBreakdown,
+                                        sub.userName || sub.userEmail || 'Unknown',
+                                        sub.id
+                                      );
+                                    }}
+                                  >
+                                    <Eye className="w-3 h-3" />
+                                  </Button>
+                                )}
+                              </div>
+                            </td>
+                            <td className="p-3">
                               <span className="text-sm text-gray-600">
                                 {sub.executionTimeMs
                                   ? `${sub.executionTimeMs}ms`
@@ -459,7 +531,7 @@ export default function InstructorProblemDetail() {
                           </tr>
                           {expandedSubmissions.has(sub.id) && (
                             <tr>
-                              <td colSpan={8} className="p-4 bg-gray-50">
+                              <td colSpan={9} className="p-4 bg-gray-50">
                                 <div className="space-y-3">
                                   <div className="flex items-center justify-between">
                                     <h4 className="font-medium">Submitted Code</h4>
@@ -586,6 +658,162 @@ export default function InstructorProblemDetail() {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Suspicion Breakdown Modal */}
+      {suspicionModalData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="fixed inset-0 bg-black/50"
+            onClick={closeSuspicionModal}
+          />
+          <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-hidden">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-4 border-b">
+              <div className="flex items-center gap-3">
+                <AlertTriangle className="w-5 h-5 text-orange-500" />
+                <div>
+                  <h3 className="font-semibold">Suspicion Breakdown</h3>
+                  <p className="text-sm text-gray-500">
+                    Submission by {suspicionModalData.userName}
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={closeSuspicionModal}
+                className="h-8 w-8 p-0"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-4 overflow-y-auto max-h-[60vh]">
+              {/* Overall Score */}
+              <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="font-medium">Overall Suspicion Score</span>
+                  <span className={`text-2xl font-bold ${
+                    suspicionModalData.breakdown.finalScore < 0.2 ? 'text-green-600' :
+                    suspicionModalData.breakdown.finalScore < 0.5 ? 'text-yellow-600' :
+                    suspicionModalData.breakdown.finalScore < 0.75 ? 'text-orange-600' :
+                    'text-red-600'
+                  }`}>
+                    {(suspicionModalData.breakdown.finalScore * 100).toFixed(0)}%
+                  </span>
+                </div>
+                <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full transition-all ${
+                      suspicionModalData.breakdown.finalScore < 0.2 ? 'bg-green-500' :
+                      suspicionModalData.breakdown.finalScore < 0.5 ? 'bg-yellow-500' :
+                      suspicionModalData.breakdown.finalScore < 0.75 ? 'bg-orange-500' :
+                      'bg-red-500'
+                    }`}
+                    style={{ width: `${suspicionModalData.breakdown.finalScore * 100}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Statistics */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+                <div className="p-3 bg-blue-50 rounded-lg text-center">
+                  <p className="text-xl font-bold text-blue-600">
+                    {suspicionModalData.breakdown.totalPasteCount}
+                  </p>
+                  <p className="text-xs text-gray-600">Total Pastes</p>
+                </div>
+                <div className="p-3 bg-orange-50 rounded-lg text-center">
+                  <p className="text-xl font-bold text-orange-600">
+                    {suspicionModalData.breakdown.externalPasteCount}
+                  </p>
+                  <p className="text-xs text-gray-600">External Pastes</p>
+                </div>
+                <div className="p-3 bg-purple-50 rounded-lg text-center">
+                  <p className="text-xl font-bold text-purple-600">
+                    {suspicionModalData.breakdown.totalExternalPastedChars}
+                  </p>
+                  <p className="text-xs text-gray-600">External Chars</p>
+                </div>
+                <div className="p-3 bg-red-50 rounded-lg text-center">
+                  <p className="text-xl font-bold text-red-600">
+                    {suspicionModalData.breakdown.largestExternalPaste}
+                  </p>
+                  <p className="text-xs text-gray-600">Largest Paste</p>
+                </div>
+              </div>
+
+              {/* Paste Events */}
+              <div>
+                <h4 className="font-medium mb-3 flex items-center gap-2">
+                  <Clipboard className="w-4 h-4" />
+                  Paste Events ({suspicionModalData.breakdown.pasteEvents?.length || 0})
+                </h4>
+                {suspicionModalData.breakdown.pasteEvents &&
+                suspicionModalData.breakdown.pasteEvents.length > 0 ? (
+                  <div className="space-y-3">
+                    {suspicionModalData.breakdown.pasteEvents.map((event: PasteEvent, index: number) => (
+                      <div
+                        key={event.id || index}
+                        className={`p-3 rounded-lg border ${
+                          event.isExternal
+                            ? event.suspicionScore > 0.5
+                              ? 'bg-red-50 border-red-200'
+                              : 'bg-orange-50 border-orange-200'
+                            : 'bg-green-50 border-green-200'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <Badge
+                              className={
+                                event.isExternal
+                                  ? 'bg-orange-100 text-orange-700'
+                                  : 'bg-green-100 text-green-700'
+                              }
+                            >
+                              {event.isExternal ? 'External' : 'Internal'}
+                            </Badge>
+                            <span className="text-sm text-gray-500">
+                              {formatTimestamp(event.timestamp)}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-500">
+                              {event.pastedLength} chars
+                            </span>
+                            {getSuspicionBadge(event.suspicionScore)}
+                          </div>
+                        </div>
+                        <p className="text-xs text-gray-600 mb-2">{event.reason}</p>
+                        {event.pastedText && (
+                          <pre className="text-xs bg-white p-2 rounded border overflow-x-auto max-h-24">
+                            {event.pastedText.length > 200
+                              ? event.pastedText.substring(0, 200) + '...'
+                              : event.pastedText}
+                          </pre>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-500 text-center py-4">
+                    No paste events recorded
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex justify-end p-4 border-t">
+              <Button variant="outline" onClick={closeSuspicionModal}>
+                Close
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

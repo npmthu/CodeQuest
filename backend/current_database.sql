@@ -329,6 +329,20 @@ CREATE TABLE public.notes (
   CONSTRAINT notes_pkey PRIMARY KEY (id),
   CONSTRAINT notes_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
+CREATE TABLE public.notifications (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  title character varying NOT NULL,
+  message text NOT NULL,
+  target_plan_id uuid,
+  scheduled_for timestamp with time zone,
+  status character varying NOT NULL DEFAULT 'draft'::character varying CHECK (status::text = ANY (ARRAY['draft'::character varying, 'sent'::character varying, 'scheduled'::character varying]::text[])),
+  sent_at timestamp with time zone,
+  recipients_count integer DEFAULT 0,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT notifications_pkey PRIMARY KEY (id),
+  CONSTRAINT notifications_target_plan_id_fkey FOREIGN KEY (target_plan_id) REFERENCES public.subscription_plans(id)
+);
 CREATE TABLE public.partners (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
   name character varying NOT NULL,
@@ -339,6 +353,27 @@ CREATE TABLE public.partners (
   created_at timestamp without time zone DEFAULT now(),
   updated_at timestamp without time zone DEFAULT now(),
   CONSTRAINT partners_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.payment_proofs (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  plan_id uuid NOT NULL,
+  billing_cycle character varying NOT NULL CHECK (billing_cycle::text = ANY (ARRAY['monthly'::character varying, 'yearly'::character varying]::text[])),
+  amount numeric NOT NULL,
+  proof_image_url text NOT NULL,
+  payment_method character varying,
+  transaction_id character varying,
+  notes text,
+  status character varying NOT NULL DEFAULT 'pending'::character varying CHECK (status::text = ANY (ARRAY['pending'::character varying, 'approved'::character varying, 'rejected'::character varying]::text[])),
+  reviewed_by uuid,
+  reviewed_at timestamp with time zone,
+  rejection_reason text,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT payment_proofs_pkey PRIMARY KEY (id),
+  CONSTRAINT payment_proofs_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT payment_proofs_plan_id_fkey FOREIGN KEY (plan_id) REFERENCES public.subscription_plans(id),
+  CONSTRAINT payment_proofs_reviewed_by_fkey FOREIGN KEY (reviewed_by) REFERENCES public.users(id)
 );
 CREATE TABLE public.problem_io (
   problem_id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -463,6 +498,8 @@ CREATE TABLE public.submissions (
   execution_summary jsonb,
   compilation_output text,
   metadata jsonb DEFAULT '{}'::jsonb,
+  suspicion_score real CHECK (suspicion_score > 0.0::double precision AND suspicion_score < 1::double precision),
+  suspicion_breakdown jsonb,
   CONSTRAINT submissions_pkey PRIMARY KEY (id),
   CONSTRAINT submissions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
   CONSTRAINT submissions_problem_id_fkey FOREIGN KEY (problem_id) REFERENCES public.problems(id),
@@ -561,6 +598,17 @@ CREATE TABLE public.user_learning_profiles (
   updated_at timestamp without time zone DEFAULT now(),
   CONSTRAINT user_learning_profiles_pkey PRIMARY KEY (user_id),
   CONSTRAINT user_learning_profiles_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.user_notifications (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  notification_id uuid NOT NULL,
+  is_read boolean DEFAULT false,
+  read_at timestamp with time zone,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT user_notifications_pkey PRIMARY KEY (id),
+  CONSTRAINT user_notifications_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT user_notifications_notification_id_fkey FOREIGN KEY (notification_id) REFERENCES public.notifications(id)
 );
 CREATE TABLE public.users (
   id uuid NOT NULL,
