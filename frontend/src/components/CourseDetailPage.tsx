@@ -2,12 +2,7 @@ import { useState } from "react";
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "./ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import {
   ArrowLeft,
   BookOpen,
@@ -461,10 +456,16 @@ export default function CourseDetailPage() {
             {/* Expand/Collapse All */}
             <div className="flex items-center justify-between mb-4 sticky top-0 bg-white py-2 z-10">
               <div className="flex items-center gap-2">
-                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                <Badge
+                  variant="outline"
+                  className="bg-blue-50 text-blue-700 border-blue-200"
+                >
                   {completedLessons}/{totalLessons} completed
                 </Badge>
-                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                <Badge
+                  variant="outline"
+                  className="bg-green-50 text-green-700 border-green-200"
+                >
                   {progressPercent}% progress
                 </Badge>
               </div>
@@ -504,7 +505,9 @@ export default function CourseDetailPage() {
                     <div
                       key={topic.id}
                       className={`border rounded-lg overflow-hidden transition-all ${
-                        isTopicCompleted ? "border-green-200 bg-green-50/30" : "border-gray-200"
+                        isTopicCompleted
+                          ? "border-green-200 bg-green-50/30"
+                          : "border-gray-200"
                       }`}
                     >
                       {/* Topic Header */}
@@ -531,7 +534,10 @@ export default function CourseDetailPage() {
                             {topic.title}
                           </h4>
                           <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
-                            <span>{topicProgress.total || topic.lesson_count || 0} lessons</span>
+                            <span>
+                              {topicProgress.total || topic.lesson_count || 0}{" "}
+                              lessons
+                            </span>
                             {topic.estimated_duration && (
                               <>
                                 <span>•</span>
@@ -540,9 +546,14 @@ export default function CourseDetailPage() {
                             )}
                             <span>•</span>
                             <span
-                              className={isTopicCompleted ? "text-green-600 font-medium" : ""}
+                              className={
+                                isTopicCompleted
+                                  ? "text-green-600 font-medium"
+                                  : ""
+                              }
                             >
-                              {topicProgress.completed}/{topicProgress.total} done
+                              {topicProgress.completed}/{topicProgress.total}{" "}
+                              done
                             </span>
                           </div>
                         </div>
@@ -552,7 +563,9 @@ export default function CourseDetailPage() {
                           <div className="w-20 bg-gray-200 rounded-full h-1.5">
                             <div
                               className={`h-full rounded-full transition-all ${
-                                isTopicCompleted ? "bg-green-500" : "bg-blue-500"
+                                isTopicCompleted
+                                  ? "bg-green-500"
+                                  : "bg-blue-500"
                               }`}
                               style={{ width: `${topicPercent}%` }}
                             />
@@ -570,65 +583,69 @@ export default function CourseDetailPage() {
                         <div className="border-t bg-gray-50/50 px-4 py-2">
                           {topic.lessons && topic.lessons.length > 0 ? (
                             <div className="space-y-1">
-                              {topic.lessons.map((lesson: any, lessonIndex: number) => (
-                                <div
-                                  key={lesson.id}
-                                  className="flex items-center gap-3 p-2 rounded-lg hover:bg-white transition-colors cursor-pointer"
-                                  onClick={() => {
-                                    setIsSyllabusModalOpen(false);
-                                    navigate(`/topics/${topic.id}/lessons`);
-                                  }}
-                                >
+                              {topic.lessons.map(
+                                (lesson: any, lessonIndex: number) => (
                                   <div
-                                    className={`w-6 h-6 rounded-full flex items-center justify-center ${
-                                      lesson.is_completed
-                                        ? "bg-green-100 text-green-600"
-                                        : "bg-gray-100 text-gray-400"
-                                    }`}
+                                    key={lesson.id}
+                                    className="flex items-center gap-3 p-2 rounded-lg hover:bg-white transition-colors cursor-pointer"
+                                    onClick={() => {
+                                      setIsSyllabusModalOpen(false);
+                                      navigate(`/topics/${topic.id}/lessons`);
+                                    }}
                                   >
-                                    {lesson.is_completed ? (
-                                      <CheckCircle2 className="w-3.5 h-3.5" />
-                                    ) : (
-                                      <span className="text-xs">{lessonIndex + 1}</span>
-                                    )}
-                                  </div>
-
-                                  <div className="w-7 h-7 rounded bg-gray-100 flex items-center justify-center">
-                                    {lesson.type === "video" ? (
-                                      <Play className="w-3.5 h-3.5 text-blue-600" />
-                                    ) : (
-                                      <FileText className="w-3.5 h-3.5 text-purple-600" />
-                                    )}
-                                  </div>
-
-                                  <div className="flex-1 min-w-0">
-                                    <p
-                                      className={`text-sm truncate ${
+                                    <div
+                                      className={`w-6 h-6 rounded-full flex items-center justify-center ${
                                         lesson.is_completed
-                                          ? "text-gray-500"
-                                          : "text-gray-900 font-medium"
+                                          ? "bg-green-100 text-green-600"
+                                          : "bg-gray-100 text-gray-400"
                                       }`}
                                     >
-                                      {lesson.title}
-                                    </p>
+                                      {lesson.is_completed ? (
+                                        <CheckCircle2 className="w-3.5 h-3.5" />
+                                      ) : (
+                                        <span className="text-xs">
+                                          {lessonIndex + 1}
+                                        </span>
+                                      )}
+                                    </div>
+
+                                    <div className="w-7 h-7 rounded bg-gray-100 flex items-center justify-center">
+                                      {lesson.type === "video" ? (
+                                        <Play className="w-3.5 h-3.5 text-blue-600" />
+                                      ) : (
+                                        <FileText className="w-3.5 h-3.5 text-purple-600" />
+                                      )}
+                                    </div>
+
+                                    <div className="flex-1 min-w-0">
+                                      <p
+                                        className={`text-sm truncate ${
+                                          lesson.is_completed
+                                            ? "text-gray-500"
+                                            : "text-gray-900 font-medium"
+                                        }`}
+                                      >
+                                        {lesson.title}
+                                      </p>
+                                    </div>
+
+                                    {lesson.duration && (
+                                      <span className="text-xs text-muted-foreground">
+                                        {lesson.duration}
+                                      </span>
+                                    )}
+
+                                    {lesson.is_free_preview && (
+                                      <Badge
+                                        variant="outline"
+                                        className="text-xs bg-green-50 text-green-700 border-green-200"
+                                      >
+                                        Free
+                                      </Badge>
+                                    )}
                                   </div>
-
-                                  {lesson.duration && (
-                                    <span className="text-xs text-muted-foreground">
-                                      {lesson.duration}
-                                    </span>
-                                  )}
-
-                                  {lesson.is_free_preview && (
-                                    <Badge
-                                      variant="outline"
-                                      className="text-xs bg-green-50 text-green-700 border-green-200"
-                                    >
-                                      Free
-                                    </Badge>
-                                  )}
-                                </div>
-                              ))}
+                                )
+                              )}
                             </div>
                           ) : (
                             <p className="text-sm text-muted-foreground py-3 text-center">
@@ -671,7 +688,10 @@ export default function CourseDetailPage() {
               )}
             </p>
             <div className="flex items-center gap-2">
-              <Button variant="outline" onClick={() => setIsSyllabusModalOpen(false)}>
+              <Button
+                variant="outline"
+                onClick={() => setIsSyllabusModalOpen(false)}
+              >
                 Close
               </Button>
               {topics.length > 0 && (
