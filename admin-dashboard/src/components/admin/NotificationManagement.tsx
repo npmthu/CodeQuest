@@ -37,7 +37,8 @@ const mockNotifications: Notification[] = [
   {
     id: "1",
     title: "New Python Course Available!",
-    content: "We're excited to announce a new Python for Data Science course. Enroll now!",
+    content:
+      "We're excited to announce a new Python for Data Science course. Enroll now!",
     audience: "All Users",
     status: "sent",
     sentDate: "2025-11-01",
@@ -46,7 +47,8 @@ const mockNotifications: Notification[] = [
   {
     id: "2",
     title: "Premium Sale - 50% Off",
-    content: "Limited time offer! Get 50% off on all premium courses. Don't miss out!",
+    content:
+      "Limited time offer! Get 50% off on all premium courses. Don't miss out!",
     audience: "Free Users",
     status: "scheduled",
     scheduledDate: "2025-11-15",
@@ -55,7 +57,8 @@ const mockNotifications: Notification[] = [
   {
     id: "3",
     title: "System Maintenance Notice",
-    content: "Scheduled maintenance on Nov 20. Platform will be down from 2-4 AM.",
+    content:
+      "Scheduled maintenance on Nov 20. Platform will be down from 2-4 AM.",
     audience: "All Users",
     status: "scheduled",
     scheduledDate: "2025-11-18",
@@ -64,7 +67,8 @@ const mockNotifications: Notification[] = [
   {
     id: "4",
     title: "Thank you for being Premium!",
-    content: "As a token of appreciation, enjoy exclusive access to our new DSA masterclass.",
+    content:
+      "As a token of appreciation, enjoy exclusive access to our new DSA masterclass.",
     audience: "Premium Users",
     status: "sent",
     sentDate: "2025-10-28",
@@ -73,7 +77,8 @@ const mockNotifications: Notification[] = [
   {
     id: "5",
     title: "New features coming soon",
-    content: "We're working on AI-powered code review and live coding sessions. Stay tuned!",
+    content:
+      "We're working on AI-powered code review and live coding sessions. Stay tuned!",
     audience: "All Users",
     status: "draft",
     recipients: 0,
@@ -81,7 +86,8 @@ const mockNotifications: Notification[] = [
 ];
 
 export default function NotificationManagement() {
-  const [notifications, setNotifications] = useState<Notification[]>(mockNotifications);
+  const [notifications, setNotifications] =
+    useState<Notification[]>(mockNotifications);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
 
@@ -102,7 +108,9 @@ export default function NotificationManagement() {
   };
 
   const sentCount = notifications.filter((n) => n.status === "sent").length;
-  const scheduledCount = notifications.filter((n) => n.status === "scheduled").length;
+  const scheduledCount = notifications.filter(
+    (n) => n.status === "scheduled"
+  ).length;
   const draftCount = notifications.filter((n) => n.status === "draft").length;
 
   return (
@@ -110,12 +118,16 @@ export default function NotificationManagement() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl text-[#1E3A8A] mb-2">Notifications</h1>
-          <p className="text-gray-600">Create and manage platform announcements</p>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 via-blue-900 to-blue-800 bg-clip-text text-transparent">
+            Notifications
+          </h1>
+          <p className="text-gray-500 mt-1">
+            Create and manage platform announcements
+          </p>
         </div>
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-[#2563EB] hover:bg-[#1E3A8A] rounded-xl">
+            <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 rounded-xl shadow-lg shadow-blue-500/25 transition-all hover:shadow-xl hover:shadow-blue-500/30 hover:-translate-y-0.5">
               <Plus className="w-4 h-4 mr-2" />
               Create Notification
             </Button>
@@ -165,7 +177,8 @@ export default function NotificationManagement() {
                   <div>
                     <p className="text-sm text-blue-900">Preview</p>
                     <p className="text-sm text-blue-700 mt-1">
-                      Your message will be displayed to users in their notification center and via email.
+                      Your message will be displayed to users in their
+                      notification center and via email.
                     </p>
                   </div>
                 </div>
@@ -174,7 +187,7 @@ export default function NotificationManagement() {
                 <Button variant="outline" className="flex-1 rounded-xl">
                   Save as Draft
                 </Button>
-                <Button className="flex-1 bg-[#2563EB] hover:bg-[#1E3A8A] rounded-xl">
+                <Button className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 rounded-xl shadow-lg shadow-blue-500/25">
                   <Send className="w-4 h-4 mr-2" />
                   Send Now
                 </Button>
@@ -186,41 +199,43 @@ export default function NotificationManagement() {
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="rounded-2xl border-gray-200">
+        <Card className="rounded-2xl border-0 shadow-lg shadow-gray-200/50 hover:shadow-xl transition-all">
           <CardContent className="p-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 mb-1">Sent</p>
-                <p className="text-2xl text-gray-900">{sentCount}</p>
+                <p className="text-sm text-gray-500 mb-1">Sent</p>
+                <p className="text-2xl font-bold text-gray-900">{sentCount}</p>
               </div>
-              <div className="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center">
-                <Send className="w-6 h-6 text-green-600" />
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center shadow-lg shadow-green-500/30">
+                <Send className="w-6 h-6 text-white" />
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card className="rounded-2xl border-gray-200">
+        <Card className="rounded-2xl border-0 shadow-lg shadow-gray-200/50 hover:shadow-xl transition-all">
           <CardContent className="p-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 mb-1">Scheduled</p>
-                <p className="text-2xl text-gray-900">{scheduledCount}</p>
+                <p className="text-sm text-gray-500 mb-1">Scheduled</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {scheduledCount}
+                </p>
               </div>
-              <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center">
-                <Calendar className="w-6 h-6 text-blue-600" />
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center shadow-lg shadow-blue-500/30">
+                <Calendar className="w-6 h-6 text-white" />
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card className="rounded-2xl border-gray-200">
+        <Card className="rounded-2xl border-0 shadow-lg shadow-gray-200/50 hover:shadow-xl transition-all">
           <CardContent className="p-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 mb-1">Drafts</p>
-                <p className="text-2xl text-gray-900">{draftCount}</p>
+                <p className="text-sm text-gray-500 mb-1">Drafts</p>
+                <p className="text-2xl font-bold text-gray-900">{draftCount}</p>
               </div>
-              <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center">
-                <Eye className="w-6 h-6 text-gray-600" />
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-gray-400 to-slate-500 flex items-center justify-center shadow-lg shadow-gray-500/30">
+                <Eye className="w-6 h-6 text-white" />
               </div>
             </div>
           </CardContent>
@@ -228,30 +243,51 @@ export default function NotificationManagement() {
       </div>
 
       {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="bg-white border border-gray-200 p-1 rounded-xl">
-          <TabsTrigger value="all" className="rounded-lg">
+      <Tabs
+        value={activeTab}
+        onValueChange={setActiveTab}
+        className="space-y-6"
+      >
+        <TabsList className="bg-gray-100 p-1 rounded-xl">
+          <TabsTrigger
+            value="all"
+            className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
+          >
             All Notifications
           </TabsTrigger>
-          <TabsTrigger value="sent" className="rounded-lg">
+          <TabsTrigger
+            value="sent"
+            className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
+          >
             Sent ({sentCount})
           </TabsTrigger>
-          <TabsTrigger value="scheduled" className="rounded-lg">
+          <TabsTrigger
+            value="scheduled"
+            className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
+          >
             Scheduled ({scheduledCount})
           </TabsTrigger>
-          <TabsTrigger value="draft" className="rounded-lg">
+          <TabsTrigger
+            value="draft"
+            className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
+          >
             Drafts ({draftCount})
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value={activeTab} className="space-y-4">
           {filteredNotifications.map((notif) => (
-            <Card key={notif.id} className="rounded-2xl border-gray-200">
+            <Card
+              key={notif.id}
+              className="rounded-2xl border-0 shadow-lg shadow-gray-200/50 hover:shadow-xl transition-all"
+            >
               <CardContent className="p-6">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-lg text-gray-900">{notif.title}</h3>
+                      <h3 className="text-lg font-semibold text-gray-900">
+                        {notif.title}
+                      </h3>
                       {getStatusBadge(notif.status)}
                     </div>
                     <p className="text-gray-600 mb-3">{notif.content}</p>
@@ -273,16 +309,25 @@ export default function NotificationManagement() {
                         </div>
                       )}
                       {notif.recipients > 0 && (
-                        <span>{notif.recipients.toLocaleString()} recipients</span>
+                        <span className="bg-gray-100 px-2 py-0.5 rounded-full">
+                          {notif.recipients.toLocaleString()} recipients
+                        </span>
                       )}
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm" className="rounded-xl">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="rounded-xl hover:bg-blue-50"
+                    >
                       <Eye className="w-4 h-4" />
                     </Button>
                     {notif.status === "draft" && (
-                      <Button size="sm" className="bg-[#2563EB] hover:bg-[#1E3A8A] rounded-xl">
+                      <Button
+                        size="sm"
+                        className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 rounded-xl shadow-md shadow-blue-500/25"
+                      >
                         <Send className="w-4 h-4 mr-1" />
                         Send
                       </Button>
