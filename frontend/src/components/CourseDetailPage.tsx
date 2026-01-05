@@ -192,9 +192,7 @@ export default function CourseDetailPage() {
                     onClick={() => {
                       // Navigate to first topic
                       const firstTopic = topics[0];
-                      navigate(
-                        `/courses/${courseId}/topics/${firstTopic.id}/lessons`
-                      );
+                      navigate(`/topics/${firstTopic.id}/lessons`);
                     }}
                   >
                     <PlayCircle className="w-5 h-5 mr-2" />
@@ -296,11 +294,7 @@ export default function CourseDetailPage() {
                   <Card
                     key={topic.id}
                     className="p-6 hover:shadow-lg transition-all cursor-pointer bg-white border-2 hover:border-blue-300"
-                    onClick={() =>
-                      navigate(
-                        `/courses/${courseId}/topics/${topic.id}/lessons`
-                      )
-                    }
+                    onClick={() => navigate(`/topics/${topic.id}/lessons`)}
                   >
                     <div className="flex items-start gap-6">
                       {/* Topic Number */}

@@ -14,10 +14,12 @@ import {
   Award,
   ClipboardCheck,
   Lock,
+  Terminal,
+  TrendingUp,
 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { useLessons, useQuizzes, useGetCurrentLesson } from "../hooks/useApi";
+import { useLessons, useQuizzes, useGetCurrentLesson, useProblemsByTopic, useTopic } from "../hooks/useApi";
 import type { LessonWithProgress } from "../interfaces";
 
 export default function LessonPage() {
@@ -29,12 +31,18 @@ export default function LessonPage() {
 
   const [currentLessonId, setCurrentLessonId] = useState<string | null>(null);
 
+  // Fetch topic data to get course_id
+  const { data: topicData } = useTopic(topicId || '');
+
   // Fetch lessons for this topic using the hook
   const { data: lessonsData, isLoading } = useLessons(topicId);
 
   // Fetch quizzes for this topic
   const { data: quizzesData } = useQuizzes(topicId);
   const topicQuiz = quizzesData?.[0]; // Get the first quiz for this topic
+
+  // Fetch problems for this topic
+  const { data: problemsData, isLoading: problemsLoading } = useProblemsByTopic(topicId);
 
   // Fetch current lesson for this topic (if available)
   const { data: currentLessonData } = useGetCurrentLesson(topicId);
@@ -88,7 +96,7 @@ export default function LessonPage() {
         </p>
         <Button
           onClick={() =>
-            navigate(courseId ? `/courses/${courseId}` : "/courses")
+            navigate(topicData?.course_id ? `/courses/${topicData.course_id}` : "/courses")
           }
           className="mt-4"
         >
@@ -105,10 +113,11 @@ export default function LessonPage() {
         <div className="max-w-6xl mx-auto px-8 py-6">
           <button
             onClick={() => {
-              if (courseId) {
-                navigate(`/courses/${courseId}`);
+              // Use topic's course_id for navigation back to course
+              if (topicData?.course_id) {
+                navigate(`/courses/${topicData.course_id}`);
               } else {
-                navigate(-1); // Go back to previous page
+                navigate('/courses'); // Fallback to courses list
               }
             }}
             className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4"
@@ -213,6 +222,86 @@ export default function LessonPage() {
                 </Card>
               );
             })}
+
+            {/* Practice Problems Section */}
+            <div className="mt-8">
+              <h3 className="mb-4 flex items-center gap-2">
+                <Terminal className="w-5 h-5 text-blue-600" />
+                Practice Problems
+              </h3>
+              {problemsLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                </div>
+              ) : problemsData && problemsData.length > 0 ? (
+                <div className="grid grid-cols-1 gap-3">
+                  {problemsData.map((problem: any) => (
+                    <Card
+                      key={problem.id}
+                      onClick={() => navigate(`/editor/${problem.id}`)}
+                      className="p-4 hover:shadow-md transition-all cursor-pointer border-2 border-gray-200 hover:border-blue-300"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Code className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                            <h5 className="text-sm font-semibold truncate">
+                              {problem.title}
+                            </h5>
+                          </div>
+                          <div className="flex items-center gap-3 flex-wrap">
+                            <Badge
+                              variant="outline"
+                              className={`text-xs ${
+                                problem.difficulty === 1
+                                  ? "bg-green-50 text-green-700 border-green-200"
+                                  : problem.difficulty === 2
+                                  ? "bg-yellow-50 text-yellow-700 border-yellow-200"
+                                  : "bg-red-50 text-red-700 border-red-200"
+                              }`}
+                            >
+                              {problem.difficulty === 1
+                                ? "Easy"
+                                : problem.difficulty === 2
+                                ? "Medium"
+                                : "Hard"}
+                            </Badge>
+                            {problem.acceptance_rate && (
+                              <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                <TrendingUp className="w-3 h-3" />
+                                {Math.round(problem.acceptance_rate * 100)}% acceptance
+                              </span>
+                            )}
+                            {problem.total_submissions > 0 && (
+                              <span className="text-xs text-muted-foreground">
+                                {problem.total_submissions} submissions
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <Button
+                          size="sm"
+                          className="bg-blue-600 hover:bg-blue-700 flex-shrink-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/editor/${problem.id}`);
+                          }}
+                        >
+                          Solve
+                        </Button>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <Card className="p-8 text-center border-2 border-dashed border-gray-300">
+                  <Code className="w-12 h-12 mx-auto mb-3 text-gray-400" />
+                  <p className="text-sm text-muted-foreground">
+                    No practice problems available for this topic yet
+                  </p>
+                </Card>
+              )}
+            </div>
 
             {/* End-of-Topic Quiz Section */}
             {topicQuiz && (
@@ -403,15 +492,6 @@ export default function LessonPage() {
                 </li>
               </ul>
             </Card>
-
-            {/* Practice Button */}
-            <Button
-              className="w-full bg-blue-600 hover:bg-blue-700"
-              onClick={() => navigate("/editor")}
-            >
-              <Code className="w-4 h-4 mr-2" />
-              Practice Now
-            </Button>
           </div>
         </div>
       </div>

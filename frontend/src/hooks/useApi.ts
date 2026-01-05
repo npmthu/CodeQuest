@@ -354,6 +354,18 @@ export function useProblems() {
   });
 }
 
+export function useProblemsByTopic(topicId?: string | null) {
+  return useQuery({
+    queryKey: ['problems', 'topic', topicId],
+    queryFn: async () => {
+      if (!topicId) return [];
+      const result = await apiFetch(`/problems?topic_id=${topicId}`);
+      return result.data || [];
+    },
+    enabled: !!topicId
+  });
+}
+
 export function useProblem(id: string) {
   return useQuery({
     queryKey: ["problem", id],

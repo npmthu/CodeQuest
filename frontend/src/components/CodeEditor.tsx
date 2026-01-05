@@ -24,7 +24,7 @@ import {
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import type { 
   Problem, 
   TestCaseResult, 
@@ -91,7 +91,8 @@ int main() {
 // ---------- Component ----------
 export default function CodeEditor({ apiBase }: CodeEditorProps) {
   const navigate = useNavigate();
-  const [selectedProblemId, setSelectedProblemId] = useState<string | null>(null);
+  const { problemId: urlProblemId } = useParams<{ problemId: string }>();
+  const [selectedProblemId, setSelectedProblemId] = useState<string | null>(urlProblemId || null);
 
   // derive effective API base: prop override -> Vite env -> default
   const effectiveApiBase: string =
@@ -138,12 +139,16 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
   const requestCodeReviewMutation = useRequestCodeReview();
   const { data: codeReviewData } = useCodeReview(lastSubmissionId || undefined);
 
-  // Select first problem on mount
+  // Select problem from URL or first problem on mount
   useEffect(() => {
-    if (problemList && problemList.length > 0 && !selectedProblemId) {
+    if (urlProblemId) {
+      // Always use URL problem ID if present
+      setSelectedProblemId(urlProblemId);
+    } else if (problemList && problemList.length > 0 && !selectedProblemId) {
+      // Only fallback to first problem if no URL ID and no selected problem
       setSelectedProblemId(problemList[0].id);
     }
-  }, [problemList, selectedProblemId]);
+  }, [problemList, urlProblemId]);
 
   // Update code when problem or language changes
   useEffect(() => {
@@ -455,7 +460,14 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button
-              onClick={() => navigate('/dashboard')}
+              onClick={() => {
+                // Navigate back to the topic page if problem has topic_id
+                if (problem.topicId) {
+                  navigate(`/topics/${problem.topicId}/lessons`);
+                } else {
+                  navigate('/dashboard');
+                }
+              }}
               className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900"
             >
               <ArrowLeft className="w-4 h-4" /> Back
