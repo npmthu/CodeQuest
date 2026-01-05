@@ -352,7 +352,7 @@ export default function StudentInterviews() {
           ) : (
             <>
               {paginatedSessions.map((session) => (
-              <Card key={session.id} className="p-6">
+              <Card key={session.id} className="p-6 border-2 border-gray-300 shadow-lg hover:shadow-xl transition-shadow">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
@@ -490,7 +490,7 @@ export default function StudentInterviews() {
             </Card>
           ) : (
             myBookings.map((booking) => (
-              <Card key={booking.id} className="p-6">
+              <Card key={booking.id} className="p-6 border-2 border-gray-300 shadow-lg hover:shadow-xl transition-shadow">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
