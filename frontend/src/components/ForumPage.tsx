@@ -225,7 +225,7 @@ export default function ForumPage() {
     <div className="p-8 space-y-6">
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between" style={{ backgroundColor: '#B9D6F3', padding: '1.5rem', borderRadius: '0.5rem' }}>
         <div>
           <h2>Community Forum</h2>
           <p className="text-muted-foreground mt-1">Ask questions, share knowledge, and help others</p>
@@ -316,7 +316,7 @@ export default function ForumPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
           <Input
             placeholder="Search discussions..."
-            className="pl-10"
+            className="pl-10 border-2 border-gray-300 shadow-md"
           />
         </div>
         <Select value={sortBy} onValueChange={(value: "recent" | "popular" | "mostReplies") => setSortBy(value)}>
