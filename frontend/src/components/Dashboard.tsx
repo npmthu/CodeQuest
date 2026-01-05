@@ -89,8 +89,14 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {statsCards.map((stat) => {
           const Icon = stat.icon;
+          const bgColors: { [key: string]: string } = {
+            'Total Submissions': '#B9D6F3',
+            'Problems Solved': '#B6DA9F',
+            'Lessons Completed': '#E0B0FF',
+            'Current Reputation': '#F7D7A9'
+          };
           return (
-            <Card key={stat.label} className="p-6">
+            <Card key={stat.label} className="p-6" style={{ backgroundColor: bgColors[stat.label] }}>
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">{stat.label}</p>
