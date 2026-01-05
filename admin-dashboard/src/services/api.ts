@@ -189,6 +189,31 @@ export const adminApi = {
 
   unbanUser: (userId: string) =>
     apiRequest<any>(`/admin/users/${userId}/unban`, { method: "POST" }),
+
+  // Notifications
+  getNotifications: () => apiRequest<any>("/admin/notifications"),
+
+  sendNotification: (data: {
+    title: string;
+    message: string;
+    target_plan_id: string | null;
+    scheduled_for: string | null;
+  }) =>
+    apiRequest<any>("/admin/notifications", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  saveDraftNotification: (data: {
+    title: string;
+    message: string;
+    target_plan_id: string | null;
+    scheduled_for: string | null;
+  }) =>
+    apiRequest<any>("/admin/notifications/draft", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
 };
 
 export default adminApi;

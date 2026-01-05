@@ -69,4 +69,18 @@ router.post(
   adminController.extendUserSubscription.bind(adminController)
 );
 
+// Notifications
+router.get(
+  "/notifications",
+  adminController.getNotifications.bind(adminController)
+);
+router.post(
+  "/notifications",
+  adminController.sendNotification.bind(adminController)
+);
+router.post(
+  "/notifications/draft",
+  adminController.saveDraftNotification.bind(adminController)
+);
+
 export default router;

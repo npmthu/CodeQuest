@@ -1103,6 +1103,178 @@ export class AdminController {
       });
     }
   }
+
+  /**
+   * GET /api/admin/notifications
+   * Get all notifications
+   */
+  async getNotifications(req: AuthRequest, res: Response) {
+    try {
+      const { data: notifications, error } = await supabaseAdmin
+        .from("notifications")
+        .select(
+          `
+          *,
+          plan:subscription_plans(name)
+        `
+        )
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+
+      // Format response
+      const formattedNotifications = notifications.map((notif: any) => ({
+        ...notif,
+        target_plan_name: notif.plan?.name || null,
+      }));
+
+      res.json({
+        success: true,
+        data: formattedNotifications,
+      });
+    } catch (error: any) {
+      console.error("❌ Error fetching notifications:", error);
+      res.status(500).json({
+        success: false,
+        error: error.message || "Failed to fetch notifications",
+      });
+    }
+  }
+
+  /**
+   * POST /api/admin/notifications
+   * Send notification to users
+   */
+  async sendNotification(req: AuthRequest, res: Response) {
+    try {
+      const { title, message, target_plan_id, scheduled_for } = req.body;
+
+      if (!title || !message) {
+        return res.status(400).json({
+          success: false,
+          error: "Title and message are required",
+        });
+      }
+
+      // Determine target users
+      let targetUserIds: string[] = [];
+
+      if (target_plan_id) {
+        // Get users with specific subscription plan
+        const { data: subscriptions, error: subError } = await supabaseAdmin
+          .from("subscriptions")
+          .select("user_id")
+          .eq("plan_id", target_plan_id)
+          .in("status", ["active", "trialing"]);
+
+        if (subError) throw subError;
+        targetUserIds = subscriptions.map((sub: any) => sub.user_id);
+      } else {
+        // Get all users
+        const { data: users, error: userError } = await supabaseAdmin
+          .from("users")
+          .select("id");
+
+        if (userError) throw userError;
+        targetUserIds = users.map((user: any) => user.id);
+      }
+
+      const status = scheduled_for ? "scheduled" : "sent";
+      const sent_at = scheduled_for ? null : new Date().toISOString();
+
+      // Create notification record
+      const { data: notification, error: notifError } = await supabaseAdmin
+        .from("notifications")
+        .insert({
+          title,
+          message,
+          target_plan_id: target_plan_id || null,
+          scheduled_for: scheduled_for || null,
+          status,
+          sent_at,
+          recipients_count: targetUserIds.length,
+        })
+        .select()
+        .single();
+
+      if (notifError) throw notifError;
+
+      // If sending now, create user notifications
+      if (!scheduled_for && targetUserIds.length > 0) {
+        const userNotifications = targetUserIds.map((userId) => ({
+          user_id: userId,
+          notification_id: notification.id,
+          is_read: false,
+        }));
+
+        const { error: userNotifError } = await supabaseAdmin
+          .from("user_notifications")
+          .insert(userNotifications);
+
+        if (userNotifError) throw userNotifError;
+      }
+
+      res.json({
+        success: true,
+        data: {
+          ...notification,
+          recipients_count: targetUserIds.length,
+        },
+        message: scheduled_for
+          ? "Notification scheduled successfully"
+          : "Notification sent successfully",
+      });
+    } catch (error: any) {
+      console.error("❌ Error sending notification:", error);
+      res.status(500).json({
+        success: false,
+        error: error.message || "Failed to send notification",
+      });
+    }
+  }
+
+  /**
+   * POST /api/admin/notifications/draft
+   * Save notification as draft
+   */
+  async saveDraftNotification(req: AuthRequest, res: Response) {
+    try {
+      const { title, message, target_plan_id, scheduled_for } = req.body;
+
+      if (!title || !message) {
+        return res.status(400).json({
+          success: false,
+          error: "Title and message are required",
+        });
+      }
+
+      const { data: notification, error } = await supabaseAdmin
+        .from("notifications")
+        .insert({
+          title,
+          message,
+          target_plan_id: target_plan_id || null,
+          scheduled_for: scheduled_for || null,
+          status: "draft",
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      res.json({
+        success: true,
+        data: notification,
+        message: "Draft saved successfully",
+      });
+    } catch (error: any) {
+      console.error("❌ Error saving draft notification:", error);
+      res.status(500).json({
+        success: false,
+        error: error.message || "Failed to save draft",
+      });
+    }
+  }
 }
 
 // Helper function to calculate monthly growth
