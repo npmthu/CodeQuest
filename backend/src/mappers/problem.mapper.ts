@@ -67,9 +67,9 @@ export function mapTestCaseToDTO(testCase: TestCase): TestCaseDTO {
   return {
     id: testCase.id,
     name: testCase.name,
-    // input and expectedOutput chỉ trả về nếu là sample (đã decrypt)
-    input: testCase.is_sample ? testCase.input_encrypted : undefined,
-    expectedOutput: testCase.is_sample ? testCase.expected_output_encrypted : undefined,
+    // input and expectedOutput as JSONB for sample cases
+    input: testCase.is_sample ? testCase.input : undefined,
+    expectedOutput: testCase.is_sample ? testCase.expected_output : undefined,
     isSample: testCase.is_sample || false
   };
 }

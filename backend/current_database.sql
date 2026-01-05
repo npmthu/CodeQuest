@@ -340,6 +340,14 @@ CREATE TABLE public.partners (
   updated_at timestamp without time zone DEFAULT now(),
   CONSTRAINT partners_pkey PRIMARY KEY (id)
 );
+CREATE TABLE public.problem_io (
+  problem_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  input jsonb,
+  output jsonb,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT problem_io_pkey PRIMARY KEY (problem_id),
+  CONSTRAINT problem_io_problem_id_fkey FOREIGN KEY (problem_id) REFERENCES public.problems(id)
+);
 CREATE TABLE public.problems (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
   slug character varying NOT NULL UNIQUE,
@@ -493,8 +501,8 @@ CREATE TABLE public.test_cases (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
   problem_id uuid NOT NULL,
   name character varying,
-  input_encrypted text NOT NULL,
-  expected_output_encrypted text NOT NULL,
+  input jsonb NOT NULL,
+  expected_output jsonb NOT NULL,
   is_sample boolean DEFAULT false,
   points integer DEFAULT 10,
   display_order integer DEFAULT 0,

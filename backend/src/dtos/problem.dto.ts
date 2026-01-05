@@ -1,5 +1,30 @@
 // Problem DTOs - Contract giữa backend và frontend
 
+// Problem IO structures
+export interface IOParameterDTO {
+  name: string;
+  type: string;
+  element_type?: string;
+  constraints?: Record<string, any>;
+}
+
+export interface IOInputDTO {
+  style: 'function';
+  params: IOParameterDTO[];
+}
+
+export interface IOOutputDTO {
+  type: string;
+  element_type?: string;
+  constraints?: Record<string, any>;
+  comparator?: string;
+}
+
+export interface ProblemIODTO {
+  input: IOInputDTO;
+  output: IOOutputDTO;
+}
+
 export interface ProblemDTO {
   id: string;
   slug: string;
@@ -23,6 +48,7 @@ export interface ProblemDTO {
 export interface ProblemDetailDTO extends ProblemDTO {
   editorialMarkdown?: string;
   sampleTestCases?: TestCaseDTO[];
+  problemIO?: ProblemIODTO;
 }
 
 export interface ProblemSummaryDTO {
@@ -47,8 +73,8 @@ export interface ProblemListItemDTO {
 export interface TestCaseDTO {
   id: string;
   name?: string;
-  input?: string; // Decrypted for sample cases
-  expectedOutput?: string; // Decrypted for sample cases
+  input?: any; // JSONB object for sample cases
+  expectedOutput?: any; // JSONB object for sample cases
   isSample: boolean;
 }
 

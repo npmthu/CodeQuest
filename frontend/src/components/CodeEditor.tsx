@@ -32,7 +32,9 @@ import type {
   ExecutionResult, 
   ProblemSummary, 
   Language, 
-  TestCase 
+  TestCase,
+  ProblemIO,
+  IOParameter 
 } from "../interfaces";
 
 // ---------- Component Props ----------
@@ -44,48 +46,116 @@ interface CodeEditorProps {
 const difficultyText = (d: number) => (d === 1 ? "Easy" : d === 2 ? "Medium" : "Hard");
 const difficultyColor = (d: number) => (d === 1 ? "green" : d === 2 ? "yellow" : "red");
 
-// ---------- Starter Code Templates ----------
-const STARTER_CODE: Record<string, string> = {
-  python: `# Write your solution here
-def solution():
-    """
-    Your code implementation goes here
-    """
-    pass
+// Type mapping helper
+const mapTypeToLanguage = (type: string, lang: string): string => {
+  const typeMap: Record<string, Record<string, string>> = {
+    python: {
+      int: 'int',
+      float: 'float',
+      string: 'str',
+      bool: 'bool',
+      array: 'List',
+      object: 'Dict',
+    },
+    java: {
+      int: 'int',
+      float: 'double',
+      string: 'String',
+      bool: 'boolean',
+      array: '[]',
+      object: 'Map<String, Object>',
+    },
+    cpp: {
+      int: 'int',
+      float: 'double',
+      string: 'string',
+      bool: 'bool',
+      array: 'vector',
+      object: 'map<string, any>',
+    }
+  };
+  return typeMap[lang]?.[type] || type;
+};
 
-# Test your code
-if __name__ == "__main__":
-    result = solution()
-    print(result)
-`,
-  java: `public class Solution {
-    /**
-     * Your code implementation goes here
-     */
-    public static void main(String[] args) {
-        Solution solution = new Solution();
-        // Test your code here
-        System.out.println("Result: ");
+// Generate function signature from problem IO
+const generateFunctionSignature = (problemIO: ProblemIO | undefined, lang: string): { name: string; params: string; returnType: string } => {
+  if (!problemIO) {
+    return { name: 'solve', params: '', returnType: 'void' };
+  }
+
+  const params = problemIO.input.params.map((param: IOParameter) => {
+    const baseType = mapTypeToLanguage(param.type, lang);
+    let fullType = baseType;
+    
+    if (param.type === 'array' && param.element_type) {
+      const elementType = mapTypeToLanguage(param.element_type, lang);
+      if (lang === 'python') fullType = `List[${elementType}]`;
+      else if (lang === 'java') fullType = `${elementType}[]`;
+      else if (lang === 'cpp') fullType = `vector<${elementType}>`;
     }
     
-    // Add your methods here
-}
-`,
-  cpp: `#include <iostream>
-#include <vector>
-#include <string>
+    if (lang === 'python') return `${param.name}: ${fullType}`;
+    else if (lang === 'java') return `${fullType} ${param.name}`;
+    else if (lang === 'cpp') return `${fullType} ${param.name}`;
+    return `${param.name}`;
+  }).join(', ');
 
+  const returnType = (() => {
+    const baseType = mapTypeToLanguage(problemIO.output.type, lang);
+    if (problemIO.output.type === 'array' && problemIO.output.element_type) {
+      const elementType = mapTypeToLanguage(problemIO.output.element_type, lang);
+      if (lang === 'python') return `List[${elementType}]`;
+      else if (lang === 'java') return `${elementType}[]`;
+      else if (lang === 'cpp') return `vector<${elementType}>`;
+    }
+    return baseType;
+  })();
+
+  // Generate function name (default to 'solve' or use first parameter name logic)
+  const functionName = 'solve';
+
+  return { name: functionName, params, returnType };
+};
+
+// ---------- Starter Code Templates (LeetCode style) ----------
+const generateStarterCode = (problemIO: ProblemIO | undefined, lang: string): string => {
+  const sig = generateFunctionSignature(problemIO, lang);
+
+  if (lang === 'python') {
+    return `from typing import List, Dict, Any
+
+class Solution:
+    def ${sig.name}(self${sig.params ? ', ' + sig.params : ''}) -> ${sig.returnType}:
+        # Write your solution here
+        pass
+`;
+  } else if (lang === 'java') {
+    return `import java.util.*;
+
+class Solution {
+    public ${sig.returnType} ${sig.name}(${sig.params}) {
+        // Write your solution here
+        return ${sig.returnType === 'int' ? '0' : sig.returnType === 'boolean' ? 'false' : 'null'};
+    }
+}
+`;
+  } else if (lang === 'cpp') {
+    return `#include <vector>
+#include <string>
+#include <map>
 using namespace std;
 
-/**
- * Your code implementation goes here
- */
-int main() {
-    // Test your code here
-    cout << "Result: " << endl;
-    return 0;
-}
-`,
+class Solution {
+public:
+    ${sig.returnType} ${sig.name}(${sig.params}) {
+        // Write your solution here
+        ${sig.returnType === 'int' ? 'return 0;' : sig.returnType === 'bool' ? 'return false;' : 'return {};'}
+    }
+};
+`;
+  }
+  
+  return `// Starter code not available for this language`;
 };
 
 // ---------- Component ----------
@@ -153,10 +223,9 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
   // Update code when problem or language changes
   useEffect(() => {
     if (problem) {
-      // Use backend starter code if available, otherwise use default templates
-      const backendStarterCode = problem.starterCode?.[language.name];
-      const defaultStarterCode = STARTER_CODE[language.name] || "";
-      setCode(backendStarterCode || defaultStarterCode);
+      // Generate starter code based on problemIO
+      const starterCode = generateStarterCode(problem.problemIO, language.name);
+      setCode(starterCode);
       
       // initialize test case states
       const tstates: Record<number, "not_run" | "running" | "passed" | "failed"> = {};
@@ -168,10 +237,9 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
   // Reset handler
   const handleReset = () => {
     if (!problem) return;
-    // Use backend starter code if available, otherwise use default templates
-    const backendStarterCode = problem.starterCode?.[language.name];
-    const defaultStarterCode = STARTER_CODE[language.name] || "";
-    setCode(backendStarterCode || defaultStarterCode);
+    // Generate starter code based on problemIO
+    const starterCode = generateStarterCode(problem.problemIO, language.name);
+    setCode(starterCode);
     
     setOutput("");
     setTestCaseResults([]);
@@ -557,10 +625,15 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
                   {(problem.sampleTestCases || []).map((tc:TestCase, idx: any) => (
                     <Card key={idx} className="p-3 bg-gray-50 border-gray-200">
                       <div className="text-sm">
-                        <div className="font-medium">Input</div>
-                        <pre className="whitespace-pre-wrap">{tc.inputEncrypted}</pre>
-                        <div className="font-medium">Output</div>
-                        <pre className="whitespace-pre-wrap">{tc.expectedOutputEncrypted}</pre>
+                        {tc.name && <div className="font-semibold mb-2">{tc.name}</div>}
+                        <div className="font-medium">Input:</div>
+                        <pre className="whitespace-pre-wrap bg-white p-2 rounded border text-xs">
+                          {JSON.stringify(tc.input, null, 2)}
+                        </pre>
+                        <div className="font-medium mt-2">Expected Output:</div>
+                        <pre className="whitespace-pre-wrap bg-white p-2 rounded border text-xs">
+                          {JSON.stringify(tc.expectedOutput, null, 2)}
+                        </pre>
                       </div>
                     </Card>
                   ))}
@@ -762,7 +835,7 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
                             <div>
                               <div className="font-medium text-gray-700">Input:</div>
                               <pre className="bg-gray-100 p-2 rounded mt-1 whitespace-pre-wrap overflow-auto max-h-24">
-                                {result.input || '[Hidden]'}
+                                {result.input ? (typeof result.input === 'object' ? JSON.stringify(result.input, null, 2) : result.input) : '[Hidden]'}
                               </pre>
                             </div>
                             
@@ -770,7 +843,7 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
                               <div>
                                 <div className="font-medium text-gray-700">Expected Output:</div>
                                 <pre className="bg-gray-100 p-2 rounded mt-1 whitespace-pre-wrap overflow-auto max-h-24">
-                                  {result.expected_output || '[Hidden]'}
+                                  {result.expected_output ? (typeof result.expected_output === 'object' ? JSON.stringify(result.expected_output, null, 2) : result.expected_output) : '[Hidden]'}
                                 </pre>
                               </div>
                               

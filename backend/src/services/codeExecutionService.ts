@@ -1,10 +1,11 @@
 /**
- * Code Execution Service - Real execution using Piston API
+ * Code Execution Service - Real execution using Piston API with JSONB support
  * Piston: Free code execution engine (https://github.com/engineer-man/piston)
  */
 
 import { supabaseAdmin } from '../config/database';
 import type { TestCase } from '../models/TestCase';
+import type { ProblemIO } from '../models/ProblemIO';
 
 const PISTON_API = 'https://emkc.org/api/v2/piston';
 
@@ -116,14 +117,69 @@ const executeCodeWithInput = async (
 };
 
 /**
- * Compare two outputs (trim whitespace for comparison)
+ * Compare two outputs (parse JSON and compare)
  */
-const compareOutputs = (actual: string, expected: string): boolean => {
-  const normalizeOutput = (str: string) => {
-    return str.trim().replace(/\r\n/g, '\n').replace(/\s+$/gm, '');
-  };
+const compareOutputs = (actualStr: string, expectedValue: any): boolean => {
+  try {
+    // Try to parse actual output as JSON
+    const actual = JSON.parse(actualStr.trim());
+    
+    // Deep equality comparison
+    return JSON.stringify(actual) === JSON.stringify(expectedValue);
+  } catch (err) {
+    // If parse fails, fall back to string comparison
+    const normalizeOutput = (str: string) => {
+      return str.trim().replace(/\r\n/g, '\n').replace(/\s+$/gm, '');
+    };
+    
+    return normalizeOutput(actualStr) === normalizeOutput(String(expectedValue));
+  }
+};
+
+/**
+ * Generate wrapper code that calls the Solution class and outputs JSON
+ */
+const generateWrapperCode = (userCode: string, testCaseInput: any, language: string, problemIO?: ProblemIO): string => {
+  if (language === 'python') {
+    // Generate function call with parameters
+    const params = problemIO?.input?.params || [];
+    const paramNames = params.map((p: any) => p.name);
+    const argsStr = paramNames.map((name: string) => `input_data["${name}"]`).join(', ');
+    
+    return `import json
+from typing import List, Dict, Any
+
+${userCode}
+
+# Test execution wrapper
+solution = Solution()
+input_data = ${JSON.stringify(testCaseInput)}
+result = solution.solve(${argsStr})
+print(json.dumps(result))
+`;
+  } else if (language === 'java') {
+    // For Java, this is more complex - for now, simple approach
+    return userCode + `
+// Test execution wrapper
+public static void main(String[] args) {
+    Solution solution = new Solution();
+    // TODO: Parse input and call solve method
+    System.out.println("[]");
+}
+`;
+  } else if (language === 'cpp' || language === 'c++') {
+    // For C++, similar complexity
+    return userCode + `
+int main() {
+    Solution solution;
+    // TODO: Parse input and call solve method
+    cout << "[]" << endl;
+    return 0;
+}
+`;
+  }
   
-  return normalizeOutput(actual) === normalizeOutput(expected);
+  return userCode;
 };
 
 /**
@@ -138,6 +194,19 @@ export const executeCode = async (
   const startTime = Date.now();
   
   try {
+    // Fetch problem IO structure
+    const { data: problemIOData, error: ioError } = await supabaseAdmin
+      .from('problem_io')
+      .select('*')
+      .eq('problem_id', problemId)
+      .maybeSingle();
+
+    if (ioError) {
+      console.warn('Error fetching problem IO:', ioError);
+    }
+
+    const problemIO = problemIOData as ProblemIO | null;
+
     // Fetch test cases from database
     const { data: testCases, error: tcError } = await supabaseAdmin
       .from('test_cases')
@@ -187,10 +256,13 @@ export const executeCode = async (
     let hasCompileError = false;
 
     for (const testCase of casesToRun) {
+      // Generate wrapper code with test case input
+      const wrappedCode = generateWrapperCode(code, testCase.input, language, problemIO || undefined);
+      
       const result = await executeCodeWithInput(
-        code,
+        wrappedCode,
         language,
-        testCase.input_encrypted,
+        '', // No stdin needed, input is in the code
         3000
       );
 
@@ -204,8 +276,8 @@ export const executeCode = async (
           test_case_id: testCase.id,
           name: testCase.name || `Test Case ${testCase.display_order + 1}`,
           passed: false,
-          input: testCase.is_sample ? testCase.input_encrypted : '[Hidden]',
-          expected_output: testCase.is_sample ? testCase.expected_output_encrypted : '[Hidden]',
+          input: testCase.is_sample ? testCase.input : '[Hidden]',
+          expected_output: testCase.is_sample ? testCase.expected_output : '[Hidden]',
           actual_output: '',
           error: result.compileError,
           execution_time_ms: result.executionTime,
@@ -221,8 +293,8 @@ export const executeCode = async (
           test_case_id: testCase.id,
           name: testCase.name || `Test Case ${testCase.display_order + 1}`,
           passed: false,
-          input: testCase.is_sample ? testCase.input_encrypted : '[Hidden]',
-          expected_output: testCase.is_sample ? testCase.expected_output_encrypted : '[Hidden]',
+          input: testCase.is_sample ? testCase.input : '[Hidden]',
+          expected_output: testCase.is_sample ? testCase.expected_output : '[Hidden]',
           actual_output: '',
           error: 'Compilation failed',
           execution_time_ms: 0,
@@ -246,8 +318,8 @@ export const executeCode = async (
           test_case_id: testCase.id,
           name: testCase.name || `Test Case ${testCase.display_order + 1}`,
           passed: false,
-          input: testCase.is_sample ? testCase.input_encrypted : '[Hidden]',
-          expected_output: testCase.is_sample ? testCase.expected_output_encrypted : '[Hidden]',
+          input: testCase.is_sample ? testCase.input : '[Hidden]',
+          expected_output: testCase.is_sample ? testCase.expected_output : '[Hidden]',
           actual_output: result.stdout,
           error: result.stderr || 'Runtime error: Non-zero exit code',
           execution_time_ms: result.executionTime,
@@ -256,8 +328,8 @@ export const executeCode = async (
         continue;
       }
 
-      // Compare outputs
-      const passed = compareOutputs(result.stdout, testCase.expected_output_encrypted);
+      // Compare outputs (parse JSON and compare with expected JSONB)
+      const passed = compareOutputs(result.stdout, testCase.expected_output);
       
       if (!passed) {
         allPassed = false;
@@ -267,8 +339,8 @@ export const executeCode = async (
         test_case_id: testCase.id,
         name: testCase.name || `Test Case ${testCase.display_order + 1}`,
         passed,
-        input: testCase.is_sample ? testCase.input_encrypted : '[Hidden]',
-        expected_output: testCase.is_sample ? testCase.expected_output_encrypted : '[Hidden]',
+        input: testCase.is_sample ? testCase.input : '[Hidden]',
+        expected_output: testCase.is_sample ? testCase.expected_output : '[Hidden]',
         actual_output: result.stdout,
         error: passed ? null : 'Output does not match expected',
         execution_time_ms: result.executionTime,

@@ -18,7 +18,21 @@ export async function getProblemHandler(req: Request, res: Response) {
   try {
     const problem = await problemService.getProblem(req.params.id);
     if (!problem) return res.status(404).json({ success: false, error: 'Not found' });
-    const problemDTO = mapProblemToDetailDTO(problem);
+    
+    // Fetch problem IO and sample test cases
+    const problemIO = await problemService.getProblemIO(req.params.id);
+    const sampleTestCases = await problemService.getSampleTestCases(req.params.id);
+    
+    const problemDTO = mapProblemToDetailDTO(problem, sampleTestCases);
+    
+    // Add problem IO if exists
+    if (problemIO) {
+      problemDTO.problemIO = {
+        input: problemIO.input,
+        output: problemIO.output
+      };
+    }
+    
     res.json({ success: true, data: problemDTO });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
