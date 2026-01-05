@@ -16,6 +16,7 @@ import {
   Building,
   Target,
   ClipboardList,
+  FileCode,
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
@@ -51,6 +52,7 @@ export default function DashboardLayout({
   const instructorMenuItems = [
     { path: "/instructor/dashboard", label: t("nav.dashboard"), icon: Home },
     { path: "/instructor/courses", label: t("nav.myCourses"), icon: VideoIcon },
+    { path: "/instructor/problems", label: t("nav.myProblems"), icon: FileCode },
     {
       path: "/instructor/interviews",
       label: t("nav.mockInterviews"),

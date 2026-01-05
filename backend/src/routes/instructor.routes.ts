@@ -4,7 +4,9 @@ import {
   getInstructorStats,
   getInstructorCourses,
   getInstructorAnalytics,
-  getInstructorActivities
+  getInstructorActivities,
+  getInstructorProblems,
+  getInstructorProblemDetail
 } from '../controllers/instructorController';
 
 const router = Router();
@@ -17,5 +19,9 @@ router.get('/stats', getInstructorStats);
 router.get('/courses', getInstructorCourses);
 router.get('/analytics', getInstructorAnalytics);
 router.get('/activities', getInstructorActivities);
+
+// Instructor problem management
+router.get('/problems', getInstructorProblems);
+router.get('/problems/:id', getInstructorProblemDetail);
 
 export default router;

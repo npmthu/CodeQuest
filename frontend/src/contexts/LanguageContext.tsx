@@ -186,6 +186,7 @@ const translations: Translations = {
   'nav.interview': { en: 'Interview', vi: 'Phỏng vấn' },
   'nav.quizzes': { en: 'Quizzes', vi: 'Bài kiểm tra' },
   'nav.myCourses': { en: 'My Courses', vi: 'Khóa học của tôi' },
+  'nav.myProblems': { en: 'My Problems', vi: 'Bài toán của tôi' },
   'nav.mockInterviews': { en: 'Mock Interviews', vi: 'Phỏng vấn thử' },
   'nav.accountMgmt': { en: 'Account Mgmt', vi: 'Quản lý tài khoản' },
   'nav.instructors': { en: 'Instructors', vi: 'Giảng viên' },

@@ -30,6 +30,8 @@ import InstructorDashboard from "./components/InstructorDashboard";
 import InstructorCourseManager from "./components/InstructorCourseManager";
 import InstructorAnalytics from "./components/InstructorAnalytics";
 import InstructorCreateCourse from "./components/InstructorCreateCourse";
+import InstructorProblemsPage from "./components/InstructorProblemsPage";
+import InstructorProblemDetail from "./components/InstructorProblemDetail";
 import BusinessDashboard from "./components/BusinessDashboard";
 import BusinessAccountManagement from "./components/BusinessAccountManagement";
 import BusinessInstructorManagement from "./components/BusinessInstructorManagement";
@@ -264,6 +266,22 @@ function AppContent() {
         element={
           <DashboardRoute>
             <InstructorAnalytics />
+          </DashboardRoute>
+        }
+      />
+      <Route
+        path="/instructor/problems"
+        element={
+          <DashboardRoute>
+            <InstructorProblemsPage />
+          </DashboardRoute>
+        }
+      />
+      <Route
+        path="/instructor/problems/:problemId"
+        element={
+          <DashboardRoute>
+            <InstructorProblemDetail />
           </DashboardRoute>
         }
       />

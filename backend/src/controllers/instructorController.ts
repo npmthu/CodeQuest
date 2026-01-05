@@ -466,3 +466,285 @@ export const getInstructorActivities = async (req: AuthRequest, res: Response) =
     res.status(500).json({ error: 'Failed to fetch activities' });
   }
 };
+
+/**
+ * Get Instructor's Problems
+ * GET /api/instructor/problems
+ */
+export const getInstructorProblems = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    // Get problems created by this instructor
+    const { data: problems, error: problemsError } = await supabaseAdmin
+      .from('problems')
+      .select(`
+        id,
+        slug,
+        title,
+        description_markdown,
+        difficulty,
+        time_limit_ms,
+        memory_limit_kb,
+        input_format,
+        output_format,
+        constraints,
+        is_published,
+        is_premium,
+        acceptance_rate,
+        total_submissions,
+        total_accepted,
+        created_at,
+        updated_at,
+        topic_id
+      `)
+      .eq('created_by', userId)
+      .order('created_at', { ascending: false });
+
+    if (problemsError) {
+      console.error('Error fetching instructor problems:', problemsError);
+      return res.status(500).json({ error: 'Failed to fetch problems' });
+    }
+
+    // Get submission stats for each problem
+    const enrichedProblems = await Promise.all(
+      (problems || []).map(async (problem: any) => {
+        // Get submission count
+        const { count: submissionCount } = await supabaseAdmin
+          .from('submissions')
+          .select('*', { count: 'exact', head: true })
+          .eq('problem_id', problem.id);
+
+        // Get unique users who submitted
+        const { data: uniqueUsers } = await supabaseAdmin
+          .from('submissions')
+          .select('user_id')
+          .eq('problem_id', problem.id);
+
+        const uniqueUserCount = new Set(uniqueUsers?.map((s: any) => s.user_id)).size;
+
+        // Get test case count
+        const { count: testCaseCount } = await supabaseAdmin
+          .from('test_cases')
+          .select('*', { count: 'exact', head: true })
+          .eq('problem_id', problem.id);
+
+        // Get topic and course name
+        let topicName = null;
+        let courseName = null;
+        if (problem.topic_id) {
+          const { data: topic } = await supabaseAdmin
+            .from('topics')
+            .select('id, title, course_id')
+            .eq('id', problem.topic_id)
+            .single();
+          
+          if (topic) {
+            topicName = topic.title;
+            if (topic.course_id) {
+              const { data: course } = await supabaseAdmin
+                .from('courses')
+                .select('title')
+                .eq('id', topic.course_id)
+                .single();
+              courseName = course?.title || null;
+            }
+          }
+        }
+
+        return {
+          ...problem,
+          submissionCount: submissionCount || 0,
+          uniqueSubmitters: uniqueUserCount,
+          testCaseCount: testCaseCount || 0,
+          courseName,
+          topicName
+        };
+      })
+    );
+
+    return res.json({
+      success: true,
+      data: enrichedProblems
+    });
+  } catch (error) {
+    console.error('Error fetching instructor problems:', error);
+    res.status(500).json({ error: 'Failed to fetch problems' });
+  }
+};
+
+/**
+ * Get Instructor's Problem Detail with Submissions
+ * GET /api/instructor/problems/:id
+ */
+export const getInstructorProblemDetail = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    const problemId = req.params.id;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    // Get the problem (verify ownership)
+    const { data: problem, error: problemError } = await supabaseAdmin
+      .from('problems')
+      .select(`
+        id,
+        slug,
+        title,
+        description_markdown,
+        difficulty,
+        time_limit_ms,
+        memory_limit_kb,
+        input_format,
+        output_format,
+        constraints,
+        editorial_markdown,
+        is_published,
+        is_premium,
+        acceptance_rate,
+        total_submissions,
+        total_accepted,
+        created_at,
+        updated_at,
+        metadata,
+        topic_id
+      `)
+      .eq('id', problemId)
+      .eq('created_by', userId)
+      .single();
+
+    if (problemError || !problem) {
+      return res.status(404).json({ error: 'Problem not found or access denied' });
+    }
+
+    // Get problem IO
+    const { data: problemIO } = await supabaseAdmin
+      .from('problem_io')
+      .select('input, output')
+      .eq('problem_id', problemId)
+      .single();
+
+    // Get test cases
+    const { data: testCases } = await supabaseAdmin
+      .from('test_cases')
+      .select('id, name, input, expected_output, is_sample, display_order, points')
+      .eq('problem_id', problemId)
+      .order('display_order', { ascending: true });
+
+    // Get all submissions with user info and execution details
+    const { data: submissions } = await supabaseAdmin
+      .from('submissions')
+      .select(`
+        id,
+        user_id,
+        code,
+        status,
+        score,
+        execution_time_ms,
+        memory_kb,
+        submitted_at,
+        language_id,
+        languages (
+          name,
+          version
+        ),
+        users (
+          id,
+          display_name,
+          email,
+          avatar_url
+        )
+      `)
+      .eq('problem_id', problemId)
+      .order('submitted_at', { ascending: false });
+
+    // Get code runs for each submission to determine test case results
+    const submissionsWithDetails = await Promise.all(
+      (submissions || []).map(async (submission: any) => {
+        const { data: codeRuns } = await supabaseAdmin
+          .from('code_runs')
+          .select('test_case_id, status, execution_time_ms, memory_kb')
+          .eq('submission_id', submission.id);
+
+        const passedCount = codeRuns?.filter((r: any) => r.status === 'passed' || r.status === 'accepted').length || 0;
+        const totalTests = testCases?.length || 0;
+
+        return {
+          id: submission.id,
+          userId: submission.user_id,
+          userName: submission.users?.display_name || 'Unknown',
+          userEmail: submission.users?.email,
+          userAvatar: submission.users?.avatar_url,
+          language: submission.languages?.name || 'Unknown',
+          languageVersion: submission.languages?.version,
+          status: submission.status,
+          score: submission.score,
+          executionTimeMs: submission.execution_time_ms,
+          memoryKb: submission.memory_kb,
+          submittedAt: submission.submitted_at,
+          testCasesPassed: passedCount,
+          testCasesTotal: totalTests,
+          code: submission.code
+        };
+      })
+    );
+
+    // Calculate statistics
+    const totalSubmissions = submissions?.length || 0;
+    const uniqueUsers = new Set(submissions?.map((s: any) => s.user_id)).size;
+    const acceptedCount = submissions?.filter((s: any) => s.status === 'accepted' || s.status === 'ACCEPTED').length || 0;
+    const acceptanceRate = totalSubmissions > 0 ? (acceptedCount / totalSubmissions * 100).toFixed(1) : 0;
+
+    // Get topic and course name
+    let topicName = null;
+    let courseName = null;
+    if (problem.topic_id) {
+      const { data: topic } = await supabaseAdmin
+        .from('topics')
+        .select('id, title, course_id')
+        .eq('id', problem.topic_id)
+        .single();
+      
+      if (topic) {
+        topicName = topic.title;
+        if (topic.course_id) {
+          const { data: course } = await supabaseAdmin
+            .from('courses')
+            .select('title')
+            .eq('id', topic.course_id)
+            .single();
+          courseName = course?.title || null;
+        }
+      }
+    }
+
+    return res.json({
+      success: true,
+      data: {
+        problem: {
+          ...problem,
+          courseName,
+          topicName
+        },
+        problemIO,
+        testCases: testCases || [],
+        submissions: submissionsWithDetails,
+        statistics: {
+          totalSubmissions,
+          uniqueUsers,
+          acceptedCount,
+          acceptanceRate: parseFloat(acceptanceRate as string) || 0,
+          testCaseCount: testCases?.length || 0
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching instructor problem detail:', error);
+    res.status(500).json({ error: 'Failed to fetch problem detail' });
+  }
+};

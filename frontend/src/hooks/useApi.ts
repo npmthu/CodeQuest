@@ -445,6 +445,27 @@ export function useInstructorActivities() {
   });
 }
 
+export function useInstructorProblems() {
+  return useQuery({
+    queryKey: ["instructorProblems"],
+    queryFn: async () => {
+      const result = await apiFetch("/instructor/problems");
+      return result.data;
+    },
+  });
+}
+
+export function useInstructorProblemDetail(problemId: string) {
+  return useQuery({
+    queryKey: ["instructorProblemDetail", problemId],
+    queryFn: async () => {
+      const result = await apiFetch(`/instructor/problems/${problemId}`);
+      return result.data;
+    },
+    enabled: !!problemId,
+  });
+}
+
 // Business Hooks
 export function useBusinessStats() {
   return useQuery({
