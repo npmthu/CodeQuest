@@ -22,6 +22,7 @@ import mockInterviewRoutes from "./mockInterviewRoutes";
 import profileRoutes from "./profile.routes";
 import reportRoutes from "./report.routes";
 import adminRoutes from "./admin.routes";
+import { triggerReminderJob } from "../workers/interviewReminderJob";
 
 const router = express.Router();
 
@@ -48,5 +49,19 @@ router.use("/mock-interviews", mockInterviewRoutes);
 router.use("/profile", profileRoutes);
 router.use("/reports", reportRoutes);
 router.use("/admin", adminRoutes);
+
+// Admin endpoint to manually trigger reminder job (dev/testing only)
+router.post("/admin/trigger-reminders", async (_req, res) => {
+  if (process.env.NODE_ENV === "production") {
+    return res.status(403).json({ error: "Not allowed in production" });
+  }
+
+  try {
+    await triggerReminderJob();
+    res.json({ success: true, message: "Interview reminder job triggered" });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to trigger reminder job" });
+  }
+});
 
 export default router;

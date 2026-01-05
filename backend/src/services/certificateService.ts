@@ -1,4 +1,5 @@
 import { supabaseAdmin } from "../config/database";
+import { mailService } from "./mailService";
 
 export interface Certificate {
   id: string;
@@ -237,7 +238,7 @@ export async function createCertificate(
     throw insertError;
   }
 
-  return {
+  const certificateWithDetails: CertificateWithDetails = {
     ...certificate,
     user_name:
       (certificate.user as any)?.display_name ||
@@ -245,6 +246,36 @@ export async function createCertificate(
       "Unknown User",
     course_title: (certificate.course as any)?.title || "Unknown Course",
   };
+
+  // Send congratulation email asynchronously (don't block certificate creation)
+  const userEmail = (certificate.user as any)?.email;
+  if (userEmail) {
+    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+    const certificateLink = `${frontendUrl}/certificates/${certificate.id}`;
+
+    mailService
+      .sendCourseCompletionEmail({
+        to: userEmail,
+        userName: certificateWithDetails.user_name,
+        courseName: certificateWithDetails.course_title,
+        certificateSerial: serialNumber,
+        certificateLink,
+      })
+      .then((result) => {
+        if (result.success) {
+          console.log(
+            `📧 Certificate email sent to ${userEmail} for course: ${certificateWithDetails.course_title}`
+          );
+        } else {
+          console.error(`📧 Failed to send certificate email to ${userEmail}`);
+        }
+      })
+      .catch((err) => {
+        console.error("Error sending certificate email:", err);
+      });
+  }
+
+  return certificateWithDetails;
 }
 
 /**
