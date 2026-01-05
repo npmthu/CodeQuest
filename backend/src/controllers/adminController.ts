@@ -967,6 +967,19 @@ export class AdminController {
     try {
       const { id } = req.params;
 
+      // First, delete all replies/comments associated with this post
+      // This handles the foreign key constraint from forum_replies
+      const { error: repliesError } = await supabaseAdmin
+        .from("forum_replies")
+        .delete()
+        .eq("post_id", id);
+
+      if (repliesError) {
+        console.error("Error deleting post replies:", repliesError);
+        throw repliesError;
+      }
+
+      // Now delete the post itself
       const { error } = await supabaseAdmin
         .from("forum_posts")
         .delete()
@@ -981,7 +994,7 @@ export class AdminController {
 
       res.json({
         success: true,
-        message: "Post deleted permanently",
+        message: "Post and all comments deleted permanently",
       });
     } catch (error: any) {
       console.error("❌ Error deleting post:", error);
