@@ -10,7 +10,7 @@ build/
 *.js.map
 
 # Environment variables
-.env.example
+.env
 # .env.local
 # .env.*.local
 
