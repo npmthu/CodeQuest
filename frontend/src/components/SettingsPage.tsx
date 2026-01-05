@@ -281,7 +281,7 @@ export default function SettingsPage() {
                   id="displayName"
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
-                  className="mt-2"
+                  className="mt-2 border-2 border-gray-300 shadow-md"
                 />
               </div>
               <div>
@@ -291,14 +291,14 @@ export default function SettingsPage() {
                   type="email"
                   value={email}
                   disabled
-                  className="mt-2 bg-gray-100"
+                  className="mt-2 bg-gray-100 border-2 border-gray-300 shadow-md"
                 />
               </div>
               <div>
                 <Label htmlFor="bio">{t("settings.bio")}</Label>
                 <textarea
                   id="bio"
-                  className="w-full mt-2 p-3 border border-input rounded-lg resize-none"
+                  className="w-full mt-2 p-3 border-2 border-gray-300 rounded-lg resize-none shadow-md"
                   rows={4}
                   value={bio}
                   onChange={(e) => setBio(e.target.value)}
@@ -310,7 +310,7 @@ export default function SettingsPage() {
                   id="location"
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
-                  className="mt-2"
+                  className="mt-2 border-2 border-gray-300 shadow-md"
                 />
               </div>
               <Button
@@ -335,7 +335,7 @@ export default function SettingsPage() {
                   placeholder="https://github.com/username"
                   value={githubUrl}
                   onChange={(e) => setGithubUrl(e.target.value)}
-                  className="mt-2"
+                  className="mt-2 border-2 border-gray-300 shadow-md"
                 />
               </div>
               <div>
@@ -345,7 +345,7 @@ export default function SettingsPage() {
                   placeholder="https://linkedin.com/in/username"
                   value={linkedinUrl}
                   onChange={(e) => setLinkedinUrl(e.target.value)}
-                  className="mt-2"
+                  className="mt-2 border-2 border-gray-300 shadow-md"
                 />
               </div>
               <div>
@@ -355,7 +355,7 @@ export default function SettingsPage() {
                   placeholder="https://yourwebsite.com"
                   value={websiteUrl}
                   onChange={(e) => setWebsiteUrl(e.target.value)}
-                  className="mt-2"
+                  className="mt-2 border-2 border-gray-300 shadow-md"
                 />
               </div>
               <Button
@@ -375,7 +375,7 @@ export default function SettingsPage() {
           <Card className="p-6">
             <h3 className="mb-6">{t("settings.emailNotifications")}</h3>
             <div className="space-y-6 max-w-2xl">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between p-4 border-2 border-gray-300 rounded-lg shadow-md">
                 <div>
                   <p>{t("settings.newLesson")}</p>
                   <p className="text-sm text-muted-foreground">
@@ -389,7 +389,7 @@ export default function SettingsPage() {
                   }
                 />
               </div>
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between p-4 border-2 border-gray-300 rounded-lg shadow-md">
                 <div>
                   <p>{t("settings.forumReplies")}</p>
                   <p className="text-sm text-muted-foreground">
@@ -403,7 +403,7 @@ export default function SettingsPage() {
                   }
                 />
               </div>
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between p-4 border-2 border-gray-300 rounded-lg shadow-md">
                 <div>
                   <p>{t("settings.achievements")}</p>
                   <p className="text-sm text-muted-foreground">
@@ -417,7 +417,7 @@ export default function SettingsPage() {
                   }
                 />
               </div>
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between p-4 border-2 border-gray-300 rounded-lg shadow-md">
                 <div>
                   <p>{t("settings.weeklyReport")}</p>
                   <p className="text-sm text-muted-foreground">
@@ -431,7 +431,7 @@ export default function SettingsPage() {
                   }
                 />
               </div>
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between p-4 border-2 border-gray-300 rounded-lg shadow-md">
                 <div>
                   <p>{t("settings.marketing")}</p>
                   <p className="text-sm text-muted-foreground">
@@ -451,7 +451,7 @@ export default function SettingsPage() {
           <Card className="p-6">
             <h3 className="mb-6">{t("settings.pushNotifications")}</h3>
             <div className="space-y-6 max-w-2xl">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between p-4 border-2 border-gray-300 rounded-lg shadow-md">
                 <div>
                   <p>{t("settings.dailyReminder")}</p>
                   <p className="text-sm text-muted-foreground">
@@ -465,7 +465,7 @@ export default function SettingsPage() {
                   }
                 />
               </div>
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between p-4 border-2 border-gray-300 rounded-lg shadow-md">
                 <div>
                   <p>{t("settings.streakAlerts")}</p>
                   <p className="text-sm text-muted-foreground">
@@ -497,7 +497,7 @@ export default function SettingsPage() {
                 <Input
                   id="currentPassword"
                   type="password"
-                  className="mt-2"
+                  className="mt-2 border-2 border-gray-300 shadow-md"
                   value={passwordForm.currentPassword}
                   onChange={(e) =>
                     setPasswordForm((prev) => ({
@@ -512,7 +512,7 @@ export default function SettingsPage() {
                 <Input
                   id="newPassword"
                   type="password"
-                  className="mt-2"
+                  className="mt-2 border-2 border-gray-300 shadow-md"
                   value={passwordForm.newPassword}
                   onChange={(e) =>
                     setPasswordForm((prev) => ({
@@ -527,7 +527,7 @@ export default function SettingsPage() {
                 <Input
                   id="confirmPassword"
                   type="password"
-                  className="mt-2"
+                  className="mt-2 border-2 border-gray-300 shadow-md"
                   value={passwordForm.confirmPassword}
                   onChange={(e) =>
                     setPasswordForm((prev) => ({
@@ -552,7 +552,7 @@ export default function SettingsPage() {
           <Card className="p-6">
             <h3 className="mb-6">{t("settings.twoFactor")}</h3>
             <div className="max-w-2xl">
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between mb-4 p-4 border-2 border-gray-300 rounded-lg shadow-md">
                 <div>
                   <p>Enable 2FA</p>
                   <p className="text-sm text-muted-foreground">
@@ -574,7 +574,7 @@ export default function SettingsPage() {
           <Card className="p-6">
             <h3 className="mb-6">{t("settings.activeSessions")}</h3>
             <div className="space-y-4 max-w-2xl">
-              <div className="flex items-start justify-between p-4 border border-border rounded-lg">
+              <div className="flex items-start justify-between p-4 border-2 border-gray-300 rounded-lg shadow-md">
                 <div>
                   <p>MacBook Pro - Chrome</p>
                   <p className="text-sm text-muted-foreground">
@@ -585,7 +585,7 @@ export default function SettingsPage() {
                   {t("settings.active")}
                 </Badge>
               </div>
-              <div className="flex items-start justify-between p-4 border border-border rounded-lg">
+              <div className="flex items-start justify-between p-4 border-2 border-gray-300 rounded-lg shadow-md">
                 <div>
                   <p>iPhone 14 - Safari</p>
                   <p className="text-sm text-muted-foreground">
@@ -615,7 +615,7 @@ export default function SettingsPage() {
               )}
             </div>
             <div className="space-y-6 max-w-2xl">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between p-4 border-2 border-gray-300 rounded-lg shadow-md">
                 <div>
                   <p>{t("settings.darkMode")}</p>
                   <p className="text-sm text-muted-foreground">
@@ -632,7 +632,7 @@ export default function SettingsPage() {
               <div>
                 <Label>Code Editor Theme</Label>
                 <select
-                  className="w-full mt-2 p-3 border border-input rounded-lg"
+                  className="w-full mt-2 p-3 border-2 border-gray-300 rounded-lg shadow-md"
                   value={preferences.codeEditorTheme}
                   onChange={(e) =>
                     handlePreferenceChange("codeEditorTheme", e.target.value)
@@ -659,7 +659,7 @@ export default function SettingsPage() {
               <div>
                 <Label>{t("settings.language")}</Label>
                 <select
-                  className="w-full mt-2 p-3 border border-input rounded-lg"
+                  className="w-full mt-2 p-3 border-2 border-gray-300 rounded-lg shadow-md"
                   value={language}
                   onChange={(e) => setLanguage(e.target.value as "en" | "vi")}
                 >
@@ -670,7 +670,7 @@ export default function SettingsPage() {
               <div>
                 <Label>Timezone</Label>
                 <select
-                  className="w-full mt-2 p-3 border border-input rounded-lg"
+                  className="w-full mt-2 p-3 border-2 border-gray-300 rounded-lg shadow-md"
                   value={preferences.timezone}
                   onChange={(e) =>
                     handlePreferenceChange("timezone", e.target.value)
