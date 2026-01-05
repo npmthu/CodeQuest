@@ -8,6 +8,10 @@ import CourseManagement from "./components/admin/CourseManagement";
 import ContentModeration from "./components/admin/ContentModeration";
 import NotificationManagement from "./components/admin/NotificationManagement";
 import SubscriptionManagement from "./components/admin/SubscriptionManagement";
+import SystemSettings from "./components/admin/SystemSettings";
+import AuditLogs from "./components/admin/AuditLogs";
+import InstructorManagement from "./components/admin/InstructorManagement";
+import ReportsAnalytics from "./components/admin/ReportsAnalytics";
 import { Toaster } from "./components/ui/sonner";
 import { Loader2 } from "lucide-react";
 
@@ -60,6 +64,14 @@ function AppContent() {
         return <NotificationManagement />;
       case "admin-subscriptions":
         return <SubscriptionManagement />;
+      case "admin-settings":
+        return <SystemSettings />;
+      case "admin-audit":
+        return <AuditLogs />;
+      case "admin-instructors":
+        return <InstructorManagement />;
+      case "admin-reports":
+        return <ReportsAnalytics />;
       default:
         return <AdminDashboard />;
     }
