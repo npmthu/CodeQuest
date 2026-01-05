@@ -15,6 +15,7 @@ import {
   WifiOff,
   CheckCircle2,
   AlertCircle,
+  ArrowLeft,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '../../lib/supabaseClient';
@@ -541,6 +542,19 @@ export default function SessionLobby({
       </div>
 
       <Card className="relative w-full max-w-3xl bg-white/90 backdrop-blur-xl border-slate-200 shadow-2xl rounded-3xl overflow-hidden">
+        {/* Back Button */}
+        <div className="absolute top-2 left-4 z-20">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate('/interview')}
+            className="flex items-center gap-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100 transition-all shadow-sm"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span className="font-medium">Back to My Bookings</span>
+          </Button>
+        </div>
+
         {/* Connection Status Badge */}
         {renderConnectionBadge()}
 
