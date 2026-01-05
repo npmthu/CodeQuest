@@ -1,6 +1,13 @@
+import { useState } from "react";
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "./ui/dialog";
 import {
   ArrowLeft,
   BookOpen,
@@ -11,7 +18,9 @@ import {
   CheckCircle2,
   FileText,
   TrendingUp,
-  Loader2,
+  ChevronDown,
+  ChevronUp,
+  Play,
 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
@@ -36,6 +45,10 @@ export default function CourseDetailPage() {
   const topics = courseId
     ? (topicsData || []).filter((t: any) => t.course_id === courseId)
     : [];
+
+  // Modal state
+  const [isSyllabusModalOpen, setIsSyllabusModalOpen] = useState(false);
+  const [expandedTopics, setExpandedTopics] = useState<Set<string>>(new Set());
 
   // Get progress stats
   const completedLessons = progressData?.completedLessons || 0;
@@ -65,6 +78,26 @@ export default function CourseDetailPage() {
     } catch (error) {
       console.error("Failed to claim certificate:", error);
     }
+  };
+
+  const toggleTopicExpand = (topicId: string) => {
+    setExpandedTopics((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(topicId)) {
+        newSet.delete(topicId);
+      } else {
+        newSet.add(topicId);
+      }
+      return newSet;
+    });
+  };
+
+  const expandAllTopics = () => {
+    setExpandedTopics(new Set(topics.map((t: any) => t.id)));
+  };
+
+  const collapseAllTopics = () => {
+    setExpandedTopics(new Set());
   };
 
   const getDifficultyColor = (difficulty: string) => {
@@ -212,6 +245,7 @@ export default function CourseDetailPage() {
                   variant="outline"
                   size="lg"
                   className="border-blue-600 text-blue-600 hover:bg-blue-50"
+                  onClick={() => setIsSyllabusModalOpen(true)}
                 >
                   <BookOpen className="w-5 h-5 mr-2" />
                   View Syllabus
@@ -412,6 +446,251 @@ export default function CourseDetailPage() {
           </Card>
         </div>
       </div>
+
+      {/* Syllabus/Curriculum Modal */}
+      <Dialog open={isSyllabusModalOpen} onOpenChange={setIsSyllabusModalOpen}>
+        <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
+          <DialogHeader className="flex-shrink-0">
+            <DialogTitle className="text-2xl">Course Curriculum</DialogTitle>
+            <p className="text-sm text-muted-foreground mt-1">
+              {course?.title} • {topics.length} topics • {totalLessons} lessons
+            </p>
+          </DialogHeader>
+
+          <div className="flex-1 overflow-y-auto pr-2">
+            {/* Expand/Collapse All */}
+            <div className="flex items-center justify-between mb-4 sticky top-0 bg-white py-2 z-10">
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                  {completedLessons}/{totalLessons} completed
+                </Badge>
+                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                  {progressPercent}% progress
+                </Badge>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" size="sm" onClick={expandAllTopics}>
+                  Expand All
+                </Button>
+                <Button variant="ghost" size="sm" onClick={collapseAllTopics}>
+                  Collapse All
+                </Button>
+              </div>
+            </div>
+
+            {/* Topics List */}
+            <div className="space-y-3">
+              {topics.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <BookOpen className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                  <p>No topics available yet</p>
+                </div>
+              ) : (
+                topics.map((topic: any, index: number) => {
+                  const topicProgress = topicStats[topic.id] || {
+                    total: 0,
+                    completed: 0,
+                  };
+                  const topicPercent =
+                    topicProgress.total > 0
+                      ? Math.round(
+                          (topicProgress.completed / topicProgress.total) * 100
+                        )
+                      : 0;
+                  const isExpanded = expandedTopics.has(topic.id);
+                  const isTopicCompleted = topicPercent === 100;
+
+                  return (
+                    <div
+                      key={topic.id}
+                      className={`border rounded-lg overflow-hidden transition-all ${
+                        isTopicCompleted ? "border-green-200 bg-green-50/30" : "border-gray-200"
+                      }`}
+                    >
+                      {/* Topic Header */}
+                      <button
+                        className="w-full p-4 flex items-center gap-3 hover:bg-gray-50 transition-colors text-left"
+                        onClick={() => toggleTopicExpand(topic.id)}
+                      >
+                        <div
+                          className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold ${
+                            isTopicCompleted
+                              ? "bg-green-500 text-white"
+                              : "bg-blue-100 text-blue-700"
+                          }`}
+                        >
+                          {isTopicCompleted ? (
+                            <CheckCircle2 className="w-4 h-4" />
+                          ) : (
+                            index + 1
+                          )}
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-semibold text-gray-900 truncate">
+                            {topic.title}
+                          </h4>
+                          <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
+                            <span>{topicProgress.total || topic.lesson_count || 0} lessons</span>
+                            {topic.estimated_duration && (
+                              <>
+                                <span>•</span>
+                                <span>{topic.estimated_duration}</span>
+                              </>
+                            )}
+                            <span>•</span>
+                            <span
+                              className={isTopicCompleted ? "text-green-600 font-medium" : ""}
+                            >
+                              {topicProgress.completed}/{topicProgress.total} done
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Progress indicator */}
+                        <div className="flex items-center gap-3">
+                          <div className="w-20 bg-gray-200 rounded-full h-1.5">
+                            <div
+                              className={`h-full rounded-full transition-all ${
+                                isTopicCompleted ? "bg-green-500" : "bg-blue-500"
+                              }`}
+                              style={{ width: `${topicPercent}%` }}
+                            />
+                          </div>
+                          {isExpanded ? (
+                            <ChevronUp className="w-5 h-5 text-gray-400" />
+                          ) : (
+                            <ChevronDown className="w-5 h-5 text-gray-400" />
+                          )}
+                        </div>
+                      </button>
+
+                      {/* Lessons List (Expanded) */}
+                      {isExpanded && (
+                        <div className="border-t bg-gray-50/50 px-4 py-2">
+                          {topic.lessons && topic.lessons.length > 0 ? (
+                            <div className="space-y-1">
+                              {topic.lessons.map((lesson: any, lessonIndex: number) => (
+                                <div
+                                  key={lesson.id}
+                                  className="flex items-center gap-3 p-2 rounded-lg hover:bg-white transition-colors cursor-pointer"
+                                  onClick={() => {
+                                    setIsSyllabusModalOpen(false);
+                                    navigate(`/topics/${topic.id}/lessons`);
+                                  }}
+                                >
+                                  <div
+                                    className={`w-6 h-6 rounded-full flex items-center justify-center ${
+                                      lesson.is_completed
+                                        ? "bg-green-100 text-green-600"
+                                        : "bg-gray-100 text-gray-400"
+                                    }`}
+                                  >
+                                    {lesson.is_completed ? (
+                                      <CheckCircle2 className="w-3.5 h-3.5" />
+                                    ) : (
+                                      <span className="text-xs">{lessonIndex + 1}</span>
+                                    )}
+                                  </div>
+
+                                  <div className="w-7 h-7 rounded bg-gray-100 flex items-center justify-center">
+                                    {lesson.type === "video" ? (
+                                      <Play className="w-3.5 h-3.5 text-blue-600" />
+                                    ) : (
+                                      <FileText className="w-3.5 h-3.5 text-purple-600" />
+                                    )}
+                                  </div>
+
+                                  <div className="flex-1 min-w-0">
+                                    <p
+                                      className={`text-sm truncate ${
+                                        lesson.is_completed
+                                          ? "text-gray-500"
+                                          : "text-gray-900 font-medium"
+                                      }`}
+                                    >
+                                      {lesson.title}
+                                    </p>
+                                  </div>
+
+                                  {lesson.duration && (
+                                    <span className="text-xs text-muted-foreground">
+                                      {lesson.duration}
+                                    </span>
+                                  )}
+
+                                  {lesson.is_free_preview && (
+                                    <Badge
+                                      variant="outline"
+                                      className="text-xs bg-green-50 text-green-700 border-green-200"
+                                    >
+                                      Free
+                                    </Badge>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-sm text-muted-foreground py-3 text-center">
+                              No lessons in this topic yet
+                            </p>
+                          )}
+
+                          {/* Start Topic Button */}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="w-full mt-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                            onClick={() => {
+                              setIsSyllabusModalOpen(false);
+                              navigate(`/topics/${topic.id}/lessons`);
+                            }}
+                          >
+                            <PlayCircle className="w-4 h-4 mr-2" />
+                            {isTopicCompleted ? "Review Topic" : "Start Topic"}
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+
+          {/* Modal Footer */}
+          <div className="flex-shrink-0 pt-4 border-t mt-4 flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              {isCourseCompleted ? (
+                <span className="text-green-600 font-medium flex items-center gap-1">
+                  <CheckCircle2 className="w-4 h-4" />
+                  Course Completed!
+                </span>
+              ) : (
+                `${totalLessons - completedLessons} lessons remaining`
+              )}
+            </p>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" onClick={() => setIsSyllabusModalOpen(false)}>
+                Close
+              </Button>
+              {topics.length > 0 && (
+                <Button
+                  className="bg-blue-600 hover:bg-blue-700"
+                  onClick={() => {
+                    setIsSyllabusModalOpen(false);
+                    const firstTopic = topics[0];
+                    navigate(`/topics/${firstTopic.id}/lessons`);
+                  }}
+                >
+                  <PlayCircle className="w-4 h-4 mr-2" />
+                  Continue Learning
+                </Button>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
