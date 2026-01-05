@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import * as TabsPrimitive from "@radix-ui/react-tabs@1.1.3";
+import * as TabsPrimitive from "@radix-ui/react-tabs";
 
 import { cn } from "./utils";
 
@@ -26,7 +26,7 @@ function TabsList({
     <TabsPrimitive.List
       data-slot="tabs-list"
       className={cn(
-        "bg-muted text-muted-foreground inline-flex h-9 w-fit items-center justify-center rounded-xl p-[3px] flex",
+        "inline-flex items-center",
         className,
       )}
       {...props}
@@ -42,9 +42,55 @@ function TabsTrigger({
     <TabsPrimitive.Trigger
       data-slot="tabs-trigger"
       className={cn(
-        "data-[state=active]:bg-card dark:data-[state=active]:text-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:outline-ring dark:data-[state=active]:border-input dark:data-[state=active]:bg-input/30 text-foreground dark:text-muted-foreground inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center gap-1.5 rounded-xl border border-transparent px-2 py-1 text-sm font-medium whitespace-nowrap transition-[color,box-shadow] focus-visible:ring-[3px] focus-visible:outline-1 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        "tabs-trigger",
+        "inline-flex items-center justify-center gap-1.5 px-4 py-2.5 text-sm font-medium whitespace-nowrap",
+        "rounded-t-md cursor-pointer",
+        "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg]:size-4",
         className,
       )}
+      style={{
+        borderBottom: '2px solid transparent',
+        color: '#4b5563',
+        background: 'transparent',
+        transition: 'all 0.2s ease-in-out',
+      }}
+      onMouseEnter={(e) => {
+        const target = e.currentTarget;
+        if (target.getAttribute('data-state') !== 'active') {
+          target.style.color = '#2563eb';
+          target.style.background = 'rgba(219, 234, 254, 0.7)';
+          target.style.borderBottomColor = '#60a5fa';
+        }
+      }}
+      onMouseLeave={(e) => {
+        const target = e.currentTarget;
+        if (target.getAttribute('data-state') !== 'active') {
+          target.style.color = '#4b5563';
+          target.style.background = 'transparent';
+          target.style.borderBottomColor = 'transparent';
+        }
+      }}
+      ref={(el) => {
+        if (el) {
+          const updateStyles = () => {
+            if (el.getAttribute('data-state') === 'active') {
+              el.style.color = '#2563eb';
+              el.style.background = 'rgba(219, 234, 254, 0.7)';
+              el.style.borderBottomColor = '#2563eb';
+              el.style.boxShadow = '0 0 15px rgba(59, 130, 246, 0.4)';
+            } else {
+              el.style.color = '#4b5563';
+              el.style.background = 'transparent';
+              el.style.borderBottomColor = 'transparent';
+              el.style.boxShadow = 'none';
+            }
+          };
+          updateStyles();
+          // Observe state changes
+          const observer = new MutationObserver(updateStyles);
+          observer.observe(el, { attributes: true, attributeFilter: ['data-state'] });
+        }
+      }}
       {...props}
     />
   );
@@ -57,7 +103,7 @@ function TabsContent({
   return (
     <TabsPrimitive.Content
       data-slot="tabs-content"
-      className={cn("flex-1 outline-none", className)}
+      className={cn("outline-none", className)}
       {...props}
     />
   );

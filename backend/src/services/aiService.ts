@@ -40,7 +40,7 @@ export class AIService {
   }
 
   /**
-   * Review submitted code using Gemini AI
+   * Review submitted code using Gemini AI with retry logic
    */
   async reviewCode(
     code: string,
@@ -53,16 +53,45 @@ export class AIService {
 
     const prompt = this.buildCodeReviewPrompt(code, language, problemTitle);
 
-    try {
-      const result = await this.model.generateContent(prompt);
-      const response = await result.response;
-      const text = response.text();
-      
-      return this.parseCodeReviewResponse(text);
-    } catch (error: any) {
-      console.error('Gemini API error:', error);
-      throw new Error(`AI code review failed: ${error.message}`);
+    // Retry logic for network failures
+    const maxRetries = 3;
+    let lastError: Error | null = null;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`🤖 Attempting Gemini API call (attempt ${attempt}/${maxRetries})...`);
+        
+        const result = await this.model.generateContent(prompt);
+        const response = await result.response;
+        const text = response.text();
+        
+        console.log('✓ Gemini API call successful');
+        return this.parseCodeReviewResponse(text);
+      } catch (error: any) {
+        lastError = error;
+        console.error(`❌ Gemini API error (attempt ${attempt}/${maxRetries}):`, {
+          message: error.message,
+          name: error.name,
+          code: error.code,
+        });
+
+        // Don't retry on certain errors
+        if (error.message?.includes('API key') || error.message?.includes('403')) {
+          throw new Error(`AI code review failed: ${error.message}`);
+        }
+
+        // Wait before retry (exponential backoff)
+        if (attempt < maxRetries) {
+          const waitTime = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
+          console.log(`⏳ Waiting ${waitTime}ms before retry...`);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+        }
+      }
     }
+
+    // All retries failed
+    console.error('❌ All Gemini API retry attempts failed');
+    throw new Error(`AI code review failed after ${maxRetries} attempts: ${lastError?.message || 'Unknown error'}`);
   }
 
   /**
