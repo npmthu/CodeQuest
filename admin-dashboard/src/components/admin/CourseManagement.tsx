@@ -128,6 +128,66 @@ export default function CourseManagement() {
     }
   };
 
+  const handleEdit = (course: Course) => {
+    setSelectedCourse(course);
+    setFormData({
+      title: course.title,
+      slug: course.slug,
+      description: course.description || "",
+      thumbnail_url: course.thumbnail_url || "",
+      difficulty: course.difficulty || "beginner",
+      is_published: course.is_published || false,
+      partner_id: course.partner_id || "",
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleUpdateCourse = async () => {
+    if (!selectedCourse || !formData.title.trim()) {
+      toast.error("Course title is required");
+      return;
+    }
+
+    const slug =
+      formData.slug ||
+      formData.title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+
+    try {
+      const response = await adminApi.updateCourse(selectedCourse.id, {
+        title: formData.title,
+        slug: slug,
+        description: formData.description,
+        thumbnail_url: formData.thumbnail_url,
+        difficulty: formData.difficulty,
+        is_published: formData.is_published,
+        partner_id: formData.partner_id || null,
+      });
+
+      if (response.success) {
+        toast.success("Course updated successfully");
+        setIsEditDialogOpen(false);
+        setSelectedCourse(null);
+        setFormData({
+          title: "",
+          slug: "",
+          description: "",
+          thumbnail_url: "",
+          difficulty: "beginner",
+          is_published: false,
+          partner_id: "",
+        });
+        fetchCourses();
+      } else {
+        toast.error(response.error || "Failed to update course");
+      }
+    } catch (error) {
+      toast.error("Failed to update course");
+    }
+  };
+
   const toggleFeatured = async (course: Course) => {
     try {
       const response = await adminApi.updateCourse(course.id, {
@@ -357,6 +417,114 @@ export default function CourseManagement() {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Edit Course Dialog */}
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Edit Course</DialogTitle>
+              <DialogDescription>
+                Update the course information below
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Course Title *</Label>
+                <Input
+                  placeholder="Enter course title"
+                  className="rounded-xl"
+                  value={formData.title}
+                  onChange={(e) => {
+                    const title = e.target.value;
+                    const slug = title
+                      .toLowerCase()
+                      .replace(/[^a-z0-9]+/g, "-")
+                      .replace(/^-+|-+$/g, "");
+                    setFormData({ ...formData, title, slug });
+                  }}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Slug (URL-friendly identifier)</Label>
+                <Input
+                  placeholder="course-slug"
+                  className="rounded-xl"
+                  value={formData.slug}
+                  onChange={(e) =>
+                    setFormData({ ...formData, slug: e.target.value })
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Description</Label>
+                <Textarea
+                  placeholder="Enter course description"
+                  className="rounded-xl"
+                  rows={4}
+                  value={formData.description}
+                  onChange={(e) =>
+                    setFormData({ ...formData, description: e.target.value })
+                  }
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Difficulty</Label>
+                  <select
+                    className="w-full h-10 rounded-xl border border-gray-300 px-3"
+                    value={formData.difficulty}
+                    onChange={(e) =>
+                      setFormData({ ...formData, difficulty: e.target.value })
+                    }
+                  >
+                    <option value="beginner">Beginner</option>
+                    <option value="intermediate">Intermediate</option>
+                    <option value="advanced">Advanced</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Partner ID (Optional)</Label>
+                  <Input
+                    placeholder="UUID of business partner"
+                    className="rounded-xl"
+                    value={formData.partner_id}
+                    onChange={(e) =>
+                      setFormData({ ...formData, partner_id: e.target.value })
+                    }
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Thumbnail URL</Label>
+                <Input
+                  placeholder="https://..."
+                  className="rounded-xl"
+                  value={formData.thumbnail_url}
+                  onChange={(e) =>
+                    setFormData({ ...formData, thumbnail_url: e.target.value })
+                  }
+                />
+              </div>
+              <div className="flex items-center justify-between pt-4 border-t">
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={formData.is_published}
+                    onCheckedChange={(checked) =>
+                      setFormData({ ...formData, is_published: checked })
+                    }
+                  />
+                  <Label>Published (visible to users)</Label>
+                </div>
+              </div>
+              <Button
+                className="w-full bg-[#2563EB] hover:bg-[#1E3A8A] rounded-xl"
+                onClick={handleUpdateCourse}
+              >
+                Update Course
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Filters */}
@@ -463,6 +631,7 @@ export default function CourseManagement() {
                     variant="outline"
                     size="sm"
                     className="flex-1 rounded-xl"
+                    onClick={() => handleEdit(course)}
                   >
                     <Edit className="w-4 h-4 mr-1" />
                     Edit
