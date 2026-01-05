@@ -298,6 +298,7 @@ const translations: Translations = {
   "nav.myProblems": { en: "My Problems", vi: "Bài toán của tôi" },
   "nav.mockInterviews": { en: "Mock Interviews", vi: "Phỏng vấn thử" },
   "nav.accountMgmt": { en: "Account Mgmt", vi: "Quản lý tài khoản" },
+  "nav.courseManagement": { en: "Course Management", vi: "Quản lý khóa học" },
   "nav.instructors": { en: "Instructors", vi: "Giảng viên" },
   "nav.performance": { en: "Performance", vi: "Hiệu suất" },
   "nav.notifications": { en: "Notifications", vi: "Thông báo" },

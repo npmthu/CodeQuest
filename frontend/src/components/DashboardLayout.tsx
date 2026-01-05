@@ -81,6 +81,11 @@ export default function DashboardLayout({
     { path: "/business/dashboard", label: t("nav.dashboard"), icon: Home },
     { path: "/business/account", label: t("nav.accountMgmt"), icon: Building },
     {
+      path: "/business/courses",
+      label: t("nav.courseManagement"),
+      icon: BookOpen,
+    },
+    {
       path: "/business/instructors",
       label: t("nav.instructors"),
       icon: GraduationCap,
@@ -91,7 +96,7 @@ export default function DashboardLayout({
       icon: Target,
     },
     { path: "/business/analytics", label: t("nav.analytics"), icon: BarChart3 },
-    { path: "/settings", label: t("nav.settings"), icon: Settings },
+    { path: "/business/settings", label: t("nav.settings"), icon: Settings },
   ];
 
   const menuItems =

@@ -38,6 +38,8 @@ import BusinessAccountManagement from "./components/BusinessAccountManagement";
 import BusinessInstructorManagement from "./components/BusinessInstructorManagement";
 import BusinessLearnerPerformance from "./components/BusinessLearnerPerformance";
 import BusinessAnalytics from "./components/BusinessAnalytics";
+import BusinessCourseManagement from "./components/BusinessCourseManagement";
+import BusinessSettings from "./components/BusinessSettings";
 import QuizzesPage from "./components/QuizzesPage";
 import QuizDetailPage from "./components/QuizDetailPage";
 import QuizResultPage from "./components/QuizResultPage";
@@ -333,6 +335,22 @@ function AppContent() {
         element={
           <DashboardRoute>
             <BusinessAnalytics />
+          </DashboardRoute>
+        }
+      />
+      <Route
+        path="/business/courses"
+        element={
+          <DashboardRoute>
+            <BusinessCourseManagement />
+          </DashboardRoute>
+        }
+      />
+      <Route
+        path="/business/settings"
+        element={
+          <DashboardRoute>
+            <BusinessSettings />
           </DashboardRoute>
         }
       />

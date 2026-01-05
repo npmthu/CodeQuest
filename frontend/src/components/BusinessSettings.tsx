@@ -28,20 +28,11 @@ import {
   CreditCard,
   Shield,
   Bell,
-  Globe,
-  Mail,
-  Phone,
-  MapPin,
   Save,
-  Upload,
-  AlertTriangle,
-  CheckCircle,
   Clock,
-  Settings,
   Key,
   Link,
   Loader2,
-  FileText,
   Download,
   Trash2,
   Plus,
@@ -264,7 +255,7 @@ export default function BusinessSettings() {
     alert(language === "vi" ? "Đã sao chép!" : "Copied to clipboard!");
   };
 
-  const handleToggleIntegration = (integrationId: string) => {
+  const handleToggleIntegration = (_integrationId: string) => {
     // In real app, this would call an API
     alert(
       language === "vi" ? "Tính năng đang phát triển" : "Feature coming soon"

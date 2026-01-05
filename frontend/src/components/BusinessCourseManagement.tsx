@@ -26,28 +26,19 @@ import {
   BookOpen,
   Users,
   Search,
-  Filter,
   Plus,
   CheckCircle,
   Clock,
   TrendingUp,
-  Award,
   Target,
   Eye,
-  Settings,
-  Download,
   Mail,
-  Calendar,
-  BarChart3,
   Loader2,
-  AlertCircle,
   Star,
-  Play,
   FileText,
 } from "lucide-react";
 import { useLanguage } from "../contexts/LanguageContext";
 import LanguageSwitcher from "./LanguageSwitcher";
-
 interface Course {
   id: string;
   title: string;
