@@ -1,13 +1,22 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import * as submissionService from '../services/submissionService';
 import { executeCode } from '../services/codeExecutionService';
 import { supabaseAdmin } from '../config/database';
+import { AuthRequest } from '../middleware/auth';
 
-export const submitCode = async (req: Request, res: Response) => {
+export const submitCode = async (req: AuthRequest, res: Response) => {
   try {
+    // Require authentication
+    if (!req.user?.id) {
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication required'
+      });
+    }
+
     // Accept both problemId and problem_id for compatibility
     const { problemId, problem_id, code, language, mode } = req.body;
-    const userId = (req as any).user?.id || req.body.userId || null;
+    const userId = req.user.id;
     
     const actualProblemId = problemId || problem_id;
     const executionMode = mode || 'submit'; // 'run' = sample tests only, 'submit' = all tests
