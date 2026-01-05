@@ -619,15 +619,24 @@ export const getInstructorProblemDetail = async (req: AuthRequest, res: Response
       .single();
 
     if (problemError || !problem) {
+      console.error('Problem not found:', { problemId, userId, error: problemError });
       return res.status(404).json({ error: 'Problem not found or access denied' });
     }
 
+    console.log(`Found problem: ${problem.title} (${problem.id})`);
+
     // Get problem IO
-    const { data: problemIO } = await supabaseAdmin
+    const { data: problemIO, error: problemIOError } = await supabaseAdmin
       .from('problem_io')
       .select('input, output')
       .eq('problem_id', problemId)
       .single();
+
+    if (problemIOError) {
+      console.log('Problem IO error or not found:', problemIOError);
+    } else {
+      console.log('Problem IO:', problemIO ? 'Found' : 'Not found');
+    }
 
     // Get test cases
     const { data: testCases } = await supabaseAdmin
@@ -637,17 +646,18 @@ export const getInstructorProblemDetail = async (req: AuthRequest, res: Response
       .order('display_order', { ascending: true });
 
     // Get all submissions with user info and execution details
-    const { data: submissions } = await supabaseAdmin
+    const { data: submissions, error: submissionsError } = await supabaseAdmin
       .from('submissions')
       .select(`
         id,
         user_id,
         code,
         status,
-        score,
-        execution_time_ms,
-        memory_kb,
+        points,
+        passed,
         submitted_at,
+        completed_at,
+        execution_summary,
         language_id,
         languages (
           name,
@@ -663,6 +673,11 @@ export const getInstructorProblemDetail = async (req: AuthRequest, res: Response
       .eq('problem_id', problemId)
       .order('submitted_at', { ascending: false });
 
+    if (submissionsError) {
+      console.error('Error fetching submissions:', submissionsError);
+    }
+    console.log(`Found ${submissions?.length || 0} submissions for problem ${problemId}`);
+
     // Get code runs for each submission to determine test case results
     const submissionsWithDetails = await Promise.all(
       (submissions || []).map(async (submission: any) => {
@@ -671,8 +686,19 @@ export const getInstructorProblemDetail = async (req: AuthRequest, res: Response
           .select('test_case_id, status, execution_time_ms, memory_kb')
           .eq('submission_id', submission.id);
 
-        const passedCount = codeRuns?.filter((r: any) => r.status === 'passed' || r.status === 'accepted').length || 0;
+        const passedCount = codeRuns?.filter((r: any) => 
+          r.status === 'passed' || 
+          r.status === 'accepted' || 
+          r.status === 'PASSED' || 
+          r.status === 'ACCEPTED'
+        ).length || 0;
         const totalTests = testCases?.length || 0;
+
+        // Extract execution time from execution_summary if available
+        const execSummary = submission.execution_summary;
+        const executionTimeMs = execSummary?.total_execution_time_ms || 
+          codeRuns?.reduce((sum: number, r: any) => sum + (r.execution_time_ms || 0), 0) || 0;
+        const memoryKb = codeRuns?.reduce((sum: number, r: any) => sum + (r.memory_kb || 0), 0) || 0;
 
         return {
           id: submission.id,
@@ -683,9 +709,9 @@ export const getInstructorProblemDetail = async (req: AuthRequest, res: Response
           language: submission.languages?.name || 'Unknown',
           languageVersion: submission.languages?.version,
           status: submission.status,
-          score: submission.score,
-          executionTimeMs: submission.execution_time_ms,
-          memoryKb: submission.memory_kb,
+          score: submission.points || 0,
+          executionTimeMs,
+          memoryKb,
           submittedAt: submission.submitted_at,
           testCasesPassed: passedCount,
           testCasesTotal: totalTests,
@@ -699,6 +725,29 @@ export const getInstructorProblemDetail = async (req: AuthRequest, res: Response
     const uniqueUsers = new Set(submissions?.map((s: any) => s.user_id)).size;
     const acceptedCount = submissions?.filter((s: any) => s.status === 'accepted' || s.status === 'ACCEPTED').length || 0;
     const acceptanceRate = totalSubmissions > 0 ? (acceptedCount / totalSubmissions * 100).toFixed(1) : 0;
+
+    // Calculate status breakdown
+    const statusBreakdown: Record<string, number> = {};
+    submissions?.forEach((s: any) => {
+      const status = s.status?.toLowerCase() || 'unknown';
+      statusBreakdown[status] = (statusBreakdown[status] || 0) + 1;
+    });
+
+    // Calculate language breakdown
+    const languageBreakdown: Record<string, number> = {};
+    submissions?.forEach((s: any) => {
+      const language = s.languages?.name || 'Unknown';
+      languageBreakdown[language] = (languageBreakdown[language] || 0) + 1;
+    });
+
+    // Calculate average metrics from submissionsWithDetails (which has computed values)
+    const totalExecutionTime = submissionsWithDetails?.reduce((sum: number, s: any) => sum + (s.executionTimeMs || 0), 0) || 0;
+    const totalMemory = submissionsWithDetails?.reduce((sum: number, s: any) => sum + (s.memoryKb || 0), 0) || 0;
+    const totalScore = submissions?.reduce((sum: number, s: any) => sum + (s.points || 0), 0) || 0;
+    
+    const avgExecutionTime = totalSubmissions > 0 ? totalExecutionTime / totalSubmissions : 0;
+    const avgMemoryUsed = totalSubmissions > 0 ? totalMemory / totalSubmissions : 0;
+    const avgScore = totalSubmissions > 0 ? totalScore / totalSubmissions : 0;
 
     // Get topic and course name
     let topicName = null;
@@ -737,9 +786,14 @@ export const getInstructorProblemDetail = async (req: AuthRequest, res: Response
         statistics: {
           totalSubmissions,
           uniqueUsers,
-          acceptedCount,
+          acceptedSubmissions: acceptedCount,
           acceptanceRate: parseFloat(acceptanceRate as string) || 0,
-          testCaseCount: testCases?.length || 0
+          testCaseCount: testCases?.length || 0,
+          statusBreakdown,
+          languageBreakdown,
+          avgExecutionTime,
+          avgMemoryUsed,
+          avgScore
         }
       }
     });

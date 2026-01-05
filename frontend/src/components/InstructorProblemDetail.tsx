@@ -267,7 +267,7 @@ export default function InstructorProblemDetail() {
                       Output Format:
                     </p>
                     <pre className="bg-gray-100 p-3 rounded text-sm overflow-x-auto">
-                      {JSON.stringify(problemIO.expected_output, null, 2)}
+                      {JSON.stringify(problemIO.output, null, 2)}
                     </pre>
                   </div>
                 </div>
@@ -410,7 +410,7 @@ export default function InstructorProblemDetail() {
                               <div className="flex items-center gap-2">
                                 <Users className="w-4 h-4 text-gray-400" />
                                 <span>
-                                  {sub.user?.full_name || sub.user?.email || "Unknown User"}
+                                  {sub.userName || sub.userEmail || "Unknown User"}
                                 </span>
                               </div>
                             </td>
@@ -420,24 +420,24 @@ export default function InstructorProblemDetail() {
                             <td className="p-3">{getStatusBadge(sub.status)}</td>
                             <td className="p-3">
                               <span className="text-sm">
-                                {sub.test_cases_passed || 0}/{sub.total_test_cases || 0}
+                                {sub.testCasesPassed || 0}/{sub.testCasesTotal || 0}
                               </span>
                             </td>
                             <td className="p-3">
                               <span className="font-medium">
-                                {sub.score?.toFixed(0) || 0}
+                                {sub.score || 0}
                               </span>
                             </td>
                             <td className="p-3">
                               <span className="text-sm text-gray-600">
-                                {sub.execution_time_ms
-                                  ? `${sub.execution_time_ms}ms`
+                                {sub.executionTimeMs
+                                  ? `${sub.executionTimeMs}ms`
                                   : "N/A"}
                               </span>
                             </td>
                             <td className="p-3">
                               <span className="text-sm text-gray-600">
-                                {formatDate(sub.submitted_at)}
+                                {formatDate(sub.submittedAt)}
                               </span>
                             </td>
                             <td className="p-3">
@@ -463,25 +463,15 @@ export default function InstructorProblemDetail() {
                                 <div className="space-y-3">
                                   <div className="flex items-center justify-between">
                                     <h4 className="font-medium">Submitted Code</h4>
-                                    {sub.memory_used_kb && (
+                                    {sub.memoryKb > 0 && (
                                       <span className="text-sm text-gray-500">
-                                        Memory: {sub.memory_used_kb}KB
+                                        Memory: {sub.memoryKb}KB
                                       </span>
                                     )}
                                   </div>
                                   <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg text-sm overflow-x-auto max-h-96">
                                     <code>{sub.code}</code>
                                   </pre>
-                                  {sub.error_message && (
-                                    <div className="mt-3">
-                                      <p className="text-sm font-medium text-red-600 mb-1">
-                                        Error:
-                                      </p>
-                                      <pre className="bg-red-50 text-red-700 p-3 rounded text-sm overflow-x-auto">
-                                        {sub.error_message}
-                                      </pre>
-                                    </div>
-                                  )}
                                 </div>
                               </td>
                             </tr>
