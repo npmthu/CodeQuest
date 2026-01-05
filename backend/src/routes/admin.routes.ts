@@ -40,6 +40,21 @@ router.delete(
   adminController.deleteCourse.bind(adminController)
 );
 
+// Forum Post Moderation
+router.get("/forum/posts", adminController.getForumPosts.bind(adminController));
+router.get(
+  "/forum/posts/:id/replies",
+  adminController.getPostReplies.bind(adminController)
+);
+router.delete(
+  "/forum/posts/:id",
+  adminController.deleteForumPost.bind(adminController)
+);
+router.delete(
+  "/forum/comments/:id",
+  adminController.deleteComment.bind(adminController)
+);
+
 // User Subscription Management - Fixes TC_ADMIN_SUB_02, TC_ADMIN_SUB_05
 router.post(
   "/users/:userId/cancel-subscription",

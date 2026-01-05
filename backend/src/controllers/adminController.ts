@@ -835,6 +835,261 @@ export class AdminController {
       });
     }
   }
+
+  /**
+   * GET /api/admin/forum/posts
+   * Get all forum posts with full details for moderation
+   */
+  async getForumPosts(req: AuthRequest, res: Response) {
+    try {
+      const { search, limit = 100 } = req.query;
+
+      let query = supabaseAdmin
+        .from("forum_posts")
+        .select(
+          `
+          id,
+          author_id,
+          title,
+          content_markdown,
+          upvotes,
+          reply_count,
+          created_at,
+          updated_at,
+          tags,
+          author:users!author_id(id, display_name, email, avatar_url)
+        `,
+          { count: "exact" }
+        )
+        .order("created_at", { ascending: false })
+        .limit(Number(limit));
+
+      // Search filter
+      if (search) {
+        query = query.or(
+          `title.ilike.%${search}%,content_markdown.ilike.%${search}%`
+        );
+      }
+
+      const { data, error, count } = await query;
+
+      if (error) throw error;
+
+      // Map to frontend format
+      const posts = (data || []).map((post: any) => ({
+        id: post.id,
+        author_id: post.author_id,
+        author_name: post.author?.display_name || "Unknown User",
+        author_email: post.author?.email,
+        title: post.title,
+        content: post.content_markdown,
+        created_at: new Date(post.created_at + "Z").toISOString(),
+        likes_count: post.upvotes || 0,
+        comments_count: post.reply_count || 0,
+        category: post.tags?.[0] || "General",
+      }));
+
+      res.json({
+        success: true,
+        data: {
+          posts,
+          total: count || 0,
+        },
+      });
+    } catch (error: any) {
+      console.error("❌ Error fetching forum posts:", error);
+      res.status(500).json({
+        success: false,
+        error: error.message || "Failed to fetch forum posts",
+      });
+    }
+  }
+
+  /**
+   * GET /api/admin/forum/posts/:id/replies
+   * Get all replies for a forum post
+   */
+  async getPostReplies(req: AuthRequest, res: Response) {
+    try {
+      const { id } = req.params;
+
+      const { data, error } = await supabaseAdmin
+        .from("forum_replies")
+        .select(
+          `
+          id,
+          content_markdown,
+          code_snippet,
+          upvotes,
+          is_accepted_answer,
+          created_at,
+          author:users!author_id(id, display_name, email, avatar_url)
+        `
+        )
+        .eq("post_id", id)
+        .order("created_at", { ascending: true });
+
+      if (error) throw error;
+
+      // Map to frontend format
+      const replies = (data || []).map((reply: any) => ({
+        id: reply.id,
+        content: reply.content_markdown,
+        code_snippet: reply.code_snippet,
+        upvotes: reply.upvotes || 0,
+        is_accepted_answer: reply.is_accepted_answer || false,
+        created_at: new Date(reply.created_at + "Z").toISOString(),
+        author_name: reply.author?.display_name || "Unknown User",
+        author_email: reply.author?.email,
+      }));
+
+      res.json({
+        success: true,
+        data: {
+          replies,
+          total: replies.length,
+        },
+      });
+    } catch (error: any) {
+      console.error("❌ Error fetching post replies:", error);
+      res.status(500).json({
+        success: false,
+        error: error.message || "Failed to fetch replies",
+      });
+    }
+  }
+
+  /**
+   * DELETE /api/admin/forum/posts/:id
+   * Permanently delete a forum post (admin only)
+   */
+  async deleteForumPost(req: AuthRequest, res: Response) {
+    try {
+      const { id } = req.params;
+
+      const { error } = await supabaseAdmin
+        .from("forum_posts")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+
+      console.log("🗑️ Admin deleted forum post:", {
+        postId: id,
+        adminId: req.user?.id,
+      });
+
+      res.json({
+        success: true,
+        message: "Post deleted permanently",
+      });
+    } catch (error: any) {
+      console.error("❌ Error deleting post:", error);
+      res.status(500).json({
+        success: false,
+        error: error.message || "Failed to delete post",
+      });
+    }
+  }
+
+  /**
+   * DELETE /api/admin/forum/comments/:id
+   * Delete a comment/reply permanently (admin only)
+   */
+  async deleteComment(req: AuthRequest, res: Response) {
+    try {
+      const { id } = req.params;
+
+      // Get post_id before deleting
+      const { data: reply } = await supabaseAdmin
+        .from("forum_replies")
+        .select("post_id")
+        .eq("id", id)
+        .single();
+
+      if (!reply) {
+        return res.status(404).json({
+          success: false,
+          error: "Comment not found",
+        });
+      }
+
+      // Recursive function to delete a comment and all its descendants
+      const deleteCommentRecursive = async (
+        commentId: string
+      ): Promise<number> => {
+        // Get all direct children of this comment
+        const { data: children } = await supabaseAdmin
+          .from("forum_replies")
+          .select("id")
+          .eq("parent_reply_id", commentId);
+
+        let deletedCount = 0;
+
+        // Recursively delete all children first
+        if (children && children.length > 0) {
+          for (const child of children) {
+            deletedCount += await deleteCommentRecursive(child.id);
+          }
+        }
+
+        // Now delete this comment (no more children referencing it)
+        const { error } = await supabaseAdmin
+          .from("forum_replies")
+          .delete()
+          .eq("id", commentId);
+
+        if (error) {
+          console.error(`Error deleting comment ${commentId}:`, error);
+          throw error;
+        }
+
+        return deletedCount + 1;
+      };
+
+      // Start recursive deletion
+      const totalDeleted = await deleteCommentRecursive(id);
+
+      // Update reply count on the post
+      const { data: currentPost } = await supabaseAdmin
+        .from("forum_posts")
+        .select("reply_count")
+        .eq("id", reply.post_id)
+        .single();
+
+      if (currentPost) {
+        await supabaseAdmin
+          .from("forum_posts")
+          .update({
+            reply_count: Math.max(
+              0,
+              (currentPost.reply_count || 0) - totalDeleted
+            ),
+          })
+          .eq("id", reply.post_id);
+      }
+
+      console.log("🗑️ Admin deleted comment and descendants:", {
+        commentId: id,
+        totalDeleted,
+        postId: reply.post_id,
+        adminId: req.user?.id,
+      });
+
+      res.json({
+        success: true,
+        message: `Comment and ${
+          totalDeleted - 1
+        } nested replies deleted successfully`,
+      });
+    } catch (error: any) {
+      console.error("❌ Error deleting comment:", error);
+      res.status(500).json({
+        success: false,
+        error: error.message || "Failed to delete comment",
+      });
+    }
+  }
 }
 
 // Helper function to calculate monthly growth

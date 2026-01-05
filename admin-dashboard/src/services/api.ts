@@ -163,19 +163,16 @@ export const adminApi = {
 
   // Forum Posts (Content Moderation)
   getForumPosts: (status?: string) =>
-    apiRequest<any>(`/forum/posts${status ? `?status=${status}` : ""}`),
+    apiRequest<any>(`/admin/forum/posts${status ? `?status=${status}` : ""}`),
 
-  approvePost: (postId: string) =>
-    apiRequest<any>(`/forum/posts/${postId}/approve`, { method: "POST" }),
-
-  rejectPost: (postId: string, reason?: string) =>
-    apiRequest<any>(`/forum/posts/${postId}/reject`, {
-      method: "POST",
-      body: JSON.stringify({ reason }),
-    }),
+  getPostReplies: (postId: string) =>
+    apiRequest<any>(`/admin/forum/posts/${postId}/replies`),
 
   deletePost: (postId: string) =>
-    apiRequest<any>(`/forum/posts/${postId}`, { method: "DELETE" }),
+    apiRequest<any>(`/admin/forum/posts/${postId}`, { method: "DELETE" }),
+
+  deleteComment: (commentId: string) =>
+    apiRequest<any>(`/admin/forum/comments/${commentId}`, { method: "DELETE" }),
 
   // User management
   updateUserRole: (userId: string, role: string) =>
