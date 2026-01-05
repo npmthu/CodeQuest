@@ -15,7 +15,7 @@ export const submitCode = async (req: AuthRequest, res: Response) => {
     }
 
     // Accept both problemId and problem_id for compatibility
-    const { problemId, problem_id, code, language, mode } = req.body;
+    const { problemId, problem_id, code, language, mode, suspicion_score, suspicion_breakdown } = req.body;
     const userId = req.user.id;
     
     const actualProblemId = problemId || problem_id;
@@ -87,12 +87,23 @@ export const submitCode = async (req: AuthRequest, res: Response) => {
     }
 
     // For 'submit' mode, create submission record
+    // Validate suspicion_score is in valid range (0-1)
+    let validatedSuspicionScore = null;
+    if (suspicion_score !== undefined && suspicion_score !== null) {
+      const score = parseFloat(suspicion_score);
+      if (!isNaN(score) && score >= 0 && score <= 1) {
+        validatedSuspicionScore = score;
+      }
+    }
+
     const payload = {
       problem_id: actualProblemId,
       user_id: userId,
       code,
       language_id: languageId,
       status: 'PENDING',
+      suspicion_score: validatedSuspicionScore,
+      suspicion_breakdown: suspicion_breakdown || null,
     };
 
     const record = await submissionService.createSubmission(payload);

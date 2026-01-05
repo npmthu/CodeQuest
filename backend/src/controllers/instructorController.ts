@@ -659,6 +659,8 @@ export const getInstructorProblemDetail = async (req: AuthRequest, res: Response
         completed_at,
         execution_summary,
         language_id,
+        suspicion_score,
+        suspicion_breakdown,
         languages (
           name,
           version
@@ -715,7 +717,9 @@ export const getInstructorProblemDetail = async (req: AuthRequest, res: Response
           submittedAt: submission.submitted_at,
           testCasesPassed: passedCount,
           testCasesTotal: totalTests,
-          code: submission.code
+          code: submission.code,
+          suspicionScore: submission.suspicion_score,
+          suspicionBreakdown: submission.suspicion_breakdown
         };
       })
     );
