@@ -17,7 +17,7 @@ export function QuizList({
 }: QuizListProps) {
   if (loading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="flex flex-col gap-4 max-w-4xl mx-auto">
         {[1, 2, 3].map((i) => (
           <div key={i} className="p-6 bg-gray-100 rounded-lg animate-pulse">
             <div className="h-6 bg-gray-300 rounded mb-4"></div>
@@ -46,7 +46,7 @@ export function QuizList({
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="flex flex-col gap-4 max-w-4xl mx-auto">
       {quizzes.map((quiz) => (
         <QuizCard key={quiz.id} quiz={quiz} />
       ))}

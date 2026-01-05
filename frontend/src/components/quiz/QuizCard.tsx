@@ -29,7 +29,8 @@ export function QuizCard({ quiz }: QuizCardProps) {
   return (
     <Link
       to={`/quizzes/${quiz.id}`}
-      className="block p-6 bg-white rounded-lg border border-gray-200 hover:shadow-lg transition-shadow"
+      className="block p-6 rounded-lg border border-gray-200 hover:shadow-lg transition-shadow"
+      style={{ backgroundColor: '#B9D6F3' }}
     >
       <div className="flex items-start justify-between mb-3">
         <h3 className="text-xl font-bold text-gray-900">{quiz.title}</h3>
