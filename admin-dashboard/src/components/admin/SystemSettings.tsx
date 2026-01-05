@@ -7,10 +7,8 @@ import {
   CardDescription,
 } from "../ui/card";
 import { Button } from "../ui/button";
-import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Switch } from "../ui/switch";
-import { Textarea } from "../ui/textarea";
 import { Badge } from "../ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import {
@@ -20,21 +18,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
+import { ValidatedInput } from "../ui/validated-input";
+import { ValidatedTextarea } from "../ui/validated-textarea";
+import { validateField, systemSettingsValidation } from "../../lib/validation";
 import {
-  Settings,
   Globe,
   Mail,
   Shield,
   CreditCard,
-  Bell,
-  Database,
+  Lock,
   Save,
   Loader2,
   AlertTriangle,
   CheckCircle,
   RefreshCw,
   Server,
-  Lock,
   Palette,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -86,6 +84,8 @@ export default function SystemSettings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState("general");
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
 
   const [config, setConfig] = useState<SystemConfig>({
     // General
@@ -143,7 +143,69 @@ export default function SystemSettings() {
     setTimeout(() => setLoading(false), 500);
   }, []);
 
+  // Validate a single field on blur
+  const handleBlur = (field: string) => {
+    setTouched((prev) => ({ ...prev, [field]: true }));
+    const rules =
+      systemSettingsValidation[field as keyof typeof systemSettingsValidation];
+    if (rules) {
+      const fieldLabel = field
+        .replace(/([A-Z])/g, " $1")
+        .replace(/^./, (s) => s.toUpperCase());
+      const error = validateField(
+        config[field as keyof SystemConfig],
+        fieldLabel,
+        rules
+      );
+      setErrors((prev) => ({
+        ...prev,
+        [field]: error || "",
+      }));
+    }
+  };
+
+  // Validate all fields
+  const validateAll = (): boolean => {
+    const newErrors: Record<string, string> = {};
+    let isValid = true;
+
+    Object.entries(systemSettingsValidation).forEach(([field, rules]) => {
+      if (rules) {
+        const fieldLabel = field
+          .replace(/([A-Z])/g, " $1")
+          .replace(/^./, (s) => s.toUpperCase());
+        const error = validateField(
+          config[field as keyof SystemConfig],
+          fieldLabel,
+          rules
+        );
+        if (error) {
+          newErrors[field] = error;
+          isValid = false;
+        }
+      }
+    });
+
+    setErrors(newErrors);
+    // Mark all fields as touched
+    const allTouched = Object.keys(systemSettingsValidation).reduce(
+      (acc, key) => {
+        acc[key] = true;
+        return acc;
+      },
+      {} as Record<string, boolean>
+    );
+    setTouched(allTouched);
+
+    return isValid;
+  };
+
   const handleSave = async () => {
+    if (!validateAll()) {
+      toast.error("Please fix the validation errors before saving");
+      return;
+    }
+
     setSaving(true);
     try {
       // In a real app, this would call an API
@@ -282,36 +344,44 @@ export default function SystemSettings() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Site Name</Label>
-                  <Input
-                    value={config.siteName}
-                    onChange={(e) =>
-                      setConfig({ ...config, siteName: e.target.value })
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Support Email</Label>
-                  <Input
-                    type="email"
-                    value={config.supportEmail}
-                    onChange={(e) =>
-                      setConfig({ ...config, supportEmail: e.target.value })
-                    }
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>Site Description</Label>
-                <Textarea
-                  value={config.siteDescription}
+                <ValidatedInput
+                  label="Site Name"
+                  value={config.siteName}
                   onChange={(e) =>
-                    setConfig({ ...config, siteDescription: e.target.value })
+                    setConfig({ ...config, siteName: e.target.value })
                   }
-                  rows={3}
+                  onBlur={() => handleBlur("siteName")}
+                  error={touched.siteName ? errors.siteName : undefined}
+                  required
+                  helperText="2-50 characters"
+                />
+                <ValidatedInput
+                  label="Support Email"
+                  type="email"
+                  value={config.supportEmail}
+                  onChange={(e) =>
+                    setConfig({ ...config, supportEmail: e.target.value })
+                  }
+                  onBlur={() => handleBlur("supportEmail")}
+                  error={touched.supportEmail ? errors.supportEmail : undefined}
+                  required
+                  placeholder="support@example.com"
                 />
               </div>
+              <ValidatedTextarea
+                label="Site Description"
+                value={config.siteDescription}
+                onChange={(e) =>
+                  setConfig({ ...config, siteDescription: e.target.value })
+                }
+                onBlur={() => handleBlur("siteDescription")}
+                error={
+                  touched.siteDescription ? errors.siteDescription : undefined
+                }
+                rows={3}
+                maxLength={500}
+                showCharCount
+              />
             </CardContent>
           </Card>
 
@@ -338,19 +408,26 @@ export default function SystemSettings() {
                 />
               </div>
               {config.maintenanceMode && (
-                <div className="space-y-2">
-                  <Label>Maintenance Message</Label>
-                  <Textarea
-                    value={config.maintenanceMessage}
-                    onChange={(e) =>
-                      setConfig({
-                        ...config,
-                        maintenanceMessage: e.target.value,
-                      })
-                    }
-                    rows={2}
-                  />
-                </div>
+                <ValidatedTextarea
+                  label="Maintenance Message"
+                  value={config.maintenanceMessage}
+                  onChange={(e) =>
+                    setConfig({
+                      ...config,
+                      maintenanceMessage: e.target.value,
+                    })
+                  }
+                  onBlur={() => handleBlur("maintenanceMessage")}
+                  error={
+                    touched.maintenanceMessage
+                      ? errors.maintenanceMessage
+                      : undefined
+                  }
+                  rows={2}
+                  maxLength={500}
+                  showCharCount
+                  required={config.maintenanceMode}
+                />
               )}
             </CardContent>
           </Card>
@@ -409,19 +486,25 @@ export default function SystemSettings() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
-                  <Label>Session Timeout (hours)</Label>
-                  <Input
-                    type="number"
-                    value={config.sessionTimeout}
-                    onChange={(e) =>
-                      setConfig({
-                        ...config,
-                        sessionTimeout: parseInt(e.target.value),
-                      })
-                    }
-                  />
-                </div>
+                <ValidatedInput
+                  label="Session Timeout (hours)"
+                  type="number"
+                  value={config.sessionTimeout}
+                  onChange={(e) =>
+                    setConfig({
+                      ...config,
+                      sessionTimeout: parseInt(e.target.value) || 0,
+                    })
+                  }
+                  onBlur={() => handleBlur("sessionTimeout")}
+                  error={
+                    touched.sessionTimeout ? errors.sessionTimeout : undefined
+                  }
+                  required
+                  min={1}
+                  max={720}
+                  helperText="1-720 hours (max 30 days)"
+                />
               </div>
             </CardContent>
           </Card>
@@ -468,19 +551,23 @@ export default function SystemSettings() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
-                  <Label>Tax Rate (%)</Label>
-                  <Input
-                    type="number"
-                    value={config.taxRate}
-                    onChange={(e) =>
-                      setConfig({
-                        ...config,
-                        taxRate: parseFloat(e.target.value),
-                      })
-                    }
-                  />
-                </div>
+                <ValidatedInput
+                  label="Tax Rate (%)"
+                  type="number"
+                  value={config.taxRate}
+                  onChange={(e) =>
+                    setConfig({
+                      ...config,
+                      taxRate: parseFloat(e.target.value) || 0,
+                    })
+                  }
+                  onBlur={() => handleBlur("taxRate")}
+                  error={touched.taxRate ? errors.taxRate : undefined}
+                  min={0}
+                  max={100}
+                  step={0.1}
+                  helperText="0-100%"
+                />
               </div>
               <div className="space-y-4 pt-4 border-t">
                 <h4 className="font-medium">Payment Gateways</h4>
@@ -536,41 +623,45 @@ export default function SystemSettings() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>SMTP Host</Label>
-                  <Input
-                    value={config.smtpHost}
-                    onChange={(e) =>
-                      setConfig({ ...config, smtpHost: e.target.value })
-                    }
-                    placeholder="smtp.example.com"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>SMTP Port</Label>
-                  <Input
-                    value={config.smtpPort}
-                    onChange={(e) =>
-                      setConfig({ ...config, smtpPort: e.target.value })
-                    }
-                    placeholder="587"
-                  />
-                </div>
+                <ValidatedInput
+                  label="SMTP Host"
+                  value={config.smtpHost}
+                  onChange={(e) =>
+                    setConfig({ ...config, smtpHost: e.target.value })
+                  }
+                  onBlur={() => handleBlur("smtpHost")}
+                  error={touched.smtpHost ? errors.smtpHost : undefined}
+                  placeholder="smtp.example.com"
+                  helperText="e.g., smtp.gmail.com"
+                />
+                <ValidatedInput
+                  label="SMTP Port"
+                  value={config.smtpPort}
+                  onChange={(e) =>
+                    setConfig({ ...config, smtpPort: e.target.value })
+                  }
+                  onBlur={() => handleBlur("smtpPort")}
+                  error={touched.smtpPort ? errors.smtpPort : undefined}
+                  placeholder="587"
+                  helperText="Common: 587 (TLS), 465 (SSL)"
+                />
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>SMTP Username</Label>
-                  <Input
-                    value={config.smtpUser}
-                    onChange={(e) =>
-                      setConfig({ ...config, smtpUser: e.target.value })
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>SMTP Password</Label>
-                  <Input type="password" placeholder="••••••••" />
-                </div>
+                <ValidatedInput
+                  label="SMTP Username"
+                  value={config.smtpUser}
+                  onChange={(e) =>
+                    setConfig({ ...config, smtpUser: e.target.value })
+                  }
+                  onBlur={() => handleBlur("smtpUser")}
+                  error={touched.smtpUser ? errors.smtpUser : undefined}
+                  placeholder="user@example.com"
+                />
+                <ValidatedInput
+                  label="SMTP Password"
+                  type="password"
+                  placeholder="••••••••"
+                />
               </div>
               <div className="flex items-center justify-between">
                 <div>
@@ -587,24 +678,34 @@ export default function SystemSettings() {
                 />
               </div>
               <div className="grid grid-cols-2 gap-4 pt-4 border-t">
-                <div className="space-y-2">
-                  <Label>From Name</Label>
-                  <Input
-                    value={config.emailFromName}
-                    onChange={(e) =>
-                      setConfig({ ...config, emailFromName: e.target.value })
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>From Address</Label>
-                  <Input
-                    value={config.emailFromAddress}
-                    onChange={(e) =>
-                      setConfig({ ...config, emailFromAddress: e.target.value })
-                    }
-                  />
-                </div>
+                <ValidatedInput
+                  label="From Name"
+                  value={config.emailFromName}
+                  onChange={(e) =>
+                    setConfig({ ...config, emailFromName: e.target.value })
+                  }
+                  onBlur={() => handleBlur("emailFromName")}
+                  error={
+                    touched.emailFromName ? errors.emailFromName : undefined
+                  }
+                  placeholder="Your Company"
+                  maxLength={50}
+                />
+                <ValidatedInput
+                  label="From Address"
+                  type="email"
+                  value={config.emailFromAddress}
+                  onChange={(e) =>
+                    setConfig({ ...config, emailFromAddress: e.target.value })
+                  }
+                  onBlur={() => handleBlur("emailFromAddress")}
+                  error={
+                    touched.emailFromAddress
+                      ? errors.emailFromAddress
+                      : undefined
+                  }
+                  placeholder="noreply@example.com"
+                />
               </div>
               <Button variant="outline" onClick={handleTestEmail}>
                 <Mail className="w-4 h-4 mr-2" />
@@ -679,22 +780,29 @@ export default function SystemSettings() {
                   }
                 />
               </div>
-              <div className="space-y-2 pt-4 border-t">
-                <Label>Max Login Attempts</Label>
-                <Input
+              <div className="pt-4 border-t">
+                <ValidatedInput
+                  label="Max Login Attempts"
                   type="number"
                   value={config.maxLoginAttempts}
                   onChange={(e) =>
                     setConfig({
                       ...config,
-                      maxLoginAttempts: parseInt(e.target.value),
+                      maxLoginAttempts: parseInt(e.target.value) || 0,
                     })
                   }
+                  onBlur={() => handleBlur("maxLoginAttempts")}
+                  error={
+                    touched.maxLoginAttempts
+                      ? errors.maxLoginAttempts
+                      : undefined
+                  }
                   className="w-32"
+                  min={1}
+                  max={20}
+                  required
+                  helperText="Lock account after this many failed attempts (1-20)"
                 />
-                <p className="text-sm text-gray-500">
-                  Lock account after this many failed attempts
-                </p>
               </div>
             </CardContent>
           </Card>
@@ -735,18 +843,28 @@ export default function SystemSettings() {
                   }
                 />
               </div>
-              <div className="space-y-2 pt-4 border-t">
-                <Label>Max File Upload Size (MB)</Label>
-                <Input
+              <div className="pt-4 border-t">
+                <ValidatedInput
+                  label="Max File Upload Size (MB)"
                   type="number"
                   value={config.maxFileUploadSize}
                   onChange={(e) =>
                     setConfig({
                       ...config,
-                      maxFileUploadSize: parseInt(e.target.value),
+                      maxFileUploadSize: parseInt(e.target.value) || 0,
                     })
                   }
+                  onBlur={() => handleBlur("maxFileUploadSize")}
+                  error={
+                    touched.maxFileUploadSize
+                      ? errors.maxFileUploadSize
+                      : undefined
+                  }
                   className="w-32"
+                  min={1}
+                  max={100}
+                  required
+                  helperText="Maximum upload size per file (1-100 MB)"
                 />
               </div>
               <div className="space-y-2">

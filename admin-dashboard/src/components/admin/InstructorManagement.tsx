@@ -37,8 +37,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "../ui/alert-dialog";
-import { Textarea } from "../ui/textarea";
 import { Label } from "../ui/label";
+import { ValidatedTextarea } from "../ui/validated-textarea";
 import {
   Search,
   GraduationCap,
@@ -53,12 +53,7 @@ import {
   DollarSign,
   Award,
   Loader2,
-  FileText,
   Mail,
-  Calendar,
-  MapPin,
-  Briefcase,
-  Link as LinkIcon,
   AlertTriangle,
   UserCheck,
   UserX,
@@ -131,6 +126,8 @@ export default function InstructorManagement() {
     useState<InstructorApplication | null>(null);
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
+  const [rejectionError, setRejectionError] = useState("");
+  const [rejectionTouched, setRejectionTouched] = useState(false);
   const [suspendModalOpen, setSuspendModalOpen] = useState(false);
   const [selectedInstructor, setSelectedInstructor] =
     useState<ApprovedInstructor | null>(null);
@@ -301,9 +298,42 @@ export default function InstructorManagement() {
     }
   };
 
+  const validateRejectionReason = (value: string): string => {
+    if (!value.trim()) {
+      return "Rejection reason is required";
+    }
+    if (value.trim().length < 20) {
+      return "Please provide a more detailed reason (at least 20 characters)";
+    }
+    if (value.trim().length > 500) {
+      return "Rejection reason must be less than 500 characters";
+    }
+    return "";
+  };
+
+  const handleRejectionReasonChange = (value: string) => {
+    setRejectionReason(value);
+    if (rejectionTouched) {
+      setRejectionError(validateRejectionReason(value));
+    }
+  };
+
+  const handleRejectionBlur = () => {
+    setRejectionTouched(true);
+    setRejectionError(validateRejectionReason(rejectionReason));
+  };
+
   const handleReject = async () => {
-    if (!selectedApplication || !rejectionReason.trim()) {
-      toast.error("Please provide a rejection reason");
+    setRejectionTouched(true);
+    const error = validateRejectionReason(rejectionReason);
+    setRejectionError(error);
+
+    if (error) {
+      return;
+    }
+
+    if (!selectedApplication) {
+      toast.error("No application selected");
       return;
     }
 
@@ -314,7 +344,7 @@ export default function InstructorManagement() {
             ? {
                 ...app,
                 status: "rejected" as const,
-                rejectionReason,
+                rejectionReason: rejectionReason.trim(),
                 reviewedAt: new Date().toISOString(),
               }
             : app
@@ -324,6 +354,8 @@ export default function InstructorManagement() {
       setRejectModalOpen(false);
       setViewModalOpen(false);
       setRejectionReason("");
+      setRejectionError("");
+      setRejectionTouched(false);
     } catch (error) {
       toast.error("Failed to reject application");
     }
@@ -999,7 +1031,17 @@ export default function InstructorManagement() {
       </Dialog>
 
       {/* Reject Modal */}
-      <Dialog open={rejectModalOpen} onOpenChange={setRejectModalOpen}>
+      <Dialog
+        open={rejectModalOpen}
+        onOpenChange={(open) => {
+          setRejectModalOpen(open);
+          if (!open) {
+            setRejectionReason("");
+            setRejectionError("");
+            setRejectionTouched(false);
+          }
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Reject Application</DialogTitle>
@@ -1009,21 +1051,29 @@ export default function InstructorManagement() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div>
-              <Label>Rejection Reason</Label>
-              <Textarea
-                value={rejectionReason}
-                onChange={(e) => setRejectionReason(e.target.value)}
-                placeholder="Please explain why this application is being rejected..."
-                rows={4}
-              />
-            </div>
+            <ValidatedTextarea
+              label="Rejection Reason"
+              value={rejectionReason}
+              onChange={(e) => handleRejectionReasonChange(e.target.value)}
+              onBlur={handleRejectionBlur}
+              error={rejectionTouched ? rejectionError : undefined}
+              placeholder="Please explain why this application is being rejected..."
+              rows={4}
+              maxLength={500}
+              showCharCount
+              required
+              helperText="Minimum 20 characters. Be specific and constructive."
+            />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setRejectModalOpen(false)}>
               Cancel
             </Button>
-            <Button variant="destructive" onClick={handleReject}>
+            <Button
+              variant="destructive"
+              onClick={handleReject}
+              disabled={rejectionTouched && !!rejectionError}
+            >
               Confirm Rejection
             </Button>
           </DialogFooter>
