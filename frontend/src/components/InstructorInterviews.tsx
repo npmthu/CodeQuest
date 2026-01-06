@@ -237,7 +237,7 @@ export default function InstructorInterviews() {
 
       {/* Stats Cards - Enhanced */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="p-5 bg-gradient-to-br from-blue-50 to-blue-100/50 border-blue-200 hover:shadow-lg transition-all duration-300 group">
+        <Card className="p-5 bg-gradient-to-br from-blue-50 to-blue-100/50 border-blue-200 hover:shadow-lg transition-all duration-300 group border-2 shadow-lg" style={{ backgroundColor: "#B9D6F3" }}>
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-blue-600">
@@ -258,7 +258,7 @@ export default function InstructorInterviews() {
           </div>
         </Card>
 
-        <Card className="p-5 bg-gradient-to-br from-green-50 to-green-100/50 border-green-200 hover:shadow-lg transition-all duration-300 group">
+        <Card className="p-5 bg-gradient-to-br from-green-50 to-green-100/50 border-green-200 hover:shadow-lg transition-all duration-300 group border-2 shadow-lg" style={{ backgroundColor: "#B6DA9F" }}>
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-green-600">
@@ -278,7 +278,7 @@ export default function InstructorInterviews() {
           </div>
         </Card>
 
-        <Card className="p-5 bg-gradient-to-br from-purple-50 to-purple-100/50 border-purple-200 hover:shadow-lg transition-all duration-300 group">
+        <Card className="p-5 bg-gradient-to-br from-purple-50 to-purple-100/50 border-purple-200 hover:shadow-lg transition-all duration-300 group border-2 shadow-lg" style={{ backgroundColor: "#E0B0FF" }}>
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-purple-600">
@@ -298,7 +298,7 @@ export default function InstructorInterviews() {
           </div>
         </Card>
 
-        <Card className="p-5 bg-gradient-to-br from-amber-50 to-amber-100/50 border-amber-200 hover:shadow-lg transition-all duration-300 group">
+        <Card className="p-5 bg-gradient-to-br from-amber-50 to-amber-100/50 border-amber-200 hover:shadow-lg transition-all duration-300 group border-2 shadow-lg" style={{ backgroundColor: "#F7D7A9" }}>
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-amber-600">
