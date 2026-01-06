@@ -161,6 +161,7 @@ export default function CreateSession() {
                   value={formData.title}
                   onChange={(e) => handleInputChange('title', e.target.value)}
                   required
+                  className="border-2 shadow-xl"
                 />
               </div>
 
@@ -172,13 +173,14 @@ export default function CreateSession() {
                   value={formData.description}
                   onChange={(e) => handleInputChange('description', e.target.value)}
                   rows={3}
+                  className="border-2 shadow-xl"
                 />
               </div>
 
               <div>
                 <Label htmlFor="topic">Topic *</Label>
                 <Select value={formData.topic} onValueChange={(value: string) => handleInputChange('topic', value)}>
-                  <SelectTrigger>
+                  <SelectTrigger className="border-2 shadow-xl">
                     <SelectValue placeholder="Select a topic" />
                   </SelectTrigger>
                   <SelectContent>
@@ -192,7 +194,7 @@ export default function CreateSession() {
               <div>
                 <Label htmlFor="difficulty_level">Difficulty Level *</Label>
                 <Select value={formData.difficulty_level} onValueChange={(value: string) => handleInputChange('difficulty_level', value as 'beginner' | 'intermediate' | 'advanced')}>
-                  <SelectTrigger>
+                  <SelectTrigger className="border-2 shadow-xl">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -214,6 +216,7 @@ export default function CreateSession() {
                   value={formData.session_date}
                   onChange={(e) => handleInputChange('session_date', e.target.value)}
                   required
+                  className="border-2 shadow-xl"
                 />
               </div>
 
@@ -228,6 +231,7 @@ export default function CreateSession() {
                     value={formData.duration_minutes}
                     onChange={(e) => handleInputChange('duration_minutes', parseInt(e.target.value))}
                     required
+                    className="border-2 shadow-xl"
                   />
                 </div>
 
@@ -241,6 +245,7 @@ export default function CreateSession() {
                     value={formData.max_slots}
                     onChange={(e) => handleInputChange('max_slots', parseInt(e.target.value))}
                     required
+                    className="border-2 shadow-xl"
                   />
                 </div>
               </div>
@@ -255,6 +260,7 @@ export default function CreateSession() {
                   value={formData.price}
                   onChange={(e) => handleInputChange('price', parseFloat(e.target.value))}
                   required
+                  className="border-2 shadow-xl"
                 />
               </div>
             </div>
@@ -268,6 +274,7 @@ export default function CreateSession() {
                   placeholder="https://zoom.us/j/..."
                   value={formData.session_link}
                   onChange={(e) => handleInputChange('session_link', e.target.value)}
+                  className="border-2 shadow-xl"
                 />
               </div>
 
@@ -279,6 +286,7 @@ export default function CreateSession() {
                   value={formData.requirements}
                   onChange={(e) => handleInputChange('requirements', e.target.value)}
                   rows={3}
+                  className="border-2 shadow-xl"
                 />
               </div>
             </div>
