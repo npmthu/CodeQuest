@@ -474,7 +474,7 @@ export default function InstructorQuizManager() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="p-4">
+        <Card className="p-4 border-2 shadow-lg" style={{ backgroundColor: "#B9D6F3" }}>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
               <FileText className="w-5 h-5 text-blue-600" />
@@ -487,7 +487,7 @@ export default function InstructorQuizManager() {
             </div>
           </div>
         </Card>
-        <Card className="p-4">
+        <Card className="p-4 border-2 shadow-lg" style={{ backgroundColor: "#B6DA9F" }}>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
               <CheckCircle className="w-5 h-5 text-green-600" />
@@ -502,7 +502,7 @@ export default function InstructorQuizManager() {
             </div>
           </div>
         </Card>
-        <Card className="p-4">
+        <Card className="p-4 border-2 shadow-lg" style={{ backgroundColor: "#F7D7A9" }}>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
               <Edit className="w-5 h-5 text-yellow-600" />
@@ -517,7 +517,7 @@ export default function InstructorQuizManager() {
             </div>
           </div>
         </Card>
-        <Card className="p-4">
+        <Card className="p-4 border-2 shadow-lg" style={{ backgroundColor: "#E0B0FF" }}>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
               <HelpCircle className="w-5 h-5 text-purple-600" />
