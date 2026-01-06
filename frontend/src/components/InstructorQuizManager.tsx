@@ -538,7 +538,7 @@ export default function InstructorQuizManager() {
       </div>
 
       {/* Filters */}
-      <Card className="p-4">
+      <Card className="p-4 border-2 shadow-xl">
         <div className="flex flex-wrap items-center gap-4">
           <div className="flex-1 min-w-[200px]">
             <div className="relative">
@@ -549,12 +549,12 @@ export default function InstructorQuizManager() {
                 }
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
+                className="pl-10 border-2 shadow-sm"
               />
             </div>
           </div>
           <Select value={filterDifficulty} onValueChange={setFilterDifficulty}>
-            <SelectTrigger className="w-[150px]">
+            <SelectTrigger className="w-[150px] border-2 shadow-xl">
               <SelectValue
                 placeholder={language === "vi" ? "Độ khó" : "Difficulty"}
               />
@@ -575,7 +575,7 @@ export default function InstructorQuizManager() {
             </SelectContent>
           </Select>
           <Select value={filterStatus} onValueChange={setFilterStatus}>
-            <SelectTrigger className="w-[150px]">
+            <SelectTrigger className="w-[150px] border-2 shadow-xl">
               <SelectValue
                 placeholder={language === "vi" ? "Trạng thái" : "Status"}
               />
@@ -623,7 +623,7 @@ export default function InstructorQuizManager() {
           filteredQuizzes.map((quiz: Quiz) => (
             <Card
               key={quiz.id}
-              className="p-4 hover:shadow-md transition-shadow"
+              className="p-4 border-2 shadow-xl hover:shadow-xl transition-shadow"
             >
               <div className="flex items-start gap-4">
                 {/* Quiz Icon */}
