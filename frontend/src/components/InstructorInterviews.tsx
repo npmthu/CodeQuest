@@ -315,22 +315,22 @@ export default function InstructorInterviews() {
       {/* Search & Filters - Enhanced */}
       <Card className="p-4">
         <div className="flex flex-col lg:flex-row gap-4">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+          <div className="flex-1 flex items-center gap-3">
+            <Search className="text-gray-400 w-5 h-5 flex-shrink-0" />
             <Input
               placeholder={
                 language === "vi" ? "Tìm kiếm phiên..." : "Search sessions..."
               }
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-11 h-11 bg-gray-50 border-gray-200 focus:bg-white transition-colors"
+              className="h-11 bg-gray-50 border-2 shadow-xl focus:bg-white transition-colors"
             />
           </div>
           <div className="flex gap-2 flex-wrap">
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-4 py-2.5 border border-gray-200 rounded-lg text-sm bg-gray-50 hover:bg-white transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="px-4 py-2.5 border-2 shadow-xl rounded-lg text-sm bg-gray-50 hover:bg-white transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="all">
                 {language === "vi" ? "Tất cả trạng thái" : "All Status"}
@@ -352,7 +352,7 @@ export default function InstructorInterviews() {
               variant="outline"
               onClick={() => setShowFilters(!showFilters)}
               className={
-                showFilters ? "bg-blue-50 border-blue-200 text-blue-600" : ""
+                showFilters ? "bg-blue-50 border-blue-200 text-blue-600 border-2 shadow-xl" : "border-2 shadow-xl"
               }
             >
               <Filter className="w-4 h-4 mr-2" />
