@@ -289,18 +289,18 @@ export default function InstructorAnalytics() {
       {/* Activity Chart */}
       {analyticsData && analyticsData.chartData.length > 0 && (
         <Card className="p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h3>{t('analytics.revenueTrend')}</h3>
+          <div className="flex items-center justify-between mb-6 p-4 rounded-lg border-2 shadow-lg" style={{ backgroundColor: "#2A95BF" }}>
+            <h3 className="text-white">{t('analytics.revenueTrend')}</h3>
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full bg-blue-600"></div>
-                <span className="text-sm text-muted-foreground">
+                <span className="text-sm text-white">
                   {language === 'vi' ? 'Hoàn thành' : 'Completions'}
                 </span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full bg-green-600"></div>
-                <span className="text-sm text-muted-foreground">
+                <span className="text-sm text-white">
                   {language === 'vi' ? 'Bài nộp' : 'Submissions'}
                 </span>
               </div>
@@ -343,7 +343,9 @@ export default function InstructorAnalytics() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Top Content */}
         <Card className="p-6">
-          <h3 className="mb-6">{t('analytics.coursePerformance')}</h3>
+          <div className="p-4 rounded-lg mb-6 border-2 shadow-lg" style={{ backgroundColor: "#F4C2D7" }}>
+            <h3 className="text-gray-800">{t('analytics.coursePerformance')}</h3>
+          </div>
           {analyticsData && analyticsData.topContent.length > 0 ? (
             <div className="space-y-4">
               {analyticsData.topContent.map((content, index) => (
@@ -397,7 +399,9 @@ export default function InstructorAnalytics() {
 
         {/* Traffic Sources */}
         <Card className="p-6">
-          <h3 className="mb-6">{t('analytics.trafficSources')}</h3>
+          <div className="p-4 rounded-lg mb-6 border-2 shadow-lg" style={{ backgroundColor: "#BFFCC6" }}>
+            <h3 className="text-gray-800">{t('analytics.trafficSources')}</h3>
+          </div>
           <ChartContainer
             config={{
               value: { label: "Percentage", color: "hsl(var(--chart-1))" },
@@ -436,7 +440,9 @@ export default function InstructorAnalytics() {
       {/* Student Engagement */}
       {analyticsData && analyticsData.weekdayEngagement && (
         <Card className="p-6">
-          <h3 className="mb-6">{t('analytics.studentEngagement')}</h3>
+          <div className="p-4 rounded-lg mb-6 border-2 shadow-lg" style={{ backgroundColor: "#B28DFF" }}>
+            <h3 className="text-white">{t('analytics.studentEngagement')}</h3>
+          </div>
           <ChartContainer
             config={{
               avgTime: { label: language === 'vi' ? "Thời gian TB (phút)" : "Avg Time (min)", color: "hsl(var(--chart-1))" },
