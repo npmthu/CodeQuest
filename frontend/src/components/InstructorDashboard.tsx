@@ -62,28 +62,32 @@ export default function InstructorDashboard() {
       value: instructorStats?.coursesCount || 0, 
       change: "+2 this month",
       icon: BookOpen, 
-      color: "bg-blue-500" 
+      color: "bg-blue-500",
+      bgColor: "#B9D6F3"
     },
     { 
       label: "Total Students", 
       value: instructorStats?.totalStudents || 0, 
       change: "+284 this month",
       icon: Users, 
-      color: "bg-green-500" 
+      color: "bg-green-500",
+      bgColor: "#B6DA9F"
     },
     { 
       label: "Revenue", 
       value: `$${instructorStats?.totalRevenue?.toLocaleString() || 0}`, 
       change: "+18% from last month",
       icon: DollarSign, 
-      color: "bg-purple-500" 
+      color: "bg-purple-500",
+      bgColor: "#E0B0FF"
     },
     { 
       label: "Avg. Rating", 
       value: instructorStats?.averageRating?.toFixed(1) || "0.0", 
       change: `From ${instructorStats?.totalReviews || 0} reviews`,
       icon: Star, 
-      color: "bg-orange-500" 
+      color: "bg-orange-500",
+      bgColor: "#F7D7A9"
     },
   ];
 
@@ -140,7 +144,7 @@ export default function InstructorDashboard() {
         {stats.map((stat) => {
           const Icon = stat.icon;
           return (
-            <Card key={stat.label} className="p-6">
+            <Card key={stat.label} className="p-6" style={{ backgroundColor: stat.bgColor }}>
               <div className="flex items-center justify-between mb-4">
                 <div className={`w-12 h-12 ${stat.color} rounded-xl flex items-center justify-center`}>
                   <Icon className="w-6 h-6 text-white" />
