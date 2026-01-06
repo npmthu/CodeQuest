@@ -44,6 +44,7 @@ import StudentInterviews from "./components/StudentInterviews";
 import CreateSession from "./components/CreateSession";
 import InterviewLobbyPage from "./components/InterviewLobbyPage";
 import UploadPaymentProof from "./pages/UploadPaymentProof";
+import BookInterview from "./pages/BookInterview";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { SubscriptionProvider } from "./contexts/SubscriptionContext";
 import { LanguageProvider } from "./contexts/LanguageContext";
@@ -192,6 +193,14 @@ function AppContent() {
         element={
           <DashboardRoute>
             <StudentInterviews />
+          </DashboardRoute>
+        }
+      />
+      <Route
+        path="/book-interview/:sessionId"
+        element={
+          <DashboardRoute>
+            <BookInterview />
           </DashboardRoute>
         }
       />

@@ -215,7 +215,7 @@ export const adminApi = {
       body: JSON.stringify(data),
     }),
 
-  // Payment Proofs
+  // Payment Proofs (Subscriptions)
   getPaymentProofs: (status?: string) =>
     apiRequest<any>(
       `/admin/payment-proofs${status ? `?status=${status}` : ""}`
@@ -228,6 +228,23 @@ export const adminApi = {
 
   rejectPaymentProof: (proofId: string, reason: string) =>
     apiRequest<any>(`/admin/payment-proofs/${proofId}/reject`, {
+      method: "POST",
+      body: JSON.stringify({ reason }),
+    }),
+
+  // Interview Bookings Payment Verification
+  getInterviewBookings: (status?: string) =>
+    apiRequest<any>(
+      `/admin/interview-bookings${status ? `?payment_status=${status}` : ""}`
+    ),
+
+  approveInterviewPayment: (bookingId: string) =>
+    apiRequest<any>(`/admin/interview-bookings/${bookingId}/approve-payment`, {
+      method: "POST",
+    }),
+
+  rejectInterviewPayment: (bookingId: string, reason: string) =>
+    apiRequest<any>(`/admin/interview-bookings/${bookingId}/reject-payment`, {
       method: "POST",
       body: JSON.stringify({ reason }),
     }),

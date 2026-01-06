@@ -4,7 +4,7 @@ export interface MockInterviewSession {
   title: string;
   description?: string;
   topic: string;
-  difficulty_level: 'beginner' | 'intermediate' | 'advanced';
+  difficulty_level: "beginner" | "intermediate" | "advanced";
   session_date: string;
   duration_minutes: number;
   price: number;
@@ -12,7 +12,7 @@ export interface MockInterviewSession {
   slots_available: number;
   session_link?: string;
   requirements?: string;
-  status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
+  status: "scheduled" | "in_progress" | "completed" | "cancelled";
   created_at: string;
   updated_at: string;
   instructor?: {
@@ -27,10 +27,19 @@ export interface InterviewBooking {
   id: string;
   session_id: string;
   learner_id: string;
-  booking_status: 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'no_show';
-  payment_status: 'pending' | 'paid' | 'refunded' | 'failed';
+  booking_status:
+    | "pending"
+    | "confirmed"
+    | "cancelled"
+    | "completed"
+    | "no_show";
+  payment_status: "pending" | "paid" | "refunded" | "failed";
   payment_amount?: number;
   payment_id?: string;
+  payment_method?: "credit_card" | "bank_transfer" | "free";
+  payment_proof_url?: string;
+  payment_verified_at?: string;
+  payment_verified_by?: string;
   booked_at: string;
   confirmed_at?: string;
   cancelled_at?: string;
@@ -72,7 +81,12 @@ export interface InterviewFeedback {
 export interface AISuggestionLog {
   id: string;
   user_id: string;
-  suggestion_type: 'topic_suggestion' | 'summary' | 'mindmap' | 'hint' | 'code_review';
+  suggestion_type:
+    | "topic_suggestion"
+    | "summary"
+    | "mindmap"
+    | "hint"
+    | "code_review";
   input_content?: string;
   output_content?: Record<string, any>;
   context_metadata?: Record<string, any>;
@@ -85,7 +99,7 @@ export interface SessionJoinLog {
   id: string;
   session_id: string;
   user_id: string;
-  user_role: 'instructor' | 'learner';
+  user_role: "instructor" | "learner";
   joined_at: string;
   left_at?: string;
   session_duration_minutes?: number;
@@ -96,7 +110,7 @@ export interface CreateSessionRequest {
   title: string;
   description?: string;
   topic: string;
-  difficulty_level: 'beginner' | 'intermediate' | 'advanced';
+  difficulty_level: "beginner" | "intermediate" | "advanced";
   session_date: string;
   duration_minutes: number;
   price: number;
@@ -108,6 +122,8 @@ export interface CreateSessionRequest {
 export interface BookSessionRequest {
   session_id: string;
   notes?: string;
+  payment_method?: "credit_card" | "bank_transfer";
+  payment_proof_url?: string;
   cardNumber?: string; // For mock payment processing - Fixes TC_PAY_03
 }
 
@@ -123,19 +139,19 @@ export interface CreateFeedbackRequest {
   recommendations?: string;
   detailed_feedback?: Record<string, any>;
   comments?: string; // General comments field
-  feedback_type?: 'learner_feedback' | 'instructor_system' | 'peer_review';
+  feedback_type?: "learner_feedback" | "instructor_system" | "peer_review";
   is_public?: boolean;
 }
 
 export interface AISuggestionRequest {
-  type: 'topic_suggestion' | 'summary' | 'mindmap' | 'hint' | 'code_review';
+  type: "topic_suggestion" | "summary" | "mindmap" | "hint" | "code_review";
   content: string;
   context?: Record<string, any>;
 }
 
 export interface TopicSuggestionRequest {
   topic: string;
-  difficulty_level?: 'beginner' | 'intermediate' | 'advanced';
+  difficulty_level?: "beginner" | "intermediate" | "advanced";
 }
 
 export interface SummaryRequest {
@@ -151,7 +167,7 @@ export interface MindmapRequest {
 export interface HintRequest {
   problem_context: string;
   current_code?: string;
-  hint_level?: 'gentle' | 'moderate' | 'strong';
+  hint_level?: "gentle" | "moderate" | "strong";
 }
 
 export interface CodeReviewRequest {

@@ -10,6 +10,7 @@ import {
   X,
   CreditCard,
   DollarSign,
+  Video,
 } from "lucide-react";
 import { Button } from "../ui/button";
 import { Avatar, AvatarFallback } from "../ui/avatar";
@@ -34,6 +35,7 @@ export default function AdminLayout({
     { id: "admin-users", label: "User Management", icon: Users },
     { id: "admin-subscriptions", label: "Subscriptions", icon: CreditCard },
     { id: "admin-payments", label: "Payment Verification", icon: DollarSign },
+    { id: "admin-interview-payments", label: "Interview Payments", icon: Video },
     { id: "admin-courses", label: "Course Management", icon: BookOpen },
     {
       id: "admin-moderation",

@@ -1,6 +1,7 @@
 // Admin routes - /api/admin/*
 import { Router } from "express";
 import { AdminController } from "../controllers/adminController";
+import adminInterviewController from "../controllers/adminInterviewController";
 import { requireAdmin } from "../middleware/adminAuth";
 import { supabaseAuth } from "../middleware/auth";
 
@@ -95,6 +96,22 @@ router.post(
 router.post(
   "/payment-proofs/:id/reject",
   adminController.rejectPaymentProof.bind(adminController)
+);
+
+// Interview Bookings Payment Verification
+router.get(
+  "/interview-bookings",
+  adminInterviewController.getInterviewBookings.bind(adminInterviewController)
+);
+router.post(
+  "/interview-bookings/:id/approve-payment",
+  adminInterviewController.approveInterviewPayment.bind(
+    adminInterviewController
+  )
+);
+router.post(
+  "/interview-bookings/:id/reject-payment",
+  adminInterviewController.rejectInterviewPayment.bind(adminInterviewController)
 );
 
 export default router;

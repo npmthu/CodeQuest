@@ -1,10 +1,10 @@
 import { Card } from "./ui/card";
 import { Progress } from "./ui/progress";
 import { Button } from "./ui/button";
-import { 
-  Code, 
-  FileText, 
-  CheckSquare, 
+import {
+  Code,
+  FileText,
+  CheckSquare,
   FolderKanban,
   TrendingUp,
   Award,
@@ -13,22 +13,18 @@ import {
   Video,
   Calendar,
   Users,
-  ChevronRight
+  ChevronRight,
 } from "lucide-react";
-import { 
-  ChartContainer, 
-  ChartTooltip, 
-  ChartTooltipContent 
-} from "./ui/chart";
-import { 
-  PieChart, 
-  Pie, 
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "./ui/chart";
+import {
+  PieChart,
+  Pie,
   Cell,
   BarChart,
   Bar,
   XAxis,
   YAxis,
-  CartesianGrid
+  CartesianGrid,
 } from "recharts";
 import { useAuth } from "../contexts/AuthContext";
 import { useUserStats, useLeaderboard } from "../hooks/useApi";
@@ -42,7 +38,8 @@ interface LeaderboardEntry {
 export default function Dashboard() {
   const { user, profile } = useAuth();
   const { data: stats, isLoading: statsLoading } = useUserStats();
-  const { data: leaderboard, isLoading: leaderboardLoading } = useLeaderboard(10);
+  const { data: leaderboard, isLoading: leaderboardLoading } =
+    useLeaderboard(10);
 
   if (statsLoading) {
     return (
@@ -52,10 +49,30 @@ export default function Dashboard() {
     );
   }
   const statsCards = [
-    { label: "Total Submissions", value: stats?.totalSubmissions || 0, icon: Code, color: "bg-blue-500" },
-    { label: "Problems Solved", value: stats?.problemsSolved || 0, icon: CheckSquare, color: "bg-green-500" },
-    { label: "Lessons Completed", value: stats?.lessonsCompleted || 0, icon: FileText, color: "bg-purple-500" },
-    { label: "Current Reputation", value: stats?.reputation || 0, icon: Award, color: "bg-orange-500" },
+    {
+      label: "Total Submissions",
+      value: stats?.totalSubmissions || 0,
+      icon: Code,
+      color: "bg-blue-500",
+    },
+    {
+      label: "Problems Solved",
+      value: stats?.problemsSolved || 0,
+      icon: CheckSquare,
+      color: "bg-green-500",
+    },
+    {
+      label: "Lessons Completed",
+      value: stats?.lessonsCompleted || 0,
+      icon: FileText,
+      color: "bg-purple-500",
+    },
+    {
+      label: "Current Reputation",
+      value: stats?.reputation || 0,
+      icon: Award,
+      color: "bg-orange-500",
+    },
   ];
 
   // Transform API language stats to chart data
@@ -63,12 +80,17 @@ export default function Dashboard() {
     ? Object.entries(stats.languageStats).map(([name, count], index) => ({
         name,
         value: count as number,
-        color: ["#3B82F6", "#60A5FA", "#93C5FD", "#DBEAFE", "#BFDBFE"][index % 5],
+        color: ["#3B82F6", "#60A5FA", "#93C5FD", "#DBEAFE", "#BFDBFE"][
+          index % 5
+        ],
       }))
     : [];
 
   // Calculate total for percentages
-  const totalLanguageSubmissions = languageData.reduce((sum, lang) => sum + lang.value, 0);
+  const totalLanguageSubmissions = languageData.reduce(
+    (sum, lang) => sum + lang.value,
+    0
+  );
 
   // Transform difficulty stats to weekly-like activity (reuse for now)
   const difficultyActivity = stats?.difficultyBreakdown
@@ -83,8 +105,13 @@ export default function Dashboard() {
     <div className="p-8 space-y-6">
       {/* Welcome Section */}
       <div>
-        <h2>Welcome back, {profile?.display_name || user?.email?.split('@')[0] || 'Learner'}! 👋</h2>
-        <p className="text-muted-foreground mt-1">Here's your learning progress</p>
+        <h2>
+          Welcome back,{" "}
+          {profile?.display_name || user?.email?.split("@")[0] || "Learner"}! 👋
+        </h2>
+        <p className="text-muted-foreground mt-1">
+          Here's your learning progress
+        </p>
       </div>
 
       {/* Stats Grid */}
@@ -98,7 +125,9 @@ export default function Dashboard() {
                   <p className="text-sm text-muted-foreground">{stat.label}</p>
                   <h3 className="mt-2">{stat.value}</h3>
                 </div>
-                <div className={`w-12 h-12 ${stat.color} rounded-xl flex items-center justify-center`}>
+                <div
+                  className={`w-12 h-12 ${stat.color} rounded-xl flex items-center justify-center`}
+                >
                   <Icon className="w-6 h-6 text-white" />
                 </div>
               </div>
@@ -116,34 +145,22 @@ export default function Dashboard() {
             <Target className="w-5 h-5 text-blue-600" />
           </div>
           <div className="space-y-6">
-            <div>
-              <div className="flex justify-between mb-2">
-                <span className="text-sm">Data Structures & Algorithms</span>
-                <span className="text-sm text-muted-foreground">75%</span>
+            {[
+              { id: "dsa", name: "Data Structures & Algorithms", value: 75 },
+              { id: "web", name: "Web Development", value: 60 },
+              { id: "python", name: "Python Programming", value: 85 },
+              { id: "db", name: "Database & SQL", value: 45 },
+            ].map((course) => (
+              <div key={course.id}>
+                <div className="flex justify-between mb-2">
+                  <span className="text-sm">{course.name}</span>
+                  <span className="text-sm text-muted-foreground">
+                    {course.value}%
+                  </span>
+                </div>
+                <Progress value={course.value} className="h-2" />
               </div>
-              <Progress value={75} className="h-2" />
-            </div>
-            <div>
-              <div className="flex justify-between mb-2">
-                <span className="text-sm">Web Development</span>
-                <span className="text-sm text-muted-foreground">60%</span>
-              </div>
-              <Progress value={60} className="h-2" />
-            </div>
-            <div>
-              <div className="flex justify-between mb-2">
-                <span className="text-sm">Python Programming</span>
-                <span className="text-sm text-muted-foreground">85%</span>
-              </div>
-              <Progress value={85} className="h-2" />
-            </div>
-            <div>
-              <div className="flex justify-between mb-2">
-                <span className="text-sm">Database & SQL</span>
-                <span className="text-sm text-muted-foreground">45%</span>
-              </div>
-              <Progress value={45} className="h-2" />
-            </div>
+            ))}
           </div>
         </Card>
 
@@ -154,26 +171,36 @@ export default function Dashboard() {
             <TrendingUp className="w-5 h-5 text-blue-500" />
           </div>
           <div className="space-y-4">
-            <div>
+            <div key="acceptance-rate">
               <div className="flex justify-between text-sm mb-1">
                 <span className="text-muted-foreground">Acceptance Rate</span>
-                <span className="text-blue-600">{stats?.acceptanceRate?.toFixed(1) || 0}%</span>
+                <span className="text-blue-600">
+                  {stats?.acceptanceRate?.toFixed(1) || 0}%
+                </span>
               </div>
               <Progress value={stats?.acceptanceRate || 0} className="h-2" />
             </div>
-            <div>
+            <div key="study-time">
               <div className="flex justify-between text-sm mb-1">
                 <span className="text-muted-foreground">Study Time</span>
-                <span>{((stats?.totalStudyTime || 0) / 60).toFixed(1)} hrs</span>
+                <span>
+                  {((stats?.totalStudyTime || 0) / 60).toFixed(1)} hrs
+                </span>
               </div>
             </div>
           </div>
           <div className="mt-6 pt-6 border-t border-border space-y-2">
-            <div className="flex items-center justify-between text-sm">
+            <div
+              key="quiz-attempts"
+              className="flex items-center justify-between text-sm"
+            >
               <span className="text-muted-foreground">Quiz Attempts</span>
               <span>{stats?.quizAttempts || 0}</span>
             </div>
-            <div className="flex items-center justify-between text-sm">
+            <div
+              key="total-reputation"
+              className="flex items-center justify-between text-sm"
+            >
               <span className="text-muted-foreground">Total Reputation</span>
               <span className="text-blue-600">{stats?.reputation || 0}</span>
             </div>
@@ -217,12 +244,18 @@ export default function Dashboard() {
               <div className="grid grid-cols-2 gap-3 mt-4">
                 {languageData.map((lang) => (
                   <div key={lang.name} className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: lang.color }}></div>
+                    <div
+                      className="w-3 h-3 rounded-full"
+                      style={{ backgroundColor: lang.color }}
+                    ></div>
                     <span className="text-sm">{lang.name}</span>
                     <span className="text-sm text-muted-foreground ml-auto">
-                      {totalLanguageSubmissions > 0 
-                        ? `${((lang.value / totalLanguageSubmissions) * 100).toFixed(0)}%`
-                        : '0%'}
+                      {totalLanguageSubmissions > 0
+                        ? `${(
+                            (lang.value / totalLanguageSubmissions) *
+                            100
+                          ).toFixed(0)}%`
+                        : "0%"}
                     </span>
                   </div>
                 ))}
@@ -292,10 +325,14 @@ export default function Dashboard() {
                 <div
                   key={leader.user_id}
                   className={`flex items-center gap-4 p-4 rounded-lg ${
-                    isCurrentUser ? "bg-blue-50 border border-blue-200" : "bg-gray-50"
+                    isCurrentUser
+                      ? "bg-blue-50 border border-blue-200"
+                      : "bg-gray-50"
                   }`}
                 >
-                  <div className="text-sm text-muted-foreground w-8">#{index + 1}</div>
+                  <div className="text-sm text-muted-foreground w-8">
+                    #{index + 1}
+                  </div>
 
                   <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
                     <span className="text-sm text-blue-600">{initials}</span>
@@ -304,7 +341,9 @@ export default function Dashboard() {
                   <div className="flex-1">
                     <p className="text-sm">
                       {leader.display_name || "Anonymous"}
-                      {isCurrentUser && <span className="text-blue-600 ml-2">(You)</span>}
+                      {isCurrentUser && (
+                        <span className="text-blue-600 ml-2">(You)</span>
+                      )}
                     </p>
                   </div>
 
@@ -328,10 +367,12 @@ export default function Dashboard() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h3 className="text-lg font-semibold">Mock Interviews</h3>
-            <p className="text-sm text-muted-foreground">Practice with expert instructors</p>
+            <p className="text-sm text-muted-foreground">
+              Practice with expert instructors
+            </p>
           </div>
-          <Button 
-            onClick={() => window.location.href = '/interview'}
+          <Button
+            onClick={() => (window.location.href = "/interview")}
             className="flex items-center gap-2"
           >
             <Video className="w-4 h-4" />
@@ -341,65 +382,62 @@ export default function Dashboard() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="p-4 border rounded-lg">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                <Video className="w-5 h-5 text-blue-600" />
+          {[
+            {
+              id: "available-sessions",
+              icon: Video,
+              iconBg: "bg-blue-100",
+              iconColor: "text-blue-600",
+              title: "Available Sessions",
+              description: "Book your next interview",
+              buttonText: "Browse Sessions",
+            },
+            {
+              id: "upcoming-sessions",
+              icon: Calendar,
+              iconBg: "bg-green-100",
+              iconColor: "text-green-600",
+              title: "Upcoming Sessions",
+              description: "Your scheduled interviews",
+              buttonText: "View Schedule",
+            },
+            {
+              id: "interview-history",
+              icon: Users,
+              iconBg: "bg-purple-100",
+              iconColor: "text-purple-600",
+              title: "Interview History",
+              description: "Past sessions & feedback",
+              buttonText: "View History",
+            },
+          ].map((card) => {
+            const Icon = card.icon;
+            return (
+              <div key={card.id} className="p-4 border rounded-lg">
+                <div className="flex items-center gap-3 mb-2">
+                  <div
+                    className={`w-10 h-10 ${card.iconBg} rounded-full flex items-center justify-center`}
+                  >
+                    <Icon className={`w-5 h-5 ${card.iconColor}`} />
+                  </div>
+                  <div>
+                    <p className="font-medium">{card.title}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {card.description}
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  onClick={() => (window.location.href = "/interview")}
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                >
+                  {card.buttonText}
+                </Button>
               </div>
-              <div>
-                <p className="font-medium">Available Sessions</p>
-                <p className="text-sm text-muted-foreground">Book your next interview</p>
-              </div>
-            </div>
-            <Button 
-              onClick={() => window.location.href = '/interview'}
-              variant="outline" 
-              size="sm"
-              className="w-full"
-            >
-              Browse Sessions
-            </Button>
-          </div>
-
-          <div className="p-4 border rounded-lg">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                <Calendar className="w-5 h-5 text-green-600" />
-              </div>
-              <div>
-                <p className="font-medium">Upcoming Sessions</p>
-                <p className="text-sm text-muted-foreground">Your scheduled interviews</p>
-              </div>
-            </div>
-            <Button 
-              onClick={() => window.location.href = '/interview'}
-              variant="outline" 
-              size="sm"
-              className="w-full"
-            >
-              View Schedule
-            </Button>
-          </div>
-
-          <div className="p-4 border rounded-lg">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-                <Users className="w-5 h-5 text-purple-600" />
-              </div>
-              <div>
-                <p className="font-medium">Interview History</p>
-                <p className="text-sm text-muted-foreground">Past sessions & feedback</p>
-              </div>
-            </div>
-            <Button 
-              onClick={() => window.location.href = '/interview'}
-              variant="outline" 
-              size="sm"
-              className="w-full"
-            >
-              View History
-            </Button>
-          </div>
+            );
+          })}
         </div>
 
         <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
@@ -407,18 +445,20 @@ export default function Dashboard() {
             <Video className="w-5 h-5 text-blue-600" />
             <div>
               <p className="font-medium text-blue-900">Ready to practice?</p>
-              <p className="text-sm text-blue-700">Book a mock interview session with expert instructors to improve your skills</p>
+              <p className="text-sm text-blue-700">
+                Book a mock interview session with expert instructors to improve
+                your skills
+              </p>
             </div>
           </div>
-          <Button 
-            onClick={() => window.location.href = '/interview'}
+          <Button
+            onClick={() => (window.location.href = "/interview")}
             className="mt-3 w-full"
           >
             Book Interview Session
           </Button>
         </div>
       </Card>
-
     </div>
   );
 }

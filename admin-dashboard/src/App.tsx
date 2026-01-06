@@ -9,6 +9,7 @@ import ContentModeration from "./components/admin/ContentModeration";
 import NotificationManagement from "./components/admin/NotificationManagement";
 import SubscriptionManagement from "./components/admin/SubscriptionManagement";
 import PaymentVerification from "./components/admin/PaymentVerification";
+import InterviewPaymentVerification from "./components/admin/InterviewPaymentVerification";
 import { Toaster } from "./components/ui/sonner";
 import { Loader2 } from "lucide-react";
 
@@ -63,6 +64,8 @@ function AppContent() {
         return <SubscriptionManagement />;
       case "admin-payments":
         return <PaymentVerification />;
+      case "admin-interview-payments":
+        return <InterviewPaymentVerification />;
       default:
         return <AdminDashboard />;
     }
