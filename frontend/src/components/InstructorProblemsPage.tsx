@@ -93,7 +93,7 @@ export default function InstructorProblemsPage() {
 
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="p-4">
+        <Card className="p-4 border-2 shadow-lg" style={{ backgroundColor: "#B9D6F3" }}>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
               <FileCode className="w-5 h-5 text-blue-600" />
@@ -104,7 +104,7 @@ export default function InstructorProblemsPage() {
             </div>
           </div>
         </Card>
-        <Card className="p-4">
+        <Card className="p-4 border-2 shadow-lg" style={{ backgroundColor: "#B6DA9F" }}>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
               <CheckCircle2 className="w-5 h-5 text-green-600" />
@@ -117,7 +117,7 @@ export default function InstructorProblemsPage() {
             </div>
           </div>
         </Card>
-        <Card className="p-4">
+        <Card className="p-4 border-2 shadow-lg" style={{ backgroundColor: "#E0B0FF" }}>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
               <BarChart3 className="w-5 h-5 text-purple-600" />
@@ -133,7 +133,7 @@ export default function InstructorProblemsPage() {
             </div>
           </div>
         </Card>
-        <Card className="p-4">
+        <Card className="p-4 border-2 shadow-lg" style={{ backgroundColor: "#F7D7A9" }}>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
               <Users className="w-5 h-5 text-orange-600" />
