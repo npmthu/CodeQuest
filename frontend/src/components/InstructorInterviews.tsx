@@ -237,85 +237,77 @@ export default function InstructorInterviews() {
 
       {/* Stats Cards - Enhanced */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="p-5 bg-gradient-to-br from-blue-50 to-blue-100/50 border-blue-200 hover:shadow-lg transition-all duration-300 group border-2 shadow-lg" style={{ backgroundColor: "#B9D6F3" }}>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-blue-600">
-                {language === "vi" ? "Tổng số phiên" : "Total Sessions"}
-              </p>
-              <p className="text-3xl font-bold text-blue-700 mt-1">
-                {sessions.length}
-              </p>
-              <p className="text-xs text-blue-500 mt-1 flex items-center gap-1">
-                <TrendingUp className="w-3 h-3" />
-                {inProgressSessions}{" "}
-                {language === "vi" ? "đang diễn ra" : "in progress"}
-              </p>
-            </div>
-            <div className="w-14 h-14 bg-blue-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+        <Card className="p-5 bg-gradient-to-br from-blue-50 to-blue-100/50 border-blue-200 hover:shadow-lg transition-all duration-300 group border-2 shadow-xl" style={{ backgroundColor: "#B9D6F3" }}>
+          <div className="flex flex-col items-center justify-center text-center">
+            <div className="w-14 h-14 bg-blue-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300 mb-3">
               <Video className="w-7 h-7 text-white" />
             </div>
+            <p className="text-base font-semibold text-blue-600">
+              {language === "vi" ? "Tổng số phiên" : "Total Sessions"}
+            </p>
+            <p className="text-4xl font-bold text-blue-700 mt-2">
+              {sessions.length}
+            </p>
+            <p className="text-sm text-blue-500 mt-2 flex items-center gap-1">
+              <TrendingUp className="w-4 h-4" />
+              {inProgressSessions}{" "}
+              {language === "vi" ? "đang diễn ra" : "in progress"}
+            </p>
           </div>
         </Card>
 
-        <Card className="p-5 bg-gradient-to-br from-green-50 to-green-100/50 border-green-200 hover:shadow-lg transition-all duration-300 group border-2 shadow-lg" style={{ backgroundColor: "#B6DA9F" }}>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-green-600">
-                {language === "vi" ? "Đã lên lịch" : "Scheduled"}
-              </p>
-              <p className="text-3xl font-bold text-green-700 mt-1">
-                {scheduledSessions}
-              </p>
-              <p className="text-xs text-green-500 mt-1 flex items-center gap-1">
-                <Calendar className="w-3 h-3" />
-                {language === "vi" ? "sắp diễn ra" : "upcoming"}
-              </p>
-            </div>
-            <div className="w-14 h-14 bg-green-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+        <Card className="p-5 bg-gradient-to-br from-green-50 to-green-100/50 border-green-200 hover:shadow-lg transition-all duration-300 group border-2 shadow-xl" style={{ backgroundColor: "#B6DA9F" }}>
+          <div className="flex flex-col items-center justify-center text-center">
+            <div className="w-14 h-14 bg-green-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300 mb-3">
               <Calendar className="w-7 h-7 text-white" />
             </div>
+            <p className="text-base font-semibold text-green-600">
+              {language === "vi" ? "Đã lên lịch" : "Scheduled"}
+            </p>
+            <p className="text-4xl font-bold text-green-700 mt-2">
+              {scheduledSessions}
+            </p>
+            <p className="text-sm text-green-500 mt-2 flex items-center gap-1">
+              <Calendar className="w-4 h-4" />
+              {language === "vi" ? "sắp diễn ra" : "upcoming"}
+            </p>
           </div>
         </Card>
 
-        <Card className="p-5 bg-gradient-to-br from-purple-50 to-purple-100/50 border-purple-200 hover:shadow-lg transition-all duration-300 group border-2 shadow-lg" style={{ backgroundColor: "#E0B0FF" }}>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-purple-600">
-                {language === "vi" ? "Tổng đặt chỗ" : "Total Bookings"}
-              </p>
-              <p className="text-3xl font-bold text-purple-700 mt-1">
-                {totalBookings}
-              </p>
-              <p className="text-xs text-purple-500 mt-1 flex items-center gap-1">
-                <Users className="w-3 h-3" />
-                {language === "vi" ? "học viên" : "learners"}
-              </p>
-            </div>
-            <div className="w-14 h-14 bg-purple-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+        <Card className="p-5 bg-gradient-to-br from-purple-50 to-purple-100/50 border-purple-200 hover:shadow-lg transition-all duration-300 group border-2 shadow-xl" style={{ backgroundColor: "#E0B0FF" }}>
+          <div className="flex flex-col items-center justify-center text-center">
+            <div className="w-14 h-14 bg-purple-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300 mb-3">
               <Users className="w-7 h-7 text-white" />
             </div>
+            <p className="text-base font-semibold text-purple-600">
+              {language === "vi" ? "Tổng đặt chỗ" : "Total Bookings"}
+            </p>
+            <p className="text-4xl font-bold text-purple-700 mt-2">
+              {totalBookings}
+            </p>
+            <p className="text-sm text-purple-500 mt-2 flex items-center gap-1">
+              <Users className="w-4 h-4" />
+              {language === "vi" ? "học viên" : "learners"}
+            </p>
           </div>
         </Card>
 
-        <Card className="p-5 bg-gradient-to-br from-amber-50 to-amber-100/50 border-amber-200 hover:shadow-lg transition-all duration-300 group border-2 shadow-lg" style={{ backgroundColor: "#F7D7A9" }}>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-amber-600">
-                {language === "vi" ? "Doanh thu" : "Revenue"}
-              </p>
-              <p className="text-3xl font-bold text-amber-700 mt-1">
-                ${totalRevenue.toLocaleString()}
-              </p>
-              <p className="text-xs text-amber-500 mt-1 flex items-center gap-1">
-                <Star className="w-3 h-3" />
-                {completedSessions}{" "}
-                {language === "vi" ? "hoàn thành" : "completed"}
-              </p>
-            </div>
-            <div className="w-14 h-14 bg-amber-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+        <Card className="p-5 bg-gradient-to-br from-amber-50 to-amber-100/50 border-amber-200 hover:shadow-lg transition-all duration-300 group border-2 shadow-xl" style={{ backgroundColor: "#F7D7A9" }}>
+          <div className="flex flex-col items-center justify-center text-center">
+            <div className="w-14 h-14 bg-amber-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300 mb-3">
               <DollarSign className="w-7 h-7 text-white" />
             </div>
+            <p className="text-base font-semibold text-amber-600">
+              {language === "vi" ? "Doanh thu" : "Revenue"}
+            </p>
+            <p className="text-4xl font-bold text-amber-700 mt-2">
+              ${totalRevenue.toLocaleString()}
+            </p>
+            <p className="text-sm text-amber-500 mt-2 flex items-center gap-1">
+              <Star className="w-4 h-4" />
+              {completedSessions}{" "}
+              {language === "vi" ? "hoàn thành" : "completed"}
+            </p>
           </div>
         </Card>
       </div>
