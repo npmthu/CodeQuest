@@ -33,7 +33,7 @@ export default function DashboardLayout({
   children,
   userRole = "student",
 }: DashboardLayoutProps) {
-  const { signOut } = useAuth();
+  const { signOut, profile } = useAuth();
   const { t } = useLanguage();
   const location = useLocation();
   const [notificationOpen, setNotificationOpen] = useState(false);
@@ -129,10 +129,10 @@ export default function DashboardLayout({
   };
 
   return (
-    <div className="min-h-screen bg-background dark:bg-gray-900 flex">
+    <div className="min-h-screen bg-background dark:bg-gray-900">
       {/* Sidebar */}
       <aside
-        className="w-64 bg-white dark:bg-gray-800 flex flex-col"
+        className="w-64 bg-white dark:bg-gray-800 flex flex-col fixed left-0 top-0 h-screen z-10"
         style={{ borderRight: "4px solid #B9D6F3" }}
       >
         {/* Logo */}
@@ -146,7 +146,7 @@ export default function DashboardLayout({
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 p-4">
+        <nav className="flex-1 p-4 overflow-y-auto">
           {/* Role Badge */}
           <div className="mb-4 px-2">
             <Badge
@@ -180,15 +180,27 @@ export default function DashboardLayout({
         </nav>
 
         {/* User Section */}
-        <div className="p-4 border-t border-border dark:border-gray-700">
+        <div className="p-4 border-t border-border dark:border-gray-700 mt-auto flex-shrink-0">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
-              <span className="text-blue-600 dark:text-blue-400">BQ</span>
-            </div>
+            {profile?.avatar_url ? (
+              <img
+                src={profile.avatar_url}
+                alt={profile.display_name || 'User'}
+                className="w-10 h-10 rounded-full object-cover"
+              />
+            ) : (
+              <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
+                <span className="text-blue-600 dark:text-blue-400">
+                  {profile?.display_name?.substring(0, 2).toUpperCase() || profile?.email?.substring(0, 2).toUpperCase() || 'U'}
+                </span>
+              </div>
+            )}
             <div className="flex-1 min-w-0">
-              <p className="text-sm truncate dark:text-gray-300">Bug Quýt</p>
+              <p className="text-sm truncate dark:text-gray-300">
+                {profile?.display_name || profile?.email?.split('@')[0] || 'User'}
+              </p>
               <p className="text-xs text-muted-foreground dark:text-gray-500">
-                Level 5
+                {profile?.level || 'Beginner'}
               </p>
             </div>
           </div>
@@ -205,7 +217,7 @@ export default function DashboardLayout({
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex flex-col min-h-screen" style={{ marginLeft: "256px" }}>
         {/* Header */}
         <header className="h-16 bg-white dark:bg-gray-800 border-b border-border dark:border-gray-700 flex items-center justify-between px-8">
           <div>
