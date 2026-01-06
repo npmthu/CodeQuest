@@ -227,9 +227,9 @@ export default function InstructorInterviews() {
           <LanguageSwitcher />
           <Button
             onClick={() => navigate("/instructor/create-session")}
-            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
+            className="bg-blue-600 hover:bg-blue-700 text-white shadow-xl border-2 border-blue-400 hover:shadow-2xl transition-all duration-300 font-semibold"
           >
-            <Plus className="w-4 h-4 mr-2" />
+            <Plus className="w-5 h-5 mr-2" />
             {language === "vi" ? "Tạo phiên mới" : "Create Session"}
           </Button>
         </div>
@@ -476,9 +476,9 @@ export default function InstructorInterviews() {
             </p>
             <Button
               onClick={() => navigate("/instructor/create-session")}
-              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+              className="bg-blue-600 hover:bg-blue-700 text-white shadow-xl border-2 border-blue-400 hover:shadow-2xl transition-all duration-300 font-semibold"
             >
-              <Plus className="w-4 h-4 mr-2" />
+              <Plus className="w-5 h-5 mr-2" />
               {language === "vi" ? "Tạo phiên mới" : "Create Session"}
             </Button>
           </Card>
