@@ -329,12 +329,17 @@ export default function CourseDetailPage() {
                       {/* Topic Content */}
                       <div className="flex-1">
                         <div className="flex items-start justify-between mb-2">
-                          <h3 className="text-xl font-semibold text-gray-900">
-                            {topic.title}
-                          </h3>
+                          <div>
+                            <h3 className="text-xl font-semibold text-gray-900">
+                              {topic.name}
+                            </h3>
+                            <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
+                              {topic.description || "No description available"}
+                            </p>
+                          </div>
                           <Badge
                             variant="outline"
-                            className={`ml-4 ${
+                            className={`ml-4 flex-shrink-0 ${
                               topicPercent === 100
                                 ? "bg-green-50 text-green-700 border-green-200"
                                 : ""
@@ -345,10 +350,6 @@ export default function CourseDetailPage() {
                             {topicProgress.total || topic.lesson_count || 0}
                           </Badge>
                         </div>
-
-                        <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
-                          {topic.description || "No description available"}
-                        </p>
 
                         {/* Topic Stats */}
                         <div className="flex items-center gap-6 text-sm">
@@ -531,7 +532,7 @@ export default function CourseDetailPage() {
 
                         <div className="flex-1 min-w-0">
                           <h4 className="font-semibold text-gray-900 truncate">
-                            {topic.title}
+                            {topic.name}
                           </h4>
                           <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
                             <span>

@@ -210,7 +210,46 @@ export default function DashboardLayout({
         <header className="h-16 bg-white dark:bg-gray-800 border-b border-border dark:border-gray-700 flex items-center justify-between px-8">
           <div>
             <h3 className="capitalize dark:text-gray-200">
-              {location.pathname.split("/").pop() || "Dashboard"}
+              {(() => {
+                const path = location.pathname;
+                // Map paths to readable names
+                if (path === '/dashboard') return 'Dashboard';
+                if (path === '/courses') return 'Courses';
+                if (path.startsWith('/courses/') && path.includes('/enroll')) return 'Course Enrollment';
+                if (path.startsWith('/courses/')) return 'Course Details';
+                if (path === '/quizzes') return 'Quizzes';
+                if (path.startsWith('/quizzes/')) return 'Quiz Details';
+                if (path === '/forum') return 'Forum';
+                if (path.startsWith('/forum/')) return 'Forum Post';
+                if (path === '/notebook') return 'Notebooks';
+                if (path.startsWith('/notebook/')) return 'Notebook';
+                if (path === '/interview') return 'Interview';
+                if (path.startsWith('/interview/')) return 'Interview Session';
+                if (path === '/profile') return 'Profile';
+                if (path === '/settings') return 'Settings';
+                if (path.startsWith('/topics/')) return 'Topic Lessons';
+                if (path.startsWith('/lessons/')) return 'Lesson';
+                if (path.startsWith('/editor/')) return 'Code Editor';
+                // Instructor routes
+                if (path === '/instructor/dashboard') return 'Instructor Dashboard';
+                if (path === '/instructor/courses') return 'My Courses';
+                if (path === '/instructor/quizzes') return 'Quiz Manager';
+                if (path === '/instructor/problems') return 'My Problems';
+                if (path.startsWith('/instructor/problems/')) return 'Problem Details';
+                if (path === '/instructor/interviews') return 'Mock Interviews';
+                if (path === '/instructor/analytics') return 'Analytics';
+                // Business routes
+                if (path === '/business/dashboard') return 'Business Dashboard';
+                if (path === '/business/account') return 'Account Management';
+                if (path === '/business/courses') return 'Course Management';
+                if (path === '/business/instructors') return 'Instructors';
+                if (path === '/business/performance') return 'Performance';
+                if (path === '/business/analytics') return 'Analytics';
+                if (path === '/business/settings') return 'Settings';
+                // Fallback: prettify the last segment
+                const lastSegment = path.split('/').filter(Boolean).pop() || 'Dashboard';
+                return lastSegment.replace(/-/g, ' ');
+              })()}
             </h3>
           </div>
           <div className="flex items-center gap-4">
