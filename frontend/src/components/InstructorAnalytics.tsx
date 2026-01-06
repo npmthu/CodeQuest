@@ -143,7 +143,8 @@ export default function InstructorAnalytics() {
       change: "+12.5%",
       trend: "up" as const,
       icon: Eye,
-      color: "bg-blue-500"
+      color: "bg-blue-500",
+      bgColor: "#B9D6F3"
     },
     {
       label: t('analytics.newEnrollments'),
@@ -151,7 +152,8 @@ export default function InstructorAnalytics() {
       change: "+8.2%",
       trend: "up" as const,
       icon: Users,
-      color: "bg-green-500"
+      color: "bg-green-500",
+      bgColor: "#B6DA9F"
     },
     {
       label: t('analytics.revenue'),
@@ -159,7 +161,8 @@ export default function InstructorAnalytics() {
       change: "+18.3%",
       trend: "up" as const,
       icon: DollarSign,
-      color: "bg-purple-500"
+      color: "bg-purple-500",
+      bgColor: "#E0B0FF"
     },
     {
       label: t('analytics.avgCompletion'),
@@ -167,7 +170,8 @@ export default function InstructorAnalytics() {
       change: analyticsData.overviewStats.avgCompletion > 50 ? "+5.1%" : "-2.1%",
       trend: analyticsData.overviewStats.avgCompletion > 50 ? "up" as const : "down" as const,
       icon: CheckCircle,
-      color: "bg-orange-500"
+      color: "bg-orange-500",
+      bgColor: "#F7D7A9"
     },
   ] : [];
 
@@ -261,7 +265,7 @@ export default function InstructorAnalytics() {
           const Icon = stat.icon;
           const TrendIcon = stat.trend === "up" ? TrendingUp : TrendingDown;
           return (
-            <Card key={stat.label} className="p-6">
+            <Card key={stat.label} className="p-6 border-2 shadow-lg" style={{ backgroundColor: stat.bgColor }}>
               <div className="flex items-center justify-between mb-4">
                 <div className={`w-12 h-12 ${stat.color} rounded-xl flex items-center justify-center`}>
                   <Icon className="w-6 h-6 text-white" />
