@@ -135,7 +135,7 @@ export default function CreateSession() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-2xl mx-auto p-6">
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-8 text-center">
           <Button 
             variant="ghost" 
             onClick={() => navigate('/instructor/interviews')}
@@ -144,7 +144,7 @@ export default function CreateSession() {
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Interviews
           </Button>
-          <h1 className="text-3xl font-bold">Create Interview Session</h1>
+          <h1 style={{ color: '#3B3DA1' }} className="text-3xl font-bold">Create Interview Session</h1>
           <p className="text-muted-foreground">Set up a new mock interview session for learners</p>
         </div>
 
@@ -292,7 +292,7 @@ export default function CreateSession() {
             </div>
 
             {/* Preview */}
-            <Card className="p-4 bg-gray-50">
+            <Card className="p-4 bg-gray-50 border-2 shadow-xl" style={{ backgroundColor: "#B6DA9F" }}>
               <h3 className="font-semibold mb-3 flex items-center gap-2">
                 <Video className="w-5 h-5" />
                 Session Preview
@@ -338,7 +338,8 @@ export default function CreateSession() {
               <Button 
                 type="submit" 
                 disabled={loading}
-                className="flex-1 bg-blue-600 hover:bg-indigo-500 text-white font-semibold shadow-lg hover:shadow-xl"
+                className="flex-1 bg-blue-600 hover:bg-indigo-500 text-white font-semibold shadow-xl hover:shadow-2xl border-2"
+                style={{ backgroundColor: "#B9D6F3", color: "#1e40af" }}
                 onClick={handleSubmit}
               >
                 {loading ? (
