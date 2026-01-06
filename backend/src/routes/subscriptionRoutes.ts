@@ -1,19 +1,40 @@
-import { Router } from 'express';
-import { subscriptionController } from '../controllers/subscriptionController';
-import { supabaseAuth } from '../middleware/auth';
+import { Router } from "express";
+import { subscriptionController } from "../controllers/subscriptionController";
+import { supabaseAuth } from "../middleware/auth";
 
 const router = Router();
 
-router.get('/plans', subscriptionController.getPlans);
+router.get("/plans", subscriptionController.getPlans);
 
-router.get('/me', supabaseAuth, subscriptionController.getUserSubscription);
+router.get("/me", supabaseAuth, subscriptionController.getUserSubscription);
 
-router.post('/checkout', supabaseAuth, subscriptionController.checkout);
+router.post("/checkout", supabaseAuth, subscriptionController.checkout);
 
-router.post('/cancel', supabaseAuth, subscriptionController.cancelSubscription);
+router.post("/cancel", supabaseAuth, subscriptionController.cancelSubscription);
 
-router.get('/features/:featureName/check', supabaseAuth, subscriptionController.checkFeatureAccess);
+router.get(
+  "/features/:featureName/check",
+  supabaseAuth,
+  subscriptionController.checkFeatureAccess
+);
 
-router.get('/features/:featureName/limit', supabaseAuth, subscriptionController.getFeatureLimit);
+router.get(
+  "/features/:featureName/limit",
+  supabaseAuth,
+  subscriptionController.getFeatureLimit
+);
+
+// Payment proof routes
+router.post(
+  "/upload-payment-proof",
+  supabaseAuth,
+  subscriptionController.uploadPaymentProof
+);
+
+router.get(
+  "/payment-proofs",
+  supabaseAuth,
+  subscriptionController.getUserPaymentProofs
+);
 
 export default router;

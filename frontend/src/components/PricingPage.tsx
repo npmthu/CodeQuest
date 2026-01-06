@@ -1,112 +1,140 @@
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
-import { CheckCircle2, X, ArrowLeft, Loader2, Crown, Star, Lock } from "lucide-react";
+import {
+  CheckCircle2,
+  X,
+  ArrowLeft,
+  Loader2,
+  Crown,
+  Star,
+  Lock,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useSubscription } from "../contexts/SubscriptionContext";
 import { toast } from "sonner";
 
 export default function PricingPage() {
   const navigate = useNavigate();
-  const { 
-    plans, 
-    userSubscription, 
-    loading, 
-    error, 
-    subscribe, 
+  const {
+    plans,
+    userSubscription,
+    loading,
+    error,
+    subscribe,
     cancelSubscription,
     refreshSubscription,
     currentPlan,
-    isSubscribed 
+    isSubscribed,
   } = useSubscription();
 
   const handleSubscribe = async (planSlug: string) => {
-    try {
-      const subscription = await subscribe(planSlug);
-      toast.success(`Successfully subscribed to ${subscription.plan.name}!`);
-      await refreshSubscription();
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to subscribe');
+    // Redirect to payment proof upload page
+    const selectedPlan = plans.find((p) => p.slug === planSlug);
+    if (selectedPlan) {
+      navigate("/upload-payment", {
+        state: {
+          selectedPlan: selectedPlan,
+        },
+      });
+    } else {
+      toast.error("Plan not found");
     }
   };
 
   const handleCancel = async () => {
     if (!userSubscription) return;
-    
+
     try {
       await cancelSubscription();
-      toast.success('Subscription will be canceled at the end of the billing period');
+      toast.success(
+        "Subscription will be canceled at the end of the billing period"
+      );
       await refreshSubscription();
     } catch (error: any) {
-      toast.error(error.message || 'Failed to cancel subscription');
+      toast.error(error.message || "Failed to cancel subscription");
     }
   };
 
   const getPlanFeatures = (plan: any) => {
     const features = plan.features || {};
-    
+
     // Convert backend features to frontend format
     const featureList = [
-      { 
-        name: "Access to basic lessons", 
-        included: true 
+      {
+        name: "Access to basic lessons",
+        included: true,
       },
-      { 
-        name: `${features.maxSubmissions === -1 ? 'Unlimited' : features.maxSubmissions || 50} coding problems`, 
-        included: true 
+      {
+        name: `${
+          features.maxSubmissions === -1
+            ? "Unlimited"
+            : features.maxSubmissions || 50
+        } coding problems`,
+        included: true,
       },
-      { 
-        name: "Community forum access", 
-        included: true 
+      {
+        name: "Community forum access",
+        included: true,
       },
-      { 
-        name: `Personal notebook (${features.maxNotes === -1 ? 'unlimited' : features.maxNotes || 5} notes)`, 
-        included: true 
+      {
+        name: `Personal notebook (${
+          features.maxNotes === -1 ? "unlimited" : features.maxNotes || 5
+        } notes)`,
+        included: true,
       },
-      { 
-        name: "Progress tracking", 
-        included: true 
+      {
+        name: "Progress tracking",
+        included: true,
       },
-      { 
-        name: `AI code review (${features.maxSubmissions === -1 ? 'unlimited' : features.maxSubmissions || 5}/month)`, 
-        included: features.aiGeneration || false 
+      {
+        name: `AI code review (${
+          features.maxSubmissions === -1
+            ? "unlimited"
+            : features.maxSubmissions || 5
+        }/month)`,
+        included: features.aiGeneration || false,
       },
-      { 
-        name: "AI mindmap generation", 
-        included: features.aiMindmap || false 
+      {
+        name: "AI mindmap generation",
+        included: features.aiMindmap || false,
       },
-      { 
-        name: "Advanced lessons & tutorials", 
-        included: features.advancedAnalytics || false 
+      {
+        name: "Advanced lessons & tutorials",
+        included: features.advancedAnalytics || false,
       },
-      { 
-        name: "Mock interview practice", 
-        included: features.advancedAnalytics || false 
+      {
+        name: "Mock interview practice",
+        included: features.advancedAnalytics || false,
       },
-      { 
-        name: "Progress analytics", 
-        included: features.advancedAnalytics || false 
+      {
+        name: "Progress analytics",
+        included: features.advancedAnalytics || false,
       },
-      { 
-        name: "Priority support", 
-        included: features.prioritySupport || false 
+      {
+        name: "Priority support",
+        included: features.prioritySupport || false,
       },
-      { 
-        name: "Downloadable certificates", 
-        included: features.prioritySupport || false 
+      {
+        name: "Downloadable certificates",
+        included: features.prioritySupport || false,
       },
-      { 
-        name: "Custom themes", 
-        included: features.customThemes || false 
+      {
+        name: "Custom themes",
+        included: features.customThemes || false,
       },
-      { 
-        name: `Export formats: ${features.exportFormats?.join(', ') || 'txt'}`, 
-        included: (features.exportFormats?.length || 0) > 1 
+      {
+        name: `Export formats: ${features.exportFormats?.join(", ") || "txt"}`,
+        included: (features.exportFormats?.length || 0) > 1,
       },
-      { 
-        name: `Collaboration (${features.collaborationLimit === -1 ? 'unlimited' : features.collaborationLimit || 0} users)`, 
-        included: (features.collaborationLimit || 0) > 0 
-      }
+      {
+        name: `Collaboration (${
+          features.collaborationLimit === -1
+            ? "unlimited"
+            : features.collaborationLimit || 0
+        } users)`,
+        included: (features.collaborationLimit || 0) > 0,
+      },
     ];
 
     return featureList;
@@ -114,9 +142,11 @@ export default function PricingPage() {
 
   const getPlanButton = (plan: any) => {
     const isCurrentPlan = currentPlan?.slug === plan.slug;
-    const isUpgrade = (plan.price_monthly || 0) > (currentPlan?.price_monthly || 0);
-    const isDowngrade = (plan.price_monthly || 0) < (currentPlan?.price_monthly || 0);
-    const isPopular = plan.name === 'Pro'; // Determine popular plan by name
+    const isUpgrade =
+      (plan.price_monthly || 0) > (currentPlan?.price_monthly || 0);
+    const isDowngrade =
+      (plan.price_monthly || 0) < (currentPlan?.price_monthly || 0);
+    const isPopular = plan.name === "Pro"; // Determine popular plan by name
 
     if (loading) {
       return (
@@ -140,9 +170,9 @@ export default function PricingPage() {
           <Button variant="outline" className="w-full mb-2" disabled>
             Current Plan
           </Button>
-          <Button 
-            variant="ghost" 
-            size="sm" 
+          <Button
+            variant="ghost"
+            size="sm"
             className="w-full text-red-600 hover:text-red-700"
             onClick={handleCancel}
           >
@@ -160,7 +190,11 @@ export default function PricingPage() {
       );
     }
 
-    const buttonText = isUpgrade ? 'Upgrade' : isDowngrade ? 'Downgrade' : 'Subscribe';
+    const buttonText = isUpgrade
+      ? "Upgrade"
+      : isDowngrade
+      ? "Downgrade"
+      : "Subscribe";
     const buttonVariant = isPopular ? "default" : "outline";
 
     return (
@@ -197,7 +231,9 @@ export default function PricingPage() {
           <div className="text-center">
             <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
             <h3 className="text-lg font-semibold mb-2">Loading Plans</h3>
-            <p className="text-muted-foreground">Please wait while we load subscription plans...</p>
+            <p className="text-muted-foreground">
+              Please wait while we load subscription plans...
+            </p>
           </div>
         </Card>
       </div>
@@ -209,7 +245,7 @@ export default function PricingPage() {
       <div className="max-w-7xl mx-auto px-8 py-12">
         {/* Header */}
         <button
-          onClick={() => navigate('/dashboard')}
+          onClick={() => navigate("/dashboard")}
           className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-8"
         >
           <ArrowLeft className="w-4 h-4" />
@@ -223,16 +259,24 @@ export default function PricingPage() {
               <div className="flex items-center gap-3">
                 <Crown className="w-6 h-6 text-blue-600" />
                 <div>
-                  <h3 className="font-semibold">Current Plan: {currentPlan.name}</h3>
+                  <h3 className="font-semibold">
+                    Current Plan: {currentPlan.name}
+                  </h3>
                   <p className="text-sm text-muted-foreground">
-                    {userSubscription?.cancel_at_period_end 
-                      ? `Canceled - Access until ${new Date(userSubscription.current_period_end || '').toLocaleDateString()}`
-                      : `Next billing: ${new Date(userSubscription?.current_period_end || '').toLocaleDateString()}`
-                    }
+                    {userSubscription?.cancel_at_period_end
+                      ? `Canceled - Access until ${new Date(
+                          userSubscription.current_period_end || ""
+                        ).toLocaleDateString()}`
+                      : `Next billing: ${new Date(
+                          userSubscription?.current_period_end || ""
+                        ).toLocaleDateString()}`}
                   </p>
                 </div>
               </div>
-              <Badge variant="secondary" className="bg-green-100 text-green-800">
+              <Badge
+                variant="secondary"
+                className="bg-green-100 text-green-800"
+              >
                 Active
               </Badge>
             </div>
@@ -242,7 +286,8 @@ export default function PricingPage() {
         <div className="text-center mb-12">
           <h2 className="mb-4">Choose Your Plan</h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            Select the perfect plan for your learning journey. Upgrade or downgrade anytime.
+            Select the perfect plan for your learning journey. Upgrade or
+            downgrade anytime.
           </p>
         </div>
 
@@ -250,16 +295,14 @@ export default function PricingPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
           {plans.map((plan) => {
             const isCurrentPlan = currentPlan?.slug === plan.slug;
-            const isPopular = plan.name === 'Pro';
-            
+            const isPopular = plan.name === "Pro";
+
             return (
               <Card
                 key={plan.id}
                 className={`p-8 relative transition-all duration-200 hover:shadow-lg ${
                   isPopular ? "border-2 border-blue-500 shadow-xl" : ""
-                } ${
-                  isCurrentPlan ? "ring-2 ring-green-500 bg-green-50" : ""
-                }`}
+                } ${isCurrentPlan ? "ring-2 ring-green-500 bg-green-50" : ""}`}
               >
                 {isPopular && (
                   <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-600">
@@ -278,13 +321,17 @@ export default function PricingPage() {
                   <h3 className="mb-2">{plan.name}</h3>
                   <div className="mb-3">
                     <span className="text-4xl font-bold">
-                      {plan.price_monthly === 0 ? 'Free' : `$${plan.price_monthly}`}
+                      {plan.price_monthly === 0
+                        ? "Free"
+                        : `$${plan.price_monthly}`}
                     </span>
                     {plan.price_monthly && plan.price_monthly > 0 && (
                       <span className="text-muted-foreground">/month</span>
                     )}
                   </div>
-                  <p className="text-sm text-muted-foreground">{plan.description}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {plan.description}
+                  </p>
                 </div>
 
                 {getPlanButton(plan)}
@@ -319,26 +366,30 @@ export default function PricingPage() {
             <Card className="p-6">
               <h4 className="mb-2">Can I switch plans anytime?</h4>
               <p className="text-sm text-muted-foreground">
-                Yes! You can upgrade or downgrade your plan at any time. Upgrades take effect immediately, 
-                while downgrades take effect at the end of your billing period.
+                Yes! You can upgrade or downgrade your plan at any time.
+                Upgrades take effect immediately, while downgrades take effect
+                at the end of your billing period.
               </p>
             </Card>
             <Card className="p-6">
               <h4 className="mb-2">Is there a student discount?</h4>
               <p className="text-sm text-muted-foreground">
-                Yes! Students with a valid .edu email address get 50% off the Pro plan.
+                Yes! Students with a valid .edu email address get 50% off the
+                Pro plan.
               </p>
             </Card>
             <Card className="p-6">
               <h4 className="mb-2">What payment methods do you accept?</h4>
               <p className="text-sm text-muted-foreground">
-                We accept all major credit cards, PayPal, and various local payment methods.
+                We accept all major credit cards, PayPal, and various local
+                payment methods.
               </p>
             </Card>
             <Card className="p-6">
               <h4 className="mb-2">Can I cancel my subscription?</h4>
               <p className="text-sm text-muted-foreground">
-                Yes, you can cancel anytime. You'll continue to have access until the end of your billing period.
+                Yes, you can cancel anytime. You'll continue to have access
+                until the end of your billing period.
               </p>
             </Card>
           </div>
@@ -349,7 +400,8 @@ export default function PricingPage() {
           <div className="text-center">
             <h3 className="text-white mb-2">Enterprise Solution</h3>
             <p className="mb-6 text-blue-100">
-              Need a custom solution for your organization? We offer tailored plans for schools and companies.
+              Need a custom solution for your organization? We offer tailored
+              plans for schools and companies.
             </p>
             <Button variant="secondary" size="lg">
               Contact Sales

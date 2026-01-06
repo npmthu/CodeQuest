@@ -83,4 +83,18 @@ router.post(
   adminController.saveDraftNotification.bind(adminController)
 );
 
+// Payment Proofs Management
+router.get(
+  "/payment-proofs",
+  adminController.getPaymentProofs.bind(adminController)
+);
+router.post(
+  "/payment-proofs/:id/approve",
+  adminController.approvePaymentProof.bind(adminController)
+);
+router.post(
+  "/payment-proofs/:id/reject",
+  adminController.rejectPaymentProof.bind(adminController)
+);
+
 export default router;

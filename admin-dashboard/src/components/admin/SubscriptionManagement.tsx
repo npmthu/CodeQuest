@@ -251,7 +251,7 @@ export default function SubscriptionManagement() {
         price_monthly: parseFloat(formData.price_monthly),
         price_yearly: formData.price_yearly
           ? parseFloat(formData.price_yearly)
-          : null,
+          : undefined,
         is_active: formData.is_active,
         features: formData.features,
       };

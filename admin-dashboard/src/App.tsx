@@ -8,6 +8,7 @@ import CourseManagement from "./components/admin/CourseManagement";
 import ContentModeration from "./components/admin/ContentModeration";
 import NotificationManagement from "./components/admin/NotificationManagement";
 import SubscriptionManagement from "./components/admin/SubscriptionManagement";
+import PaymentVerification from "./components/admin/PaymentVerification";
 import { Toaster } from "./components/ui/sonner";
 import { Loader2 } from "lucide-react";
 
@@ -60,6 +61,8 @@ function AppContent() {
         return <NotificationManagement />;
       case "admin-subscriptions":
         return <SubscriptionManagement />;
+      case "admin-payments":
+        return <PaymentVerification />;
       default:
         return <AdminDashboard />;
     }

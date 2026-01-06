@@ -43,6 +43,7 @@ import InstructorInterviews from "./components/InstructorInterviews";
 import StudentInterviews from "./components/StudentInterviews";
 import CreateSession from "./components/CreateSession";
 import InterviewLobbyPage from "./components/InterviewLobbyPage";
+import UploadPaymentProof from "./pages/UploadPaymentProof";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { SubscriptionProvider } from "./contexts/SubscriptionContext";
 import { LanguageProvider } from "./contexts/LanguageContext";
@@ -325,6 +326,14 @@ function AppContent() {
         element={
           <ProtectedRoute>
             <PricingPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/upload-payment"
+        element={
+          <ProtectedRoute>
+            <UploadPaymentProof />
           </ProtectedRoute>
         }
       />

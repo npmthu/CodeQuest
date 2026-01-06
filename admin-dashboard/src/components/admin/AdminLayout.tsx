@@ -1,14 +1,15 @@
 import React, { useState } from "react";
-import { 
-  LayoutDashboard, 
-  Users, 
-  BookOpen, 
-  MessageSquare, 
-  Bell, 
+import {
+  LayoutDashboard,
+  Users,
+  BookOpen,
+  MessageSquare,
+  Bell,
   LogOut,
   Menu,
   X,
-  CreditCard
+  CreditCard,
+  DollarSign,
 } from "lucide-react";
 import { Button } from "../ui/button";
 import { Avatar, AvatarFallback } from "../ui/avatar";
@@ -32,8 +33,13 @@ export default function AdminLayout({
     { id: "admin-dashboard", label: "Dashboard", icon: LayoutDashboard },
     { id: "admin-users", label: "User Management", icon: Users },
     { id: "admin-subscriptions", label: "Subscriptions", icon: CreditCard },
+    { id: "admin-payments", label: "Payment Verification", icon: DollarSign },
     { id: "admin-courses", label: "Course Management", icon: BookOpen },
-    { id: "admin-moderation", label: "Content Moderation", icon: MessageSquare },
+    {
+      id: "admin-moderation",
+      label: "Content Moderation",
+      icon: MessageSquare,
+    },
     { id: "admin-notifications", label: "Notifications", icon: Bell },
   ];
 
@@ -47,7 +53,11 @@ export default function AdminLayout({
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
               className="lg:hidden p-2 hover:bg-gray-100 rounded-lg"
             >
-              {isSidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              {isSidebarOpen ? (
+                <X className="w-5 h-5" />
+              ) : (
+                <Menu className="w-5 h-5" />
+              )}
             </button>
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-lg bg-[#2563EB] flex items-center justify-center">
@@ -63,7 +73,9 @@ export default function AdminLayout({
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-3">
               <Avatar>
-                <AvatarFallback className="bg-[#2563EB] text-white">AD</AvatarFallback>
+                <AvatarFallback className="bg-[#2563EB] text-white">
+                  AD
+                </AvatarFallback>
               </Avatar>
               <div className="hidden md:block">
                 <p className="text-sm text-gray-900">Admin User</p>
@@ -88,7 +100,11 @@ export default function AdminLayout({
           className={`
             fixed lg:sticky top-16 left-0 h-[calc(100vh-4rem)] bg-white border-r border-gray-200
             w-64 transition-transform duration-300 z-40
-            ${isSidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
+            ${
+              isSidebarOpen
+                ? "translate-x-0"
+                : "-translate-x-full lg:translate-x-0"
+            }
           `}
         >
           <nav className="p-4 space-y-2">
@@ -128,9 +144,7 @@ export default function AdminLayout({
         )}
 
         {/* Main Content */}
-        <main className="flex-1 p-6 lg:p-8 overflow-auto">
-          {children}
-        </main>
+        <main className="flex-1 p-6 lg:p-8 overflow-auto">{children}</main>
       </div>
     </div>
   );

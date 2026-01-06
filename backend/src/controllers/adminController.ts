@@ -1275,6 +1275,231 @@ export class AdminController {
       });
     }
   }
+
+  /**
+   * GET /api/admin/payment-proofs
+   * Get all payment proofs with filtering
+   */
+  async getPaymentProofs(req: AuthRequest, res: Response) {
+    try {
+      const { status, page = 1, limit = 50 } = req.query;
+      const offset = (Number(page) - 1) * Number(limit);
+
+      let query = supabaseAdmin
+        .from("payment_proofs")
+        .select(
+          `
+          *,
+          user:users!payment_proofs_user_id_fkey(id, email, display_name, avatar_url),
+          plan:subscription_plans!payment_proofs_plan_id_fkey(id, name, slug, price_monthly, price_yearly),
+          reviewer:users!payment_proofs_reviewed_by_fkey(email, display_name)
+        `,
+          { count: "exact" }
+        )
+        .order("created_at", { ascending: false })
+        .range(offset, offset + Number(limit) - 1);
+
+      if (status && status !== "all") {
+        query = query.eq("status", status);
+      }
+
+      const { data: proofs, error, count } = await query;
+
+      if (error) throw error;
+
+      res.json({
+        success: true,
+        data: proofs,
+        pagination: {
+          page: Number(page),
+          limit: Number(limit),
+          total: count || 0,
+        },
+      });
+    } catch (error: any) {
+      console.error("❌ Error fetching payment proofs:", error);
+      res.status(500).json({
+        success: false,
+        error: error.message || "Failed to fetch payment proofs",
+      });
+    }
+  }
+
+  /**
+   * POST /api/admin/payment-proofs/:id/approve
+   * Approve payment proof and upgrade user subscription
+   */
+  async approvePaymentProof(req: AuthRequest, res: Response) {
+    try {
+      const { id } = req.params;
+      const adminId = req.user?.id;
+
+      if (!adminId) {
+        return res.status(401).json({
+          success: false,
+          error: "Unauthorized",
+        });
+      }
+
+      // Get payment proof details
+      const { data: proof, error: proofError } = await supabaseAdmin
+        .from("payment_proofs")
+        .select("*, plan:subscription_plans(*)")
+        .eq("id", id)
+        .single();
+
+      if (proofError) throw proofError;
+
+      if (!proof) {
+        return res.status(404).json({
+          success: false,
+          error: "Payment proof not found",
+        });
+      }
+
+      if (proof.status !== "pending") {
+        return res.status(400).json({
+          success: false,
+          error: "Payment proof already reviewed",
+        });
+      }
+
+      // Calculate subscription end date
+      const startDate = new Date();
+      const endDate = new Date(startDate);
+      if (proof.billing_cycle === "yearly") {
+        endDate.setFullYear(endDate.getFullYear() + 1);
+      } else {
+        endDate.setMonth(endDate.getMonth() + 1);
+      }
+
+      // Check if user already has a subscription
+      const { data: existingSub } = await supabaseAdmin
+        .from("subscriptions")
+        .select("*")
+        .eq("user_id", proof.user_id)
+        .eq("status", "active")
+        .single();
+
+      if (existingSub) {
+        // Update existing subscription
+        const { error: updateError } = await supabaseAdmin
+          .from("subscriptions")
+          .update({
+            plan_id: proof.plan_id,
+            current_period_start: startDate.toISOString(),
+            current_period_end: endDate.toISOString(),
+            status: "active",
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", existingSub.id);
+
+        if (updateError) throw updateError;
+      } else {
+        // Create new subscription
+        const { error: createError } = await supabaseAdmin
+          .from("subscriptions")
+          .insert({
+            user_id: proof.user_id,
+            plan_id: proof.plan_id,
+            status: "active",
+            current_period_start: startDate.toISOString(),
+            current_period_end: endDate.toISOString(),
+          });
+
+        if (createError) throw createError;
+      }
+
+      // Update payment proof status
+      const { error: updateProofError } = await supabaseAdmin
+        .from("payment_proofs")
+        .update({
+          status: "approved",
+          reviewed_by: adminId,
+          reviewed_at: new Date().toISOString(),
+        })
+        .eq("id", id);
+
+      if (updateProofError) throw updateProofError;
+
+      res.json({
+        success: true,
+        message: "Payment approved and subscription upgraded successfully",
+      });
+    } catch (error: any) {
+      console.error("❌ Error approving payment proof:", error);
+      res.status(500).json({
+        success: false,
+        error: error.message || "Failed to approve payment",
+      });
+    }
+  }
+
+  /**
+   * POST /api/admin/payment-proofs/:id/reject
+   * Reject payment proof
+   */
+  async rejectPaymentProof(req: AuthRequest, res: Response) {
+    try {
+      const { id } = req.params;
+      const { reason } = req.body;
+      const adminId = req.user?.id;
+
+      if (!adminId) {
+        return res.status(401).json({
+          success: false,
+          error: "Unauthorized",
+        });
+      }
+
+      // Get payment proof
+      const { data: proof, error: proofError } = await supabaseAdmin
+        .from("payment_proofs")
+        .select("*")
+        .eq("id", id)
+        .single();
+
+      if (proofError) throw proofError;
+
+      if (!proof) {
+        return res.status(404).json({
+          success: false,
+          error: "Payment proof not found",
+        });
+      }
+
+      if (proof.status !== "pending") {
+        return res.status(400).json({
+          success: false,
+          error: "Payment proof already reviewed",
+        });
+      }
+
+      // Update payment proof status
+      const { error: updateError } = await supabaseAdmin
+        .from("payment_proofs")
+        .update({
+          status: "rejected",
+          reviewed_by: adminId,
+          reviewed_at: new Date().toISOString(),
+          rejection_reason: reason || "Payment proof rejected",
+        })
+        .eq("id", id);
+
+      if (updateError) throw updateError;
+
+      res.json({
+        success: true,
+        message: "Payment proof rejected",
+      });
+    } catch (error: any) {
+      console.error("❌ Error rejecting payment proof:", error);
+      res.status(500).json({
+        success: false,
+        error: error.message || "Failed to reject payment",
+      });
+    }
+  }
 }
 
 // Helper function to calculate monthly growth

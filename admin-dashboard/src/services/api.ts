@@ -214,6 +214,23 @@ export const adminApi = {
       method: "POST",
       body: JSON.stringify(data),
     }),
+
+  // Payment Proofs
+  getPaymentProofs: (status?: string) =>
+    apiRequest<any>(
+      `/admin/payment-proofs${status ? `?status=${status}` : ""}`
+    ),
+
+  approvePaymentProof: (proofId: string) =>
+    apiRequest<any>(`/admin/payment-proofs/${proofId}/approve`, {
+      method: "POST",
+    }),
+
+  rejectPaymentProof: (proofId: string, reason: string) =>
+    apiRequest<any>(`/admin/payment-proofs/${proofId}/reject`, {
+      method: "POST",
+      body: JSON.stringify({ reason }),
+    }),
 };
 
 export default adminApi;
