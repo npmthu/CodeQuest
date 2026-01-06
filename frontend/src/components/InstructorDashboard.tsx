@@ -128,7 +128,7 @@ export default function InstructorDashboard() {
       <div className="flex items-center justify-between">
         <div>
           <h2>Instructor Dashboard</h2>
-          <p className="text-muted-foreground mt-1">Welcome back, Bug Quýt! 👋</p>
+          <p className="text-muted-foreground mt-1">Welcome back 👋</p>
         </div>
         <Button 
           className="bg-blue-600 hover:bg-blue-700"
@@ -144,7 +144,7 @@ export default function InstructorDashboard() {
         {stats.map((stat) => {
           const Icon = stat.icon;
           return (
-            <Card key={stat.label} className="p-6" style={{ backgroundColor: stat.bgColor }}>
+            <Card key={stat.label} className="p-6 border-2 shadow-lg" style={{ backgroundColor: stat.bgColor }}>
               <div className="flex items-center justify-between mb-4">
                 <div className={`w-12 h-12 ${stat.color} rounded-xl flex items-center justify-center`}>
                   <Icon className="w-6 h-6 text-white" />
@@ -165,55 +165,67 @@ export default function InstructorDashboard() {
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Revenue Chart */}
-        <Card className="p-6">
-          <h3 className="mb-6">Revenue Overview</h3>
-          <ChartContainer
-            config={{
-              revenue: {
-                label: "Revenue ($)",
-                color: "hsl(var(--chart-1))",
-              },
-            }}
-            className="h-64"
-          >
-            <LineChart data={revenueData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
-              <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-              <YAxis tick={{ fontSize: 12 }} />
-              <ChartTooltip content={<ChartTooltipContent />} />
-              <Line 
-                type="monotone" 
-                dataKey="revenue" 
-                stroke="#2563EB" 
-                strokeWidth={3}
-                dot={{ fill: "#2563EB", r: 4 }}
-              />
-            </LineChart>
-          </ChartContainer>
-        </Card>
+        {/* Revenue Chart Section */}
+        <div className="space-y-4">
+          {/* Revenue Title Card */}
+          <Card className="p-4 border-2 shadow-lg" style={{ backgroundColor: "#126DA6" }}>
+            <h3 className="text-white text-center">Revenue Overview</h3>
+          </Card>
+          {/* Revenue Chart */}
+          <Card className="p-6 border-2 shadow-xl">
+            <ChartContainer
+              config={{
+                revenue: {
+                  label: "Revenue ($)",
+                  color: "hsl(var(--chart-1))",
+                },
+              }}
+              className="h-64"
+            >
+              <LineChart data={revenueData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
+                <XAxis dataKey="month" tick={{ fontSize: 12 }} />
+                <YAxis tick={{ fontSize: 12 }} />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <Line 
+                  type="monotone" 
+                  dataKey="revenue" 
+                  stroke="#2563EB" 
+                  strokeWidth={3}
+                  dot={{ fill: "#2563EB", r: 4 }}
+                />
+              </LineChart>
+            </ChartContainer>
+          </Card>
+        </div>
 
-        {/* Enrollment Chart */}
-        <Card className="p-6">
-          <h3 className="mb-6">Student Enrollments</h3>
-          <ChartContainer
-            config={{
-              students: {
-                label: "Students",
-                color: "hsl(var(--chart-2))",
-              },
-            }}
-            className="h-64"
-          >
-            <BarChart data={enrollmentData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
-              <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-              <YAxis tick={{ fontSize: 12 }} />
-              <ChartTooltip content={<ChartTooltipContent />} />
-              <Bar dataKey="students" fill="#10B981" radius={[8, 8, 0, 0]} />
-            </BarChart>
-          </ChartContainer>
-        </Card>
+        {/* Enrollment Chart Section */}
+        <div className="space-y-4">
+          {/* Enrollment Title Card */}
+          <Card className="p-4 border-2 shadow-lg" style={{ backgroundColor: "#48B89F" }}>
+            <h3 className="text-white text-center">Student Enrollments</h3>
+          </Card>
+          {/* Enrollment Chart */}
+          <Card className="p-6 border-2 shadow-xl">
+            <ChartContainer
+              config={{
+                students: {
+                  label: "Students",
+                  color: "hsl(var(--chart-2))",
+                },
+              }}
+              className="h-64"
+            >
+              <BarChart data={enrollmentData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
+                <XAxis dataKey="month" tick={{ fontSize: 12 }} />
+                <YAxis tick={{ fontSize: 12 }} />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <Bar dataKey="students" fill="#10B981" radius={[8, 8, 0, 0]} />
+              </BarChart>
+            </ChartContainer>
+          </Card>
+        </div>
       </div>
 
       {/* My Courses */}
