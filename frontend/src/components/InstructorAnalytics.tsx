@@ -265,7 +265,7 @@ export default function InstructorAnalytics() {
           const Icon = stat.icon;
           const TrendIcon = stat.trend === "up" ? TrendingUp : TrendingDown;
           return (
-            <Card key={stat.label} className="p-6 border-2 shadow-lg" style={{ backgroundColor: stat.bgColor }}>
+            <Card key={stat.label} className="p-6 border-2 shadow-xl" style={{ backgroundColor: stat.bgColor }}>
               <div className="flex items-center justify-between mb-4">
                 <div className={`w-12 h-12 ${stat.color} rounded-xl flex items-center justify-center`}>
                   <Icon className="w-6 h-6 text-white" />
@@ -288,7 +288,7 @@ export default function InstructorAnalytics() {
 
       {/* Activity Chart */}
       {analyticsData && analyticsData.chartData.length > 0 && (
-        <Card className="p-6">
+        <Card className="p-6 border-2 shadow-xl">
           <div className="flex items-center justify-between mb-6 p-4 rounded-lg border-2 shadow-lg" style={{ backgroundColor: "#2A95BF" }}>
             <h3 className="text-white">{t('analytics.revenueTrend')}</h3>
             <div className="flex items-center gap-4">
@@ -342,7 +342,7 @@ export default function InstructorAnalytics() {
       {/* Top Content & Traffic Sources */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Top Content */}
-        <Card className="p-6">
+        <Card className="p-6 border-2 shadow-xl">
           <div className="p-4 rounded-lg mb-6 border-2 shadow-lg" style={{ backgroundColor: "#F4C2D7" }}>
             <h3 className="text-gray-800">{t('analytics.coursePerformance')}</h3>
           </div>
@@ -398,7 +398,7 @@ export default function InstructorAnalytics() {
         </Card>
 
         {/* Traffic Sources */}
-        <Card className="p-6">
+        <Card className="p-6 border-2 shadow-xl">
           <div className="p-4 rounded-lg mb-6 border-2 shadow-lg" style={{ backgroundColor: "#BFFCC6" }}>
             <h3 className="text-gray-800">{t('analytics.trafficSources')}</h3>
           </div>
@@ -439,7 +439,7 @@ export default function InstructorAnalytics() {
 
       {/* Student Engagement */}
       {analyticsData && analyticsData.weekdayEngagement && (
-        <Card className="p-6">
+        <Card className="p-6 border-2 shadow-xl">
           <div className="p-4 rounded-lg mb-6 border-2 shadow-lg" style={{ backgroundColor: "#B28DFF" }}>
             <h3 className="text-white">{t('analytics.studentEngagement')}</h3>
           </div>
