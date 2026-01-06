@@ -764,11 +764,11 @@ export default function InstructorQuizManager() {
             className="flex-1 overflow-hidden flex flex-col"
           >
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="details">
+              <TabsTrigger value="details" style={{ backgroundColor: "#67e576ff" }}>
                 <Settings className="w-4 h-4 mr-2" />
                 {language === "vi" ? "Chi tiết" : "Details"}
               </TabsTrigger>
-              <TabsTrigger value="questions">
+              <TabsTrigger value="questions" style={{ backgroundColor: "#ec448aff" }}>
                 <HelpCircle className="w-4 h-4 mr-2" />
                 {language === "vi" ? "Câu hỏi" : "Questions"} (
                 {quizForm.questions.length})
@@ -792,6 +792,7 @@ export default function InstructorQuizManager() {
                   onChange={(e) =>
                     setQuizForm({ ...quizForm, title: e.target.value })
                   }
+                  className="border-2 shadow-xl"
                 />
               </div>
 
@@ -808,6 +809,7 @@ export default function InstructorQuizManager() {
                   onChange={(e) =>
                     setQuizForm({ ...quizForm, description: e.target.value })
                   }
+                  className="border-2 shadow-xl"
                 />
               </div>
 
@@ -820,7 +822,7 @@ export default function InstructorQuizManager() {
                       setQuizForm({ ...quizForm, topicId: value })
                     }
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="border-2 shadow-xl">
                       <SelectValue
                         placeholder={
                           language === "vi" ? "Chọn chủ đề" : "Select topic"
@@ -845,7 +847,7 @@ export default function InstructorQuizManager() {
                       setQuizForm({ ...quizForm, difficulty: value })
                     }
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="border-2 shadow-xl">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -880,6 +882,7 @@ export default function InstructorQuizManager() {
                         timeLimitMin: parseInt(e.target.value) || 30,
                       })
                     }
+                    className="border-2 shadow-xl"
                   />
                 </div>
 
@@ -898,6 +901,7 @@ export default function InstructorQuizManager() {
                         passingScore: parseInt(e.target.value) || 70,
                       })
                     }
+                    className="border-2 shadow-xl"
                   />
                 </div>
               </div>
