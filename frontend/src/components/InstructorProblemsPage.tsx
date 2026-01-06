@@ -95,8 +95,8 @@ export default function InstructorProblemsPage() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="p-4 border-2 shadow-lg" style={{ backgroundColor: "#B9D6F3" }}>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-              <FileCode className="w-5 h-5 text-blue-600" />
+            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+              <FileCode className="w-5 h-5 text-white" />
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Total Problems</p>
@@ -106,8 +106,8 @@ export default function InstructorProblemsPage() {
         </Card>
         <Card className="p-4 border-2 shadow-lg" style={{ backgroundColor: "#B6DA9F" }}>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-              <CheckCircle2 className="w-5 h-5 text-green-600" />
+            <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
+              <CheckCircle2 className="w-5 h-5 text-white" />
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Published</p>
@@ -119,8 +119,8 @@ export default function InstructorProblemsPage() {
         </Card>
         <Card className="p-4 border-2 shadow-lg" style={{ backgroundColor: "#E0B0FF" }}>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-              <BarChart3 className="w-5 h-5 text-purple-600" />
+            <div className="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center">
+              <BarChart3 className="w-5 h-5 text-white" />
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Total Submissions</p>
@@ -135,8 +135,8 @@ export default function InstructorProblemsPage() {
         </Card>
         <Card className="p-4 border-2 shadow-lg" style={{ backgroundColor: "#F7D7A9" }}>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
-              <Users className="w-5 h-5 text-orange-600" />
+            <div className="w-10 h-10 bg-yellow-500 rounded-lg flex items-center justify-center">
+              <Users className="w-5 h-5 text-white" />
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Unique Submitters</p>
@@ -160,7 +160,7 @@ export default function InstructorProblemsPage() {
             placeholder="Search problems..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full pl-10 pr-4 py-2 border-2 shadow-xl rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
         <div className="flex items-center gap-2">
@@ -170,7 +170,7 @@ export default function InstructorProblemsPage() {
             onChange={(e) =>
               setDifficultyFilter(e.target.value ? Number(e.target.value) : null)
             }
-            className="px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-3 py-2 border-2 shadow-xl rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">All Difficulties</option>
             <option value="1">Easy</option>
