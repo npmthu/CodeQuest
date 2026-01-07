@@ -836,76 +836,95 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
               <TabsContent value="testcases" className="p-6 m-0" style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
                 <div className="space-y-3">
                   {testCaseResults.length > 0 ? (
-                    // Show actual test results from execution
-                    testCaseResults.map((result: any, i: number) => (
-                      <div
-                        key={i}
-                        className={`flex items-start gap-3 p-4 rounded-lg border ${
-                          result.passed
-                            ? "bg-green-50 border-green-200"
-                            : "bg-red-50 border-red-200"
-                        }`}
-                      >
-                        <div className="w-6 flex-shrink-0 pt-1">
-                          {result.passed ? (
+                    // Show test results from execution - only show failed test cases with details
+                    (() => {
+                      const failedTests = testCaseResults.filter((result: any) => !result.passed);
+                      const passedCount = testCaseResults.filter((result: any) => result.passed).length;
+                      const totalCount = testCaseResults.length;
+                      
+                      return (
+                        <>
+                          {/* Summary of passed tests */}
+                          <div className="flex items-center gap-2 p-3 rounded-lg bg-gray-50 border border-gray-200 mb-4">
                             <CheckCircle2 className="w-5 h-5 text-green-600" />
-                          ) : (
-                            <div className="w-5 h-5 rounded-full border-2 border-red-400 flex items-center justify-center">
-                              <span className="text-red-600 text-xs">✗</span>
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex-1 text-sm space-y-2">
-                          <div className="flex items-center justify-between">
-                            <div className="font-semibold">{result.name || `Test Case ${i + 1}`}</div>
-                            {result.execution_time_ms && (
-                              <Badge variant="outline" className="text-xs">
-                                {result.execution_time_ms}ms
-                              </Badge>
+                            <span className="text-sm font-medium">
+                              {passedCount} / {totalCount} test cases passed
+                            </span>
+                            {failedTests.length === 0 && (
+                              <Badge className="ml-auto bg-green-100 text-green-700">All Passed!</Badge>
                             )}
                           </div>
                           
-                          {result.error && (
-                            <div className="text-red-700 bg-red-100 p-2 rounded text-xs">
-                              <strong>Error:</strong> {result.error}
-                            </div>
-                          )}
-                          
-                          <div className="grid grid-cols-1 gap-2 text-xs">
-                            <div>
-                              <div className="font-medium text-gray-700">Input:</div>
-                              <pre className="bg-gray-100 p-2 rounded mt-1 whitespace-pre-wrap overflow-auto max-h-24 font-mono">
-                                {result.input ? formatTestCaseInput(result.input) : '[Hidden]'}
-                              </pre>
-                            </div>
-                            
-                            <div className="grid grid-cols-2 gap-2">
-                              <div>
-                                <div className="font-medium text-gray-700">Expected Output:</div>
-                                <pre className="bg-gray-100 p-2 rounded mt-1 whitespace-pre-wrap overflow-auto max-h-24 font-mono">
-                                  {result.expected_output ? formatTestCaseOutput(result.expected_output) : '[Hidden]'}
-                                </pre>
+                          {/* Only show failed test cases with full details */}
+                          {failedTests.length > 0 && (
+                            <>
+                              <div className="text-sm font-medium text-red-700 mb-2">
+                                Failed Test Cases ({failedTests.length}):
                               </div>
-                              
-                              <div>
-                                <div className="font-medium text-gray-700">Your Output:</div>
-                                <pre className={`p-2 rounded mt-1 whitespace-pre-wrap overflow-auto max-h-24 ${
-                                  result.passed ? 'bg-green-100' : 'bg-red-100'
-                                }`}>
-                                  {result.actual_output || '(no output)'}
-                                </pre>
-                              </div>
-                            </div>
-                          </div>
-                          
-                          {result.points !== undefined && (
-                            <div className="text-xs text-gray-600">
-                              Points: <strong>{result.points}</strong>
-                            </div>
+                              {failedTests.map((result: any, i: number) => (
+                                <div
+                                  key={i}
+                                  className="flex items-start gap-3 p-4 rounded-lg border bg-red-50 border-red-200"
+                                >
+                                  <div className="w-6 flex-shrink-0 pt-1">
+                                    <div className="w-5 h-5 rounded-full border-2 border-red-400 flex items-center justify-center">
+                                      <span className="text-red-600 text-xs">✗</span>
+                                    </div>
+                                  </div>
+                                  <div className="flex-1 text-sm space-y-2">
+                                    <div className="flex items-center justify-between">
+                                      <div className="font-semibold">{result.name || `Test Case`}</div>
+                                      {result.execution_time_ms && (
+                                        <Badge variant="outline" className="text-xs">
+                                          {result.execution_time_ms}ms
+                                        </Badge>
+                                      )}
+                                    </div>
+                                    
+                                    {result.error && (
+                                      <div className="text-red-700 bg-red-100 p-2 rounded text-xs">
+                                        <strong>Error:</strong> {result.error}
+                                      </div>
+                                    )}
+                                    
+                                    <div className="grid grid-cols-1 gap-2 text-xs">
+                                      <div>
+                                        <div className="font-medium text-gray-700">Input:</div>
+                                        <pre className="bg-gray-100 p-2 rounded mt-1 whitespace-pre-wrap overflow-auto max-h-24 font-mono">
+                                          {result.input && result.input !== '[Hidden]' ? formatTestCaseInput(result.input) : '[Hidden]'}
+                                        </pre>
+                                      </div>
+                                      
+                                      <div className="grid grid-cols-2 gap-2">
+                                        <div>
+                                          <div className="font-medium text-gray-700">Expected Output:</div>
+                                          <pre className="bg-gray-100 p-2 rounded mt-1 whitespace-pre-wrap overflow-auto max-h-24 font-mono">
+                                            {result.expected_output && result.expected_output !== '[Hidden]' ? formatTestCaseOutput(result.expected_output) : '[Hidden]'}
+                                          </pre>
+                                        </div>
+                                        
+                                        <div>
+                                          <div className="font-medium text-gray-700">Your Output:</div>
+                                          <pre className="bg-red-100 p-2 rounded mt-1 whitespace-pre-wrap overflow-auto max-h-24 font-mono">
+                                            {result.actual_output || '(no output)'}
+                                          </pre>
+                                        </div>
+                                      </div>
+                                    </div>
+                                    
+                                    {result.points !== undefined && (
+                                      <div className="text-xs text-gray-600">
+                                        Points: <strong>{result.points}</strong>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </>
                           )}
-                        </div>
-                      </div>
-                    ))
+                        </>
+                      );
+                    })()
                   ) : (
                     // Show sample test cases before execution
                     (problem.sampleTestCases || []).map((tc: TestCase, i: any) => {

@@ -361,9 +361,11 @@ export const executeCode = async (
     const totalPoints = testCaseResults.reduce((sum, tc) => sum + tc.points, 0);
     const maxPoints = casesToRun.reduce((sum, tc) => sum + (tc.points || 10), 0);
 
+    // Don't include raw code output in the response - it's just the solution's return value
+    // which is not meaningful to display (e.g., [0, 1] for array return)
     return {
       status,
-      output: firstOutput || firstError || 'No output',
+      output: hasCompileError ? firstError : '',
       error: hasCompileError ? firstError : null,
       execution_time: totalExecutionTime,
       memory_used: 0,
