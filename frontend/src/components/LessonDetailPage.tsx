@@ -124,10 +124,10 @@ export default function LessonDetailPage() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => navigate(-1)}
+            onClick={() => navigate(`/topics/${lesson.topicId}/lessons`)}
             className="gap-2 text-muted-foreground hover:text-foreground"
           >
-            <ArrowLeft className="w-4 h-4" /> Back to Course
+            <ArrowLeft className="w-4 h-4" /> Back to Topic
           </Button>
           <div className="flex items-center gap-2">
             {lesson.isCompleted && (

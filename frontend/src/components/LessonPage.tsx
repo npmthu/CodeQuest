@@ -65,7 +65,20 @@ export default function LessonPage() {
     }
   }, [currentLessonData, lessonsData]);
 
-  const lessons: LessonWithProgress[] = lessonsData || [];
+  const lessonsRaw: LessonWithProgress[] = lessonsData || [];
+  
+  // Sort lessons: incomplete first (by display_order), then completed (by display_order)
+  const lessons = [...lessonsRaw].sort((a, b) => {
+    // First, separate by completion status
+    if (a.isCompleted !== b.isCompleted) {
+      return a.isCompleted ? 1 : -1; // Incomplete lessons come first
+    }
+    // Within the same completion status, sort by displayOrder
+    const orderA = a.displayOrder ?? 999;
+    const orderB = b.displayOrder ?? 999;
+    return orderA - orderB;
+  });
+  
   const completedLessons = lessons.filter((l) => l.isCompleted).length;
   const progressPercent =
     lessons.length > 0 ? (completedLessons / lessons.length) * 100 : 0;

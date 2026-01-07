@@ -14,7 +14,8 @@ export async function listLessons(topicId?: string, publishedOnly = true) {
     let query = supabaseAdmin
       .from("lessons")
       .select("*")
-      .order("created_at", { ascending: true });
+      .order("display_order", { ascending: true, nullsFirst: false })
+      .order("created_at", { ascending: true }); // Secondary sort for lessons without display_order
 
     if (topicId) {
       query = query.eq("topic_id", topicId);
