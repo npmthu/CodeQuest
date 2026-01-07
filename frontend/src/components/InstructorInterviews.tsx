@@ -581,7 +581,7 @@ export default function InstructorInterviews() {
                           ? startSession(session.id)
                           : navigate(`/interview/lobby/${session.id}`)
                       }
-                      className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-md hover:shadow-lg transition-all"
+                      className="bg-blue-600 hover:bg-blue-700 transition-all"
                     >
                       <Video className="w-4 h-4 mr-2" />
                       {session.status === "scheduled"

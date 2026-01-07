@@ -308,7 +308,7 @@ export default function BusinessAccountManagement() {
           </Button>
           <Dialog open={isAddLearnerOpen} onOpenChange={setIsAddLearnerOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 rounded-xl shadow-lg shadow-blue-500/25 transition-all hover:shadow-xl hover:-translate-y-0.5">
+              <Button className="bg-blue-600 hover:bg-blue-700 rounded-xl shadow-lg shadow-blue-500/25 transition-all hover:shadow-xl hover:-translate-y-0.5">
                 <UserPlus className="w-4 h-4 mr-2" />
                 Add Learners
               </Button>

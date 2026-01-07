@@ -165,7 +165,7 @@ export default function DashboardLayout({
                 <Link
                   key={item.path}
                   to={item.path}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all border-5 shadow-xl hover:shadow-lg ${
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all border-5  hover:shadow-lg ${
                     isActive
                       ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-blue-300 dark:border-blue-600"
                       : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border-gray-200 dark:border-gray-600"
