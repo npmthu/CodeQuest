@@ -555,8 +555,21 @@ export const getInstructorProblems = async (req: AuthRequest, res: Response) => 
           }
         }
 
+        // Calculate acceptance rate from actual submissions (more accurate than stored value)
+        const { count: acceptedCount } = await supabaseAdmin
+          .from('submissions')
+          .select('*', { count: 'exact', head: true })
+          .eq('problem_id', problem.id)
+          .in('status', ['accepted', 'ACCEPTED']);
+
+        const calculatedAcceptanceRate = (submissionCount || 0) > 0 
+          ? ((acceptedCount || 0) / (submissionCount || 1)) * 100 
+          : 0;
+
         return {
           ...problem,
+          // Override database acceptance_rate with calculated value
+          acceptance_rate: calculatedAcceptanceRate,
           submissionCount: submissionCount || 0,
           uniqueSubmitters: uniqueUserCount,
           testCaseCount: testCaseCount || 0,
