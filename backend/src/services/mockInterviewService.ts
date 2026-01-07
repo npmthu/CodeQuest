@@ -238,7 +238,7 @@ export class MockInterviewService {
         .select(`
           *,
           session:mock_interview_sessions(*, instructor:users!mock_interview_sessions_instructor_id_fkey(id, display_name, email, avatar_url)),
-          learner:users(id, display_name, email, avatar_url)
+          learner:users!interview_bookings_learner_id_fkey(id, display_name, email, avatar_url)
         `, { count: 'exact' });
 
       if (role === 'learner') {
