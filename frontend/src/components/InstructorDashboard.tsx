@@ -230,12 +230,7 @@ export default function InstructorDashboard() {
 
       {/* My Courses */}
       <div>
-        <div className="flex items-center justify-between mb-4">
-          <h3>My Courses</h3>
-          <Button variant="outline" size="sm">
-            View All
-          </Button>
-        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {courses.map((course: any) => (
             <Card key={course.id} className="overflow-hidden hover:shadow-lg transition-all">
