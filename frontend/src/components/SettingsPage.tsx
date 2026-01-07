@@ -27,10 +27,7 @@ import { toast } from "sonner";
 import { User, Bell, Lock, Palette } from "lucide-react";
 
 interface UserPreferences {
-  theme: "light" | "dark";
-  codeEditorTheme: string;
   language: string;
-  timezone: string;
   notifications: {
     newLessonEmail: boolean;
     forumRepliesEmail: boolean;
@@ -69,10 +66,7 @@ export default function SettingsPage() {
 
   // Preferences state
   const [preferences, setPreferences] = useState<UserPreferences>({
-    theme: "light",
-    codeEditorTheme: "VS Code Dark",
     language: "English",
-    timezone: "Pacific Time (PT)",
     notifications: {
       newLessonEmail: true,
       forumRepliesEmail: true,
@@ -607,52 +601,9 @@ export default function SettingsPage() {
         <TabsContent value="preferences" className="space-y-6">
           <Card className="p-6">
             <div className="flex items-center justify-between mb-6">
-              <h3>{t("settings.appearance")}</h3>
-              {preferences.theme === "dark" && (
-                <Badge className="bg-purple-100 text-purple-700">
-                  {t("settings.darkModeActive")}
-                </Badge>
-              )}
-            </div>
-            <div className="space-y-6 max-w-2xl">
-              <div className="flex items-center justify-between p-4 border-2 border-gray-300 rounded-lg shadow-md">
-                <div>
-                  <p>{t("settings.darkMode")}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {t("settings.darkModeDesc")}
-                  </p>
-                </div>
-                <Switch
-                  checked={preferences.theme === "dark"}
-                  onCheckedChange={(checked: boolean) =>
-                    handlePreferenceChange("theme", checked ? "dark" : "light")
-                  }
-                />
-              </div>
-              <div>
-                <Label>Code Editor Theme</Label>
-                <select
-                  className="w-full mt-2 p-3 border-2 border-gray-300 rounded-lg shadow-md"
-                  value={preferences.codeEditorTheme}
-                  onChange={(e) =>
-                    handlePreferenceChange("codeEditorTheme", e.target.value)
-                  }
-                >
-                  <option>VS Code Dark</option>
-                  <option>VS Code Light</option>
-                  <option>Monokai</option>
-                  <option>Dracula</option>
-                </select>
-              </div>
-            </div>
-          </Card>
-
-          <Card className="p-6">
-            <div className="flex items-center justify-between mb-6">
               <h3>{t("settings.languageRegion")}</h3>
               <Badge variant="outline">
-                {language === "vi" ? "🇻🇳 Tiếng Việt" : "🇺🇸 English"} •{" "}
-                {preferences.timezone}
+                {language === "vi" ? "🇻🇳 Tiếng Việt" : "🇺🇸 English"}
               </Badge>
             </div>
             <div className="space-y-4 max-w-2xl">
@@ -665,21 +616,6 @@ export default function SettingsPage() {
                 >
                   <option value="en">{t("lang.english")}</option>
                   <option value="vi">{t("lang.vietnamese")}</option>
-                </select>
-              </div>
-              <div>
-                <Label>Timezone</Label>
-                <select
-                  className="w-full mt-2 p-3 border-2 border-gray-300 rounded-lg shadow-md"
-                  value={preferences.timezone}
-                  onChange={(e) =>
-                    handlePreferenceChange("timezone", e.target.value)
-                  }
-                >
-                  <option>Pacific Time (PT)</option>
-                  <option>Eastern Time (ET)</option>
-                  <option>Central Time (CT)</option>
-                  <option>Mountain Time (MT)</option>
                 </select>
               </div>
             </div>

@@ -494,6 +494,7 @@ This notebook contains your personal learning notes. You can:
                     const newContent = editContent + '\n\n## AI Summary\n\n' + summaryText;
                     setEditContent(newContent);
                     setShowSummary(false);
+                    setIsEditing(true);
                     toast.success('Summary added to notebook!');
                   }}
                 >
