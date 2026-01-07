@@ -2,12 +2,13 @@ import React, { createContext, useContext, useMemo } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { supabase } from "../../lib/supabaseClient";
 
-// Api Client  + get + post + patch: hỗ trợ gọi api eg api.get("/users")
+// Api Client  + get + post + patch + delete: hỗ trợ gọi api eg api.get("/users")
 interface ApiClient {
   apiBase: string;
   get: (path: string) => Promise<any>;
   post: (path: string, body?: any) => Promise<any>;
   patch: (path: string, body?: any) => Promise<any>;
+  delete: (path: string) => Promise<any>;
 }
 
 // Context chứa api client
@@ -99,6 +100,12 @@ export function ApiProvider({ apiBase, children }: { apiBase?: string; children:
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: body !== undefined ? JSON.stringify(body) : undefined,
+        });
+        return handleRes(res);
+      },
+      delete: async (path: string) => {
+        const res = await fetchNoCache(makeUrl(path), {
+          method: "DELETE",
         });
         return handleRes(res);
       },

@@ -51,7 +51,6 @@ export default function DashboardLayout({
 
   const instructorMenuItems = [
     { path: "/instructor/dashboard", label: t("nav.dashboard"), icon: Home },
-    { path: "/instructor/courses", label: t("nav.myCourses"), icon: VideoIcon },
     {
       path: "/instructor/quizzes",
       label: t("nav.quizManager"),

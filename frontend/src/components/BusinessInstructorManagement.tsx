@@ -25,17 +25,12 @@ import {
   Users,
   Star,
   BookOpen,
-
   Search,
   UserPlus,
   MoreVertical,
-  Edit,
   Trash2,
   Mail,
-  Award,
-  Clock,
-
-  BarChart3,
+  Loader2,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -43,136 +38,106 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "./ui/chart";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useApi } from "../api/ApiProvider";
 
-import { useNavigate } from "react-router-dom";
+interface InstructorData {
+  id: string;
+  email: string;
+  name: string;
+  avatar: string;
+  role: string;
+  joinedAt: string;
+  coursesCount: number;
+  studentsCount: number;
+}
+
+interface CourseData {
+  id: string;
+  title: string;
+}
 
 export default function BusinessInstructorManagement() {
-  const navigate = useNavigate();
+  const api = useApi();
+  const queryClient = useQueryClient();
+
   const [isAddInstructorOpen, setIsAddInstructorOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [filterCohort, setFilterCohort] = useState("all");
+  const [filterRole, setFilterRole] = useState("all");
   const [formData, setFormData] = useState({
-    name: "",
     email: "",
-    specialization: "",
-    cohorts: [],
-    bio: "",
+    role: "instructor",
   });
 
-  const instructors = [
-    {
-      id: 1,
-      name: "Dr. Sarah Chen",
-      email: "sarah.chen@techcorp.com",
-      specialization: "Data Science & Machine Learning",
-      cohorts: ["Data Science Bootcamp", "ML Advanced"],
-      students: 142,
-      courses: 8,
-      rating: 4.9,
-      reviews: 89,
-      status: "Active",
-      avatar: "SC",
-      joinedDate: "Jan 2023",
-      completionRate: 92,
-      responseTime: "< 2 hours",
+  // Fetch instructors from API
+  const { data: instructorsData, isLoading: instructorsLoading } = useQuery({
+    queryKey: ["business-instructors"],
+    queryFn: async () => {
+      const response = await api.get("/business/instructors");
+      return response.data;
     },
-    {
-      id: 2,
-      name: "Prof. Michael Johnson",
-      email: "michael.j@techcorp.com",
-      specialization: "Software Engineering",
-      cohorts: ["Software Engineering 2024", "Web Dev Fast Track"],
-      students: 198,
-      courses: 12,
-      rating: 4.8,
-      reviews: 124,
-      status: "Active",
-      avatar: "MJ",
-      joinedDate: "Mar 2023",
-      completionRate: 88,
-      responseTime: "< 3 hours",
-    },
-    {
-      id: 3,
-      name: "Emily Rodriguez",
-      email: "emily.r@techcorp.com",
-      specialization: "UX/UI Design",
-      cohorts: ["Design Track"],
-      students: 76,
-      courses: 6,
-      rating: 4.7,
-      reviews: 54,
-      status: "Active",
-      avatar: "ER",
-      joinedDate: "Jun 2023",
-      completionRate: 85,
-      responseTime: "< 4 hours",
-    },
-    {
-      id: 4,
-      name: "David Kim",
-      email: "david.k@techcorp.com",
-      specialization: "Mobile Development",
-      cohorts: ["Mobile App Development"],
-      students: 64,
-      courses: 5,
-      rating: 4.6,
-      reviews: 42,
-      status: "Active",
-      avatar: "DK",
-      joinedDate: "Aug 2023",
-      completionRate: 82,
-      responseTime: "< 5 hours",
-    },
-  ];
+  });
 
-  const performanceData = [
-    { name: "Dr. Sarah Chen", students: 142, rating: 4.9, completion: 92 },
-    {
-      name: "Prof. Michael Johnson",
-      students: 198,
-      rating: 4.8,
-      completion: 88,
+  // Fetch courses for context
+  const { data: coursesData } = useQuery({
+    queryKey: ["business-courses"],
+    queryFn: async () => {
+      const response = await api.get("/business/courses");
+      return response.data;
     },
-    { name: "Emily Rodriguez", students: 76, rating: 4.7, completion: 85 },
-    { name: "David Kim", students: 64, rating: 4.6, completion: 82 },
-  ];
+  });
 
-  const cohortAssignments = [
-    {
-      cohort: "Software Engineering 2024",
-      instructors: ["Prof. Michael Johnson", "Dr. Sarah Chen"],
-      learners: 85,
-      avgRating: 4.8,
+  // Fetch stats
+  const { data: statsData } = useQuery({
+    queryKey: ["business-stats"],
+    queryFn: async () => {
+      const response = await api.get("/business/stats");
+      return response.data;
     },
-    {
-      cohort: "Data Science Bootcamp",
-      instructors: ["Dr. Sarah Chen"],
-      learners: 62,
-      avgRating: 4.9,
-    },
-    {
-      cohort: "Web Dev Fast Track",
-      instructors: ["Prof. Michael Johnson", "Emily Rodriguez"],
-      learners: 124,
-      avgRating: 4.7,
-    },
-    {
-      cohort: "Mobile App Development",
-      instructors: ["David Kim"],
-      learners: 48,
-      avgRating: 4.6,
-    },
-  ];
+  });
 
-  // ============= INSTRUCTOR HANDLERS =============
-  const handleAddInstructor = async () => {
-    if (!formData.name.trim()) {
-      alert("Please enter instructor name");
-      return;
-    }
+  const instructors: InstructorData[] = instructorsData?.instructors ?? [];
+  const courses: CourseData[] = coursesData?.courses ?? [];
+
+  // Add instructor mutation
+  const addInstructorMutation = useMutation({
+    mutationFn: async (data: { email: string; role: string }) => {
+      const response = await api.post("/business/instructors", data);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["business-instructors"] });
+      queryClient.invalidateQueries({ queryKey: ["business-stats"] });
+      setIsAddInstructorOpen(false);
+      setFormData({ email: "", role: "instructor" });
+    },
+    onError: (error: Error & { response?: { data?: { error?: string } } }) => {
+      alert(error.response?.data?.error || "Failed to add instructor");
+    },
+  });
+
+  // Remove instructor mutation
+  const removeInstructorMutation = useMutation({
+    mutationFn: async (instructorId: string) => {
+      const response = await api.delete(`/business/instructors/${instructorId}`);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["business-instructors"] });
+      queryClient.invalidateQueries({ queryKey: ["business-stats"] });
+    },
+  });
+
+  // Filter instructors
+  const filteredInstructors = instructors.filter((instructor) => {
+    const matchesSearch =
+      instructor.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      instructor.email.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesRole = filterRole === "all" || instructor.role === filterRole;
+    return matchesSearch && matchesRole;
+  });
+
+  const handleAddInstructor = () => {
     if (!formData.email.trim()) {
       alert("Please enter instructor email");
       return;
@@ -181,86 +146,34 @@ export default function BusinessInstructorManagement() {
       alert("Please enter a valid email address");
       return;
     }
-    if (!formData.specialization.trim()) {
-      alert("Please enter specialization");
-      return;
-    }
+    addInstructorMutation.mutate(formData);
+  };
 
-    try {
-      // Call API to add instructor
-      // await addInstructorMutation.mutateAsync({
-      //   name: formData.name,
-      //   email: formData.email,
-      //   specialization: formData.specialization,
-      //   cohorts: formData.cohorts,
-      //   bio: formData.bio
-      // });
-
-      setFormData({
-        name: "",
-        email: "",
-        specialization: "",
-        cohorts: [],
-        bio: "",
-      });
-      setIsAddInstructorOpen(false);
-      alert("Instructor added successfully!");
-    } catch (error: any) {
-      alert("Failed to add instructor: " + (error.message || "Unknown error"));
+  const handleRemoveInstructor = (instructorId: string, instructorName: string) => {
+    if (confirm(`Are you sure you want to remove "${instructorName}" as an instructor?`)) {
+      removeInstructorMutation.mutate(instructorId);
     }
   };
 
-  const handleEditInstructor = async (_instructorId: number) => {
-    try {
-      // Call API to update instructor
-      // await updateInstructorMutation.mutateAsync({
-      //   instructorId,
-      //   ...formData
-      // });
-      alert("Instructor updated successfully!");
-    } catch (error: any) {
-      alert(
-        "Failed to update instructor: " + (error.message || "Unknown error")
-      );
+  const getRoleColor = (role: string) => {
+    switch (role) {
+      case "lead":
+        return "bg-purple-100 text-purple-700";
+      case "senior":
+        return "bg-blue-100 text-blue-700";
+      case "instructor":
+        return "bg-green-100 text-green-700";
+      default:
+        return "bg-gray-100 text-gray-700";
     }
   };
 
-  const handleRemoveInstructor = async (
-    _instructorId: number,
-    instructorName: string
-  ) => {
-    if (!confirm(`Are you sure you want to remove ${instructorName}?`)) {
-      return;
-    }
-
-    try {
-      // Call API to remove instructor
-      // await removeInstructorMutation.mutateAsync(instructorId);
-      alert("Instructor removed successfully!");
-    } catch (error: any) {
-      alert(
-        "Failed to remove instructor: " + (error.message || "Unknown error")
-      );
-    }
-  };
-
-  const handleSendMessage = async (
-    _instructorId: number,
-    instructorName: string
-  ) => {
-    const message = prompt(`Send message to ${instructorName}:`);
-    if (!message) return;
-
-    try {
-      // Call API to send message
-      // await sendMessageMutation.mutateAsync({
-      //   userId: instructorId,
-      //   message
-      // });
-      alert("Message sent successfully!");
-    } catch (error: any) {
-      alert("Failed to send message: " + (error.message || "Unknown error"));
-    }
+  const formatDate = (dateString: string) => {
+    if (!dateString) return "N/A";
+    return new Date(dateString).toLocaleDateString("en-US", {
+      month: "short",
+      year: "numeric",
+    });
   };
 
   return (
@@ -268,374 +181,260 @@ export default function BusinessInstructorManagement() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2>Instructor Management</h2>
-          <p className="text-muted-foreground mt-1">
-            Manage instructors and their assignments across cohorts
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-gray-900 via-blue-900 to-blue-800 bg-clip-text text-transparent">
+            Instructor Management
+          </h2>
+          <p className="text-gray-500 mt-1">
+            Manage instructors for your organization`s courses
           </p>
         </div>
-        <Dialog
-          open={isAddInstructorOpen}
-          onOpenChange={setIsAddInstructorOpen}
-        >
+        <Dialog open={isAddInstructorOpen} onOpenChange={setIsAddInstructorOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-blue-600 hover:bg-blue-700">
+            <Button className="bg-blue-600 hover:bg-blue-700 rounded-xl shadow-lg shadow-blue-500/25">
               <UserPlus className="w-4 h-4 mr-2" />
               Add Instructor
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-md rounded-2xl">
             <DialogHeader>
               <DialogTitle>Add New Instructor</DialogTitle>
               <DialogDescription>
-                Add an instructor to your organization
+                Invite a user to become an instructor for your organization
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Full Name *</Label>
-                  <Input
-                    placeholder="e.g., Dr. Jane Smith"
-                    value={formData.name}
-                    onChange={(e) =>
-                      setFormData((prev) => ({ ...prev, name: e.target.value }))
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Email Address *</Label>
-                  <Input
-                    type="email"
-                    placeholder="jane.smith@company.com"
-                    value={formData.email}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        email: e.target.value,
-                      }))
-                    }
-                  />
-                </div>
-              </div>
               <div className="space-y-2">
-                <Label>Specialization</Label>
+                <Label>Email Address *</Label>
                 <Input
-                  placeholder="e.g., Machine Learning, Web Development"
-                  value={formData.specialization}
+                  type="email"
+                  placeholder="instructor@example.com"
+                  value={formData.email}
                   onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      specialization: e.target.value,
-                    }))
+                    setFormData((prev) => ({ ...prev, email: e.target.value }))
                   }
                 />
+                <p className="text-xs text-muted-foreground">
+                  The user must already have an account on the platform
+                </p>
               </div>
               <div className="space-y-2">
-                <Label>Assign to Cohorts</Label>
-                <Select>
+                <Label>Role</Label>
+                <Select
+                  value={formData.role}
+                  onValueChange={(value: string) =>
+                    setFormData((prev) => ({ ...prev, role: value }))
+                  }
+                >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select cohorts" />
+                    <SelectValue placeholder="Select role" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="se-2024">
-                      Software Engineering 2024
-                    </SelectItem>
-                    <SelectItem value="ds-q1">Data Science Bootcamp</SelectItem>
-                    <SelectItem value="web-ft">
-                      Web Development Fast Track
-                    </SelectItem>
-                    <SelectItem value="mobile">
-                      Mobile App Development
-                    </SelectItem>
+                    <SelectItem value="instructor">Instructor</SelectItem>
+                    <SelectItem value="senior">Senior Instructor</SelectItem>
+                    <SelectItem value="lead">Lead Instructor</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Bio/Introduction</Label>
-                <Input
-                  placeholder="Brief introduction about the instructor"
-                  value={formData.bio}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, bio: e.target.value }))
-                  }
-                />
               </div>
             </div>
             <DialogFooter>
               <Button
                 variant="outline"
                 onClick={() => setIsAddInstructorOpen(false)}
+                className="rounded-xl"
               >
                 Cancel
               </Button>
               <Button
-                className="bg-blue-600 hover:bg-blue-700"
                 onClick={handleAddInstructor}
+                disabled={addInstructorMutation.isPending}
+                className="bg-blue-600 hover:bg-blue-700 rounded-xl"
               >
-                Add Instructor
+                {addInstructorMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Adding...
+                  </>
+                ) : (
+                  "Add Instructor"
+                )}
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="p-6">
-          <div className="flex items-center justify-between mb-2">
-            <GraduationCap className="w-8 h-8 text-blue-600" />
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card className="p-6 rounded-2xl border-0 shadow-lg shadow-gray-200/50">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/30">
+              <GraduationCap className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Total Instructors</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {statsData?.totalInstructors ?? instructors.length}
+              </p>
+            </div>
           </div>
-          <p className="text-sm text-muted-foreground">Total Instructors</p>
-          <p className="text-2xl mt-1">{instructors.length}</p>
         </Card>
-        <Card className="p-6">
-          <div className="flex items-center justify-between mb-2">
-            <Users className="w-8 h-8 text-green-600" />
+        <Card className="p-6 rounded-2xl border-0 shadow-lg shadow-gray-200/50">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg shadow-green-500/30">
+              <BookOpen className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Courses</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {statsData?.totalCourses ?? courses.length}
+              </p>
+            </div>
           </div>
-          <p className="text-sm text-muted-foreground">Students Taught</p>
-          <p className="text-2xl mt-1">
-            {instructors.reduce((sum, i) => sum + i.students, 0)}
-          </p>
         </Card>
-        <Card className="p-6">
-          <div className="flex items-center justify-between mb-2">
-            <Star className="w-8 h-8 text-yellow-500" />
+        <Card className="p-6 rounded-2xl border-0 shadow-lg shadow-gray-200/50">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-violet-600 rounded-xl flex items-center justify-center shadow-lg shadow-purple-500/30">
+              <Users className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Total Learners</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {statsData?.totalLearners ?? 0}
+              </p>
+            </div>
           </div>
-          <p className="text-sm text-muted-foreground">Avg. Rating</p>
-          <p className="text-2xl mt-1">
-            {(
-              instructors.reduce((sum, i) => sum + i.rating, 0) /
-              instructors.length
-            ).toFixed(1)}
-          </p>
         </Card>
-        <Card className="p-6">
-          <div className="flex items-center justify-between mb-2">
-            <BookOpen className="w-8 h-8 text-purple-600" />
+        <Card className="p-6 rounded-2xl border-0 shadow-lg shadow-gray-200/50">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-amber-600 rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/30">
+              <Star className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Avg. Completion</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {statsData?.averageCompletion ?? 0}%
+              </p>
+            </div>
           </div>
-          <p className="text-sm text-muted-foreground">Total Courses</p>
-          <p className="text-2xl mt-1">
-            {instructors.reduce((sum, i) => sum + i.courses, 0)}
-          </p>
         </Card>
       </div>
 
-      {/* Instructor Performance Chart */}
-      <Card className="p-6">
-        <h3 className="mb-6">Instructor Performance Overview</h3>
-        <ChartContainer
-          config={{
-            students: {
-              label: "Students",
-              color: "hsl(var(--chart-1))",
-            },
-            completion: {
-              label: "Completion Rate (%)",
-              color: "hsl(var(--chart-2))",
-            },
-          }}
-          className="h-64"
-        >
-          <BarChart data={performanceData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
-            <XAxis dataKey="name" tick={{ fontSize: 10 }} />
-            <YAxis tick={{ fontSize: 12 }} />
-            <ChartTooltip content={<ChartTooltipContent />} />
-            <Bar dataKey="students" fill="#2563EB" radius={[8, 8, 0, 0]} />
-            <Bar dataKey="completion" fill="#10B981" radius={[8, 8, 0, 0]} />
-          </BarChart>
-        </ChartContainer>
-      </Card>
-
-      {/* Instructors List */}
-      <Card className="p-6">
-        <div className="flex items-center gap-4 mb-6">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+      {/* Search and Filter */}
+      <Card className="p-4 rounded-2xl border-0 shadow-lg shadow-gray-200/50">
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="flex-1 min-w-[200px] relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               placeholder="Search instructors..."
-              className="pl-10"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 rounded-xl"
             />
           </div>
-          <Select value={filterCohort} onValueChange={setFilterCohort}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Filter by cohort" />
+          <Select value={filterRole} onValueChange={setFilterRole}>
+            <SelectTrigger className="w-[180px] rounded-xl">
+              <SelectValue placeholder="Filter by role" />
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Cohorts</SelectItem>
-              <SelectItem value="se-2024">Software Engineering</SelectItem>
-              <SelectItem value="ds-q1">Data Science</SelectItem>
-              <SelectItem value="web-ft">Web Development</SelectItem>
+            <SelectContent className="rounded-xl">
+              <SelectItem value="all">All Roles</SelectItem>
+              <SelectItem value="instructor">Instructor</SelectItem>
+              <SelectItem value="senior">Senior Instructor</SelectItem>
+              <SelectItem value="lead">Lead Instructor</SelectItem>
             </SelectContent>
           </Select>
         </div>
+      </Card>
 
-        <div className="space-y-4">
-          {instructors.map((instructor) => (
+      {/* Instructor List */}
+      {instructorsLoading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        </div>
+      ) : filteredInstructors.length === 0 ? (
+        <Card className="p-12 rounded-2xl border-0 shadow-lg shadow-gray-200/50 text-center">
+          <GraduationCap className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+          <h4 className="font-semibold text-gray-900 mb-2">No instructors found</h4>
+          <p className="text-gray-500 mb-4">
+            {searchQuery || filterRole !== "all"
+              ? "Try adjusting your filters"
+              : "Add your first instructor to get started"}
+          </p>
+          {!searchQuery && filterRole === "all" && (
+            <Button
+              onClick={() => setIsAddInstructorOpen(true)}
+              className="bg-blue-600 hover:bg-blue-700 rounded-xl"
+            >
+              <UserPlus className="w-4 h-4 mr-2" />
+              Add Instructor
+            </Button>
+          )}
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredInstructors.map((instructor) => (
             <Card
               key={instructor.id}
-              className="p-6 hover:shadow-lg transition-all"
+              className="p-6 rounded-2xl border-0 shadow-lg shadow-gray-200/50 hover:shadow-xl transition-all"
             >
-              <div className="flex items-start gap-6">
-                <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                  <span className="text-xl text-blue-600">
-                    {instructor.avatar}
-                  </span>
-                </div>
-
-                <div className="flex-1">
-                  <div className="flex items-start justify-between mb-3">
-                    <div>
-                      <div className="flex items-center gap-3">
-                        <h4>{instructor.name}</h4>
-                        <Badge className="bg-green-100 text-green-700">
-                          {instructor.status}
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {instructor.specialization}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {instructor.email} • Joined {instructor.joinedDate}
-                      </p>
-                    </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm">
-                          <MoreVertical className="w-4 h-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          onClick={() => handleEditInstructor(instructor.id)}
-                        >
-                          <Edit className="w-4 h-4 mr-2" />
-                          Edit Profile
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() =>
-                            handleSendMessage(instructor.id, instructor.name)
-                          }
-                        >
-                          <Mail className="w-4 h-4 mr-2" />
-                          Send Message
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => navigate("/instructor/analytics")}
-                        >
-                          <BarChart3 className="w-4 h-4 mr-2" />
-                          View Analytics
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="text-red-600"
-                          onClick={() =>
-                            handleRemoveInstructor(
-                              instructor.id,
-                              instructor.name
-                            )
-                          }
-                        >
-                          <Trash2 className="w-4 h-4 mr-2" />
-                          Remove
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-
-                  <div className="grid grid-cols-5 gap-4 mb-4">
-                    <div className="p-3 bg-gray-50 rounded-lg">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Users className="w-4 h-4 text-blue-600" />
-                        <p className="text-xs text-muted-foreground">
-                          Students
-                        </p>
-                      </div>
-                      <p className="text-lg">{instructor.students}</p>
-                    </div>
-                    <div className="p-3 bg-gray-50 rounded-lg">
-                      <div className="flex items-center gap-2 mb-1">
-                        <BookOpen className="w-4 h-4 text-green-600" />
-                        <p className="text-xs text-muted-foreground">Courses</p>
-                      </div>
-                      <p className="text-lg">{instructor.courses}</p>
-                    </div>
-                    <div className="p-3 bg-gray-50 rounded-lg">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Star className="w-4 h-4 text-yellow-500" />
-                        <p className="text-xs text-muted-foreground">Rating</p>
-                      </div>
-                      <p className="text-lg">{instructor.rating}</p>
-                    </div>
-                    <div className="p-3 bg-gray-50 rounded-lg">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Award className="w-4 h-4 text-purple-600" />
-                        <p className="text-xs text-muted-foreground">
-                          Completion
-                        </p>
-                      </div>
-                      <p className="text-lg">{instructor.completionRate}%</p>
-                    </div>
-                    <div className="p-3 bg-gray-50 rounded-lg">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Clock className="w-4 h-4 text-orange-600" />
-                        <p className="text-xs text-muted-foreground">
-                          Response
-                        </p>
-                      </div>
-                      <p className="text-sm">{instructor.responseTime}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm text-muted-foreground">
-                      Assigned Cohorts:
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+                    <span className="text-lg text-white font-semibold">
+                      {instructor.avatar || instructor.name?.charAt(0) || instructor.email.charAt(0).toUpperCase()}
                     </span>
-                    {instructor.cohorts.map((cohort, idx) => (
-                      <Badge key={idx} variant="outline" className="text-xs">
-                        {cohort}
-                      </Badge>
-                    ))}
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-gray-900">
+                      {instructor.name || "Unnamed"}
+                    </h4>
+                    <p className="text-sm text-gray-500">{instructor.email}</p>
+                    <Badge className={`mt-1 ${getRoleColor(instructor.role)}`}>
+                      {instructor.role || "instructor"}
+                    </Badge>
+                  </div>
+                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="rounded-lg">
+                      <MoreVertical className="w-4 h-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="rounded-xl">
+                    <DropdownMenuItem className="rounded-lg">
+                      <Mail className="w-4 h-4 mr-2" />
+                      Send Message
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => handleRemoveInstructor(instructor.id, instructor.name || instructor.email)}
+                      className="text-red-600 rounded-lg"
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Remove
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+
+              <div className="mt-4 pt-4 border-t border-gray-100">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="text-gray-500">Courses</p>
+                    <p className="font-semibold text-gray-900">{instructor.coursesCount || 0}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">Students</p>
+                    <p className="font-semibold text-gray-900">{instructor.studentsCount || 0}</p>
+                  </div>
+                  <div className="col-span-2">
+                    <p className="text-gray-500">Joined</p>
+                    <p className="font-semibold text-gray-900">{formatDate(instructor.joinedAt)}</p>
                   </div>
                 </div>
               </div>
             </Card>
           ))}
         </div>
-      </Card>
-
-      {/* Cohort Assignments */}
-      <Card className="p-6">
-        <h3 className="mb-6">Cohort-Instructor Assignments</h3>
-        <div className="space-y-4">
-          {cohortAssignments.map((assignment, idx) => (
-            <div key={idx} className="p-4 bg-gray-50 rounded-lg">
-              <div className="flex items-start justify-between mb-3">
-                <div>
-                  <h4 className="text-sm">{assignment.cohort}</h4>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {assignment.learners} learners • Avg. Rating:{" "}
-                    {assignment.avgRating}
-                  </p>
-                </div>
-                <Button variant="outline" size="sm">
-                  <Edit className="w-3 h-3 mr-2" />
-                  Reassign
-                </Button>
-              </div>
-              <div className="flex items-center gap-2 flex-wrap">
-                {assignment.instructors.map((instructor, i) => (
-                  <Badge key={i} className="bg-blue-100 text-blue-700">
-                    <GraduationCap className="w-3 h-3 mr-1" />
-                    {instructor}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      </Card>
+      )}
     </div>
   );
 }
