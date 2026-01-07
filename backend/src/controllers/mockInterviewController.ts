@@ -116,7 +116,15 @@ export class MockInterviewController {
         limit: parseInt(req.query.limit as string) || 10
       };
 
+      console.log('🔍 Fetching mock interview sessions with filters:', filters);
+
       const result = await this.interviewService.getSessions(filters);
+
+      console.log('✅ Sessions fetched successfully:', {
+        total: result.total,
+        returned: result.sessions.length,
+        filters
+      });
 
       res.json({
         success: true,

@@ -33,8 +33,8 @@ RUN apk add --no-cache dumb-init curl
 WORKDIR /app
 
 # Create non-root user
-RUN addgroup -g 1000 nodejs && \
-    adduser -D -u 1000 -G nodejs nodejs
+RUN addgroup -g 1001 nodejs && \
+    adduser -D -u 1001 -G nodejs nodejs
 
 # Copy only production dependencies and built code from builder
 COPY --from=builder --chown=nodejs:nodejs /app/node_modules ./node_modules

@@ -13,8 +13,8 @@ const aiController = new AIController();
 
 // Mock Interview Session Routes
 router.post('/sessions', supabaseAuth, interviewController.createSession.bind(interviewController));
-router.get('/sessions', interviewController.getSessions.bind(interviewController));
-router.get('/sessions/:id', interviewController.getSessionById.bind(interviewController));
+router.get('/sessions', supabaseAuth, interviewController.getSessions.bind(interviewController));
+router.get('/sessions/:id', supabaseAuth, interviewController.getSessionById.bind(interviewController));
 
 // Booking Routes
 router.post('/book', supabaseAuth, interviewController.bookSession.bind(interviewController));

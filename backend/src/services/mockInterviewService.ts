@@ -85,10 +85,33 @@ export class MockInterviewService {
 
       const { data, error, count } = await query;
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Error fetching sessions:', error);
+        throw error;
+      }
+
+      // Transform instructor field to match frontend expectation
+      const transformedSessions = (data || []).map(session => ({
+        ...session,
+        instructor: session.instructor ? {
+          id: session.instructor.id,
+          name: session.instructor.display_name,
+          email: session.instructor.email,
+          avatar_url: session.instructor.avatar_url
+        } : null
+      }));
+
+      console.log('✅ Sessions fetched with instructor data:', {
+        count: transformedSessions.length,
+        sample: transformedSessions[0] ? {
+          id: transformedSessions[0].id,
+          title: transformedSessions[0].title,
+          instructor: transformedSessions[0].instructor
+        } : null
+      });
 
       return {
-        sessions: data || [],
+        sessions: transformedSessions,
         total: count || 0
       };
     } catch (error) {

@@ -147,7 +147,7 @@ export const SummaryDisplay: React.FC<SummaryDisplayProps> = ({
 
   if (isLoading) {
     return (
-      <div className={`bg-black/50   rounded-lg p-4 ${className}`}>
+      <div className={`bg-black/50 rounded-lg p-4 ${className}`}>
         <div className="animate-pulse space-y-3">
           <div className="h-4 bg-gray-700 rounded w-3/4" />
           <div className="h-3 bg-gray-700 rounded w-full" />
@@ -160,7 +160,7 @@ export const SummaryDisplay: React.FC<SummaryDisplayProps> = ({
 
   if (!data.keyPoints || data.keyPoints.length === 0) {
     return (
-      <div className={`bg-black/50   rounded-lg p-4 text-center ${className}`}>
+      <div className={`bg-black/50 rounded-lg p-4 text-center ${className}`}>
         <AlertCircle className="w-8 h-8 text-gray-500 mx-auto mb-2" />
         <p className="text-gray-400 text-sm">No summary available</p>
       </div>
@@ -168,7 +168,7 @@ export const SummaryDisplay: React.FC<SummaryDisplayProps> = ({
   }
 
   return (
-    <div className={`bg-black/50   rounded-lg p-4 ${className}`}>
+    <div className={`bg-black/50 rounded-lg p-4 ${className}`}>
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
@@ -239,17 +239,17 @@ const MindmapNodeComponent: React.FC<{
   isLast?: boolean;
 }> = ({ node }) => {
   const levelColors = {
-    0: 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white',
-    1: 'bg-indigo-500/30 text-indigo-200 border border-indigo-500/50',
-    2: 'bg-purple-500/20 text-purple-200 border border-purple-500/40',
-    3: 'bg-gray-700/50 text-gray-300 border border-gray-600'
+    0: 'bg-indigo-600 text-white shadow-lg',
+    1: 'bg-blue-500 text-white border-2 border-blue-600 shadow-md',
+    2: 'bg-cyan-500 text-white border-2 border-cyan-600 shadow',
+    3: 'bg-teal-500 text-white border-2 border-teal-600 shadow'
   };
 
   const levelSizes = {
-    0: 'text-base px-4 py-2',
-    1: 'text-sm px-3 py-1.5',
-    2: 'text-xs px-2.5 py-1',
-    3: 'text-xs px-2 py-0.5'
+    0: 'text-lg px-5 py-3 font-bold',
+    1: 'text-base px-4 py-2.5 font-semibold',
+    2: 'text-sm px-3 py-2 font-medium',
+    3: 'text-xs px-2.5 py-1.5 font-medium'
   };
 
   const colorClass = levelColors[node.level as keyof typeof levelColors] || levelColors[3];
@@ -257,21 +257,23 @@ const MindmapNodeComponent: React.FC<{
 
   return (
     <div className="relative">
-      {/* Connector line */}
+      {/* Connector line - horizontal */}
       {node.level > 0 && (
-        <div className="absolute left-0 top-1/2 w-4 -ml-4 border-t-2 border-dashed border-gray-600" />
+        <div className="absolute left-0 top-1/2 h-0.5 w-5 -ml-5 bg-indigo-400 transform -translate-y-1/2" />
       )}
       
       <div className="flex items-start">
         {/* Node itself */}
-        <div className={`rounded-lg ${colorClass} ${sizeClass} font-medium whitespace-nowrap`}>
+        <div className={`rounded-lg ${colorClass} whitespace-normal break-words max-w-xs ${sizeClass}`}>
           {node.label}
         </div>
         
         {/* Children */}
         {node.children && node.children.length > 0 && (
-          <div className="relative ml-6 pl-4 border-l-2 border-dashed border-gray-600">
-            <div className="space-y-2 py-1">
+          <div className="relative ml-6 pl-4">
+            {/* Vertical line on the left */}
+            <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-indigo-400" />
+            <div className="space-y-3 py-2">
               {node.children.map((child, index) => (
                 <MindmapNodeComponent
                   key={child.id}
@@ -296,19 +298,19 @@ export const MindmapDisplay: React.FC<MindmapDisplayProps> = ({
 }) => {
   if (isLoading) {
     return (
-      <div className={`bg-gray-800/50 rounded-lg p-4 ${className}`}>
+      <div className={`bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg p-6 border border-slate-200 ${className}`}>
         <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-gray-700 rounded w-1/3 mx-auto" />
+          <div className="h-8 bg-slate-300 rounded w-1/3 mx-auto" />
           <div className="flex justify-center gap-8">
-            <div className="h-6 bg-gray-700 rounded w-24" />
-            <div className="h-6 bg-gray-700 rounded w-28" />
-            <div className="h-6 bg-gray-700 rounded w-20" />
+            <div className="h-6 bg-slate-300 rounded w-24" />
+            <div className="h-6 bg-slate-300 rounded w-28" />
+            <div className="h-6 bg-slate-300 rounded w-20" />
           </div>
           <div className="flex justify-center gap-4">
-            <div className="h-5 bg-gray-700 rounded w-16" />
-            <div className="h-5 bg-gray-700 rounded w-20" />
-            <div className="h-5 bg-gray-700 rounded w-18" />
-            <div className="h-5 bg-gray-700 rounded w-14" />
+            <div className="h-5 bg-slate-300 rounded w-16" />
+            <div className="h-5 bg-slate-300 rounded w-20" />
+            <div className="h-5 bg-slate-300 rounded w-18" />
+            <div className="h-5 bg-slate-300 rounded w-14" />
           </div>
         </div>
       </div>
@@ -317,25 +319,25 @@ export const MindmapDisplay: React.FC<MindmapDisplayProps> = ({
 
   if (!data.root) {
     return (
-      <div className={`bg-gray-800/50 rounded-lg p-4 text-center ${className}`}>
-        <AlertCircle className="w-8 h-8 text-gray-500 mx-auto mb-2" />
-        <p className="text-gray-400 text-sm">No mindmap available</p>
+      <div className={`bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg p-6 text-center border border-slate-200 ${className}`}>
+        <AlertCircle className="w-8 h-8 text-slate-400 mx-auto mb-2" />
+        <p className="text-slate-600 text-sm">No mindmap available</p>
       </div>
     );
   }
 
   return (
-    <div className={`bg-gray-800/50 rounded-lg p-4 overflow-x-auto ${className}`}>
+    <div className={`bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg p-6 overflow-x-auto border border-slate-200 ${className}`}>
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
-          <Brain className="w-5 h-5 text-purple-400" />
-          <h3 className="text-white font-semibold">AI Mindmap</h3>
+          <Brain className="w-6 h-6 text-indigo-600" />
+          <h3 className="text-slate-800 font-bold text-lg">AI Mindmap</h3>
         </div>
         {onExport && (
           <button
             onClick={onExport}
-            className="p-2 hover:bg-gray-700 rounded-lg transition-colors flex items-center gap-1 text-sm text-gray-400 hover:text-white"
+            className="p-2 hover:bg-indigo-100 rounded-lg transition-colors flex items-center gap-1 text-sm text-slate-600 hover:text-indigo-600"
           >
             <Download className="w-4 h-4" />
             <span>Export</span>
@@ -344,26 +346,26 @@ export const MindmapDisplay: React.FC<MindmapDisplayProps> = ({
       </div>
 
       {/* Mindmap Tree */}
-      <div className="min-w-max p-4">
+      <div className="min-w-max p-4 bg-gray-800 rounded-lg border border-gray-800 overflow-x-auto">
         <MindmapNodeComponent node={data.root} />
       </div>
       
       {/* Legend */}
-      <div className="flex items-center gap-4 mt-4 pt-4 border-t border-gray-700 text-xs text-gray-500">
-        <span className="flex items-center gap-1">
-          <div className="w-3 h-3 rounded bg-gradient-to-r from-indigo-500 to-purple-500" />
-          Root
+      <div className="flex items-center gap-4 mt-6 pt-6 border-t border-slate-200 text-xs text-slate-600">
+        <span className="flex items-center gap-2">
+          <div className="w-4 h-4 rounded bg-indigo-600" />
+          Root Topic
         </span>
-        <span className="flex items-center gap-1">
-          <div className="w-3 h-3 rounded bg-indigo-500/30 border border-indigo-500/50" />
-          Topic
+        <span className="flex items-center gap-2">
+          <div className="w-4 h-4 rounded bg-blue-500" />
+          Main Topic
         </span>
-        <span className="flex items-center gap-1">
-          <div className="w-3 h-3 rounded bg-purple-500/20 border border-purple-500/40" />
+        <span className="flex items-center gap-2">
+          <div className="w-4 h-4 rounded bg-cyan-500" />
           Subtopic
         </span>
-        <span className="flex items-center gap-1">
-          <div className="w-3 h-3 rounded bg-gray-700/50 border border-gray-600" />
+        <span className="flex items-center gap-2">
+          <div className="w-4 h-4 rounded bg-teal-500" />
           Detail
         </span>
       </div>
@@ -474,6 +476,30 @@ export function parseSummaryResponse(response: any): SummaryData {
 }
 
 export function parseMindmapResponse(response: any): MindmapData {
+  // Recursive function to transform nodes with proper structure
+  const transformNode = (node: any, level: number = 0, parentId: string = 'root', index: number = 0): MindmapNode => {
+    const nodeId = level === 0 ? 'root' : `${parentId}-${index}`;
+    const label = node.label || node.root || 'Node';
+    const type = level === 0 ? 'root' : level === 1 ? 'topic' : level === 2 ? 'subtopic' : 'detail';
+    
+    const transformedNode: MindmapNode = {
+      id: nodeId,
+      label,
+      level,
+      type: type as any,
+      children: []
+    };
+
+    // Recursively transform children
+    if (node.children && Array.isArray(node.children)) {
+      transformedNode.children = node.children.map((child: any, childIndex: number) =>
+        transformNode(child, level + 1, nodeId, childIndex)
+      );
+    }
+
+    return transformedNode;
+  };
+
   // Handle string response
   if (typeof response === 'string') {
     try {
@@ -498,9 +524,33 @@ export function parseMindmapResponse(response: any): MindmapData {
     }
   }
 
-  // Handle structured response
-  if (response.root) {
-    return response;
+  // Handle structured response with root property (API response format)
+  if (response && response.root) {
+    const rootLabel = response.root;
+    const rootNode: MindmapNode = {
+      id: 'root',
+      label: rootLabel,
+      level: 0,
+      type: 'root',
+      children: []
+    };
+
+    // Transform children if they exist
+    if (response.children && Array.isArray(response.children)) {
+      rootNode.children = response.children.map((child: any, index: number) =>
+        transformNode(child, 1, 'root', index)
+      );
+    }
+
+    console.log('✅ Mindmap parsed successfully:', {
+      root: rootNode.label,
+      childrenCount: rootNode.children?.length || 0,
+      sample: rootNode.children?.[0]
+    });
+
+    return {
+      root: rootNode
+    };
   }
 
   // Handle array of topics
@@ -527,6 +577,7 @@ export function parseMindmapResponse(response: any): MindmapData {
     };
   }
 
+  console.warn('⚠️ Unexpected response format:', response);
   return {
     root: {
       id: 'root',

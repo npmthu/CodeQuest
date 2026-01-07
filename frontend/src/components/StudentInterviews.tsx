@@ -15,7 +15,8 @@ import {
   User,
   Crown,
   Users,
-  VideoOff
+  VideoOff,
+  Check
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
@@ -95,7 +96,7 @@ export default function StudentInterviews() {
       });
       
       // Fetch available sessions (with large limit to get all sessions)
-      const sessionsResponse = await fetch(`${API_URL}/mock-interviews/sessions?limit=1000&status=scheduled`, {
+      const sessionsResponse = await fetch(`${API_URL}/mock-interviews/sessions?limit=1000`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -112,7 +113,9 @@ export default function StudentInterviews() {
 
       if (sessionsResponse.ok) {
         const sessionsResult = await sessionsResponse.json();
-        setAvailableSessions(sessionsResult.data?.sessions || []);
+        const sessions = sessionsResult.data?.sessions || [];
+        console.log('📋 Available sessions received:', sessions);
+        setAvailableSessions(sessions);
       } else {
         console.error('Sessions response error:', sessionsResponse.status, await sessionsResponse.text());
       }
@@ -182,6 +185,14 @@ export default function StudentInterviews() {
     }
   };
 
+  // Check if user is already booked for a session
+  const isUserBooked = (sessionId: string): boolean => {
+    return myBookings.some(booking => 
+      booking.session_id === sessionId && 
+      (booking.booking_status === 'confirmed' || booking.booking_status === 'pending')
+    );
+  };
+
   const joinSession = async (sessionId: string) => {
     // Navigate to lobby/waiting room instead of directly joining
     navigate(`/interview/lobby/${sessionId}`);
@@ -194,8 +205,8 @@ export default function StudentInterviews() {
                          session.topic?.toLowerCase().includes(searchLower) ||
                          (session.instructor?.name || '').toLowerCase().includes(searchLower);
     const hasSlots = session.slots_available > 0;
-    const isUpcoming = new Date(session.session_date) > new Date();
-    return matchesSearch && hasSlots && isUpcoming;
+    // Temporarily removed date filter: const isUpcoming = new Date(session.session_date) > new Date();
+    return matchesSearch && hasSlots; // Removed: && isUpcoming
   });
 
   // Pagination
@@ -399,14 +410,25 @@ export default function StudentInterviews() {
                   </div>
                   
                   <div className="flex items-center gap-2">
-                    <Button 
-                      onClick={() => bookSession(session.id)}
-                      className="flex items-center gap-2"
-                      disabled={session.slots_available === 0}
-                    >
-                      <Calendar className="w-4 h-4" />
-                      Book Now
-                    </Button>
+                    {isUserBooked(session.id) ? (
+                      <Button 
+                        disabled
+                        variant="secondary"
+                        className="flex items-center gap-2 bg-green-100 text-green-700 hover:bg-green-100"
+                      >
+                        <Check className="w-4 h-4" />
+                        Already Booked
+                      </Button>
+                    ) : (
+                      <Button 
+                        onClick={() => bookSession(session.id)}
+                        className="flex items-center gap-2"
+                        disabled={session.slots_available === 0}
+                      >
+                        <Calendar className="w-4 h-4" />
+                        Book Now
+                      </Button>
+                    )}
                     
                     <Button variant="outline" size="sm">
                       <ChevronRight className="w-4 h-4" />
