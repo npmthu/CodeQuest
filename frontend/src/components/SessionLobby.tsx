@@ -547,7 +547,7 @@ export default function SessionLobby({
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => navigate('/interview')}
+            onClick={() => currentUserRole === 'instructor' ? navigate('/instructor/interviews') : navigate('/interview')}
             className="flex items-center gap-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100 transition-all shadow-sm"
           >
             <ArrowLeft className="w-4 h-4" />

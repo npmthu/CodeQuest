@@ -172,7 +172,7 @@ export default function InterviewLobbyPage() {
             <h2 className="text-xl font-semibold text-slate-800">Unable to Load Session</h2>
             <p className="text-slate-600">{error || 'Session not found'}</p>
             <button
-              onClick={() => navigate('/interview')}
+              onClick={() => userRole == 'instructor' ? navigate('/instructor/interviews') : navigate('/interview')}
               className="mt-4 px-6 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors shadow-lg"
             >
               Back to Interviews
