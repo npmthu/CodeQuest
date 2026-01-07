@@ -26,6 +26,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useInstructorProblemDetail } from "../hooks/useApi";
 import { useState } from "react";
 import type { SuspicionBreakdown, PasteEvent } from "../hooks/usePasteDetection";
+import { formatTestCaseInput, formatTestCaseOutput, formatProblemIOInput, formatProblemIOOutput } from "../services/testCaseFormatter";
 
 // Helper function to get suspicion score badge color
 const getSuspicionBadge = (score: number | null | undefined) => {
@@ -302,16 +303,16 @@ export default function InstructorProblemDetail() {
                     <p className="text-sm font-medium text-gray-600 mb-2">
                       Input Format:
                     </p>
-                    <pre className="bg-gray-100 p-3 rounded text-sm overflow-x-auto">
-                      {JSON.stringify(problemIO.input, null, 2)}
+                    <pre className="bg-gray-100 p-3 rounded text-sm overflow-x-auto font-mono">
+                      {formatProblemIOInput(problemIO.input)}
                     </pre>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-600 mb-2">
                       Output Format:
                     </p>
-                    <pre className="bg-gray-100 p-3 rounded text-sm overflow-x-auto">
-                      {JSON.stringify(problemIO.output, null, 2)}
+                    <pre className="bg-gray-100 p-3 rounded text-sm overflow-x-auto font-mono">
+                      {formatProblemIOOutput(problemIO.output)}
                     </pre>
                   </div>
                 </div>
@@ -383,20 +384,16 @@ export default function InstructorProblemDetail() {
                         <p className="text-sm font-medium text-gray-600 mb-1">
                           Input:
                         </p>
-                        <pre className="bg-gray-100 p-3 rounded text-sm overflow-x-auto max-h-32">
-                          {typeof tc.input === "object"
-                            ? JSON.stringify(tc.input, null, 2)
-                            : tc.input}
+                        <pre className="bg-gray-100 p-3 rounded text-sm overflow-x-auto max-h-32 font-mono">
+                          {formatTestCaseInput(tc.input)}
                         </pre>
                       </div>
                       <div>
                         <p className="text-sm font-medium text-gray-600 mb-1">
                           Expected Output:
                         </p>
-                        <pre className="bg-gray-100 p-3 rounded text-sm overflow-x-auto max-h-32">
-                          {typeof tc.expected_output === "object"
-                            ? JSON.stringify(tc.expected_output, null, 2)
-                            : tc.expected_output}
+                        <pre className="bg-gray-100 p-3 rounded text-sm overflow-x-auto max-h-32 font-mono">
+                          {formatTestCaseOutput(tc.expected_output)}
                         </pre>
                       </div>
                     </div>

@@ -205,9 +205,14 @@ CREATE TABLE public.interview_bookings (
   cancelled_at timestamp with time zone,
   notes text,
   no_show_reported boolean DEFAULT false,
+  payment_method character varying CHECK (payment_method::text = ANY (ARRAY['credit_card'::character varying, 'bank_transfer'::character varying, 'free'::character varying]::text[])),
+  payment_proof_url text,
+  payment_verified_at timestamp with time zone,
+  payment_verified_by uuid,
   CONSTRAINT interview_bookings_pkey PRIMARY KEY (id),
   CONSTRAINT interview_bookings_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.mock_interview_sessions(id),
-  CONSTRAINT interview_bookings_learner_id_fkey FOREIGN KEY (learner_id) REFERENCES public.users(id)
+  CONSTRAINT interview_bookings_learner_id_fkey FOREIGN KEY (learner_id) REFERENCES public.users(id),
+  CONSTRAINT interview_bookings_payment_verified_by_fkey FOREIGN KEY (payment_verified_by) REFERENCES public.users(id)
 );
 CREATE TABLE public.interview_feedback (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -405,6 +410,7 @@ CREATE TABLE public.problems (
   metadata jsonb DEFAULT '{}'::jsonb,
   editorial_markdown text,
   topic_id uuid,
+  hint text,
   CONSTRAINT problems_pkey PRIMARY KEY (id),
   CONSTRAINT problems_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id),
   CONSTRAINT problems_topic_id_fkey FOREIGN KEY (topic_id) REFERENCES public.topics(id)
@@ -498,7 +504,7 @@ CREATE TABLE public.submissions (
   execution_summary jsonb,
   compilation_output text,
   metadata jsonb DEFAULT '{}'::jsonb,
-  suspicion_score real CHECK (suspicion_score > 0.0::double precision AND suspicion_score < 1::double precision),
+  suspicion_score real CHECK (suspicion_score >= 0.0::double precision AND suspicion_score <= 1::double precision),
   suspicion_breakdown jsonb,
   CONSTRAINT submissions_pkey PRIMARY KEY (id),
   CONSTRAINT submissions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),

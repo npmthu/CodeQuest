@@ -51,6 +51,7 @@ export interface Problem {
   sampleTestCases?: TestCase[];
   hints?: Hint[];
   tags?: string[];
+  hint?: string;
 }
 
 

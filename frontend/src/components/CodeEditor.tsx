@@ -37,6 +37,7 @@ import type {
   ProblemIO,
   IOParameter 
 } from "../interfaces";
+import { formatTestCaseInput, formatTestCaseOutput } from "../services/testCaseFormatter";
 
 // ---------- Component Props ----------
 interface CodeEditorProps {
@@ -601,6 +602,11 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
             </TabsList>
 
             <TabsContent value="description" className="flex-1 min-h-0 overflow-y-auto p-6 space-y-4 m-0">
+              <div className="prose max-w-none text-sm whitespace-pre-wrap">
+                {/* show markdown raw (to avoid adding dependencies). In a real app render markdown to HTML. */}
+                <pre className="whitespace-pre-wrap text-sm">{problem.descriptionMarkdown}</pre>
+              </div>
+
               <div className="text-sm text-gray-600">
                 <div className="mb-3">
                   <div className="font-medium">Input format</div>
@@ -618,11 +624,6 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
                 </div>
               </div>
 
-              <div className="prose max-w-none text-sm whitespace-pre-wrap">
-                {/* show markdown raw (to avoid adding dependencies). In a real app render markdown to HTML. */}
-                <pre className="whitespace-pre-wrap text-sm">{problem.descriptionMarkdown}</pre>
-              </div>
-
               <div>
                 <div className="font-medium mb-2">Sample Test Cases</div>
                 <div className="space-y-3">
@@ -631,12 +632,12 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
                       <div className="text-sm">
                         {tc.name && <div className="font-semibold mb-2">{tc.name}</div>}
                         <div className="font-medium">Input:</div>
-                        <pre className="whitespace-pre-wrap bg-white p-2 rounded border text-xs">
-                          {JSON.stringify(tc.input, null, 2)}
+                        <pre className="whitespace-pre-wrap bg-white p-2 rounded border text-xs font-mono">
+                          {formatTestCaseInput(tc.input)}
                         </pre>
                         <div className="font-medium mt-2">Expected Output:</div>
-                        <pre className="whitespace-pre-wrap bg-white p-2 rounded border text-xs">
-                          {JSON.stringify(tc.expectedOutput, null, 2)}
+                        <pre className="whitespace-pre-wrap bg-white p-2 rounded border text-xs font-mono">
+                          {formatTestCaseOutput(tc.expectedOutput)}
                         </pre>
                       </div>
                     </Card>
@@ -652,7 +653,11 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
                   Hints
                 </h3>
               </div>
-              {(problem.hints || []).length > 0 ? (
+              {problem.hint ? (
+                <Card className="p-4 bg-blue-50 border-blue-200 flex items-start gap-3">
+                  <div className="text-sm whitespace-pre-wrap">{problem.hint}</div>
+                </Card>
+              ) : (problem.hints || []).length > 0 ? (
                 <div className="space-y-3">
                   {(problem.hints || []).map((h: any, i: any) => (
                     <Card key={i} className="p-3 bg-blue-50 border-blue-200 flex items-start gap-3">
@@ -873,16 +878,16 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
                           <div className="grid grid-cols-1 gap-2 text-xs">
                             <div>
                               <div className="font-medium text-gray-700">Input:</div>
-                              <pre className="bg-gray-100 p-2 rounded mt-1 whitespace-pre-wrap overflow-auto max-h-24">
-                                {result.input ? (typeof result.input === 'object' ? JSON.stringify(result.input, null, 2) : result.input) : '[Hidden]'}
+                              <pre className="bg-gray-100 p-2 rounded mt-1 whitespace-pre-wrap overflow-auto max-h-24 font-mono">
+                                {result.input ? formatTestCaseInput(result.input) : '[Hidden]'}
                               </pre>
                             </div>
                             
                             <div className="grid grid-cols-2 gap-2">
                               <div>
                                 <div className="font-medium text-gray-700">Expected Output:</div>
-                                <pre className="bg-gray-100 p-2 rounded mt-1 whitespace-pre-wrap overflow-auto max-h-24">
-                                  {result.expected_output ? (typeof result.expected_output === 'object' ? JSON.stringify(result.expected_output, null, 2) : result.expected_output) : '[Hidden]'}
+                                <pre className="bg-gray-100 p-2 rounded mt-1 whitespace-pre-wrap overflow-auto max-h-24 font-mono">
+                                  {result.expected_output ? formatTestCaseOutput(result.expected_output) : '[Hidden]'}
                                 </pre>
                               </div>
                               
@@ -935,11 +940,11 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
                             <div className="font-medium">Test case {i + 1} — {state.replace("_", " ")}</div>
                             <div className="text-xs text-gray-600 mt-1">
                               <div>Input:</div>
-                              <pre className="whitespace-pre-wrap bg-gray-100 p-1 rounded mt-0.5">{JSON.stringify(tc.input, null, 2)}</pre>
+                              <pre className="whitespace-pre-wrap bg-gray-100 p-1 rounded mt-0.5 font-mono">{formatTestCaseInput(tc.input)}</pre>
                             </div>
                             <div className="text-xs text-gray-600 mt-2">
                               <div>Expected Output:</div>
-                              <pre className="whitespace-pre-wrap bg-gray-100 p-1 rounded mt-0.5">{JSON.stringify(tc.expectedOutput, null, 2)}</pre>
+                              <pre className="whitespace-pre-wrap bg-gray-100 p-1 rounded mt-0.5 font-mono">{formatTestCaseOutput(tc.expectedOutput)}</pre>
                             </div>
                           </div>
                         </div>

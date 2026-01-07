@@ -43,6 +43,7 @@ export interface ProblemDTO {
   totalAccepted: number;
   topicId?: string;
   createdAt?: string;
+  hint?: string;
 }
 
 export interface ProblemDetailDTO extends ProblemDTO {

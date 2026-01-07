@@ -28,7 +28,8 @@ export function mapProblemToDTO(problem: Problem): ProblemDTO {
     totalSubmissions: problem.total_submissions || 0,
     totalAccepted: problem.total_accepted || 0,
     topicId: problem.topic_id,
-    createdAt: problem.created_at
+    createdAt: problem.created_at,
+    hint: problem.hint
   };
 }
 

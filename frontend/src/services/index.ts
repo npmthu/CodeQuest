@@ -11,3 +11,4 @@ export * from './forum.service';
 export * from './course.service';
 export * from './ai.service';
 export * from './subscription.service';
+export * from './testCaseFormatter';

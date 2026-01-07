@@ -22,6 +22,7 @@ export interface Problem {
   updated_at?: string;
   metadata?: Record<string, any>;
   editorial_markdown?: string;
+  hint?: string;
 }
 
 export interface ProblemSummary {
