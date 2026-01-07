@@ -24,6 +24,7 @@ import {
   useCourseProgress,
   useClaimCertificate,
   useDownloadCertificatePDF,
+  useCourseCertificate,
 } from "../hooks/useApi";
 
 export default function CourseDetailPage() {
@@ -33,6 +34,7 @@ export default function CourseDetailPage() {
   const { data: course, isLoading: loadingCourse } = useCourse(courseId || "");
   const { data: topicsData, isLoading: loadingTopics } = useTopics();
   const { data: progressData } = useCourseProgress(courseId || "");
+  const { data: existingCertificate } = useCourseCertificate(courseId || "");
   const claimCertificate = useClaimCertificate();
   const downloadCertificate = useDownloadCertificatePDF();
 
@@ -51,9 +53,13 @@ export default function CourseDetailPage() {
   const progressPercent = Number(progressData?.progressPercent) || 0;
   const topicStats = progressData?.topicStats || {};
 
-  // Check if course is completed - use completedLessons === totalLessons as primary check
+  // Check if course is completed
+  // Course is complete if:
+  // 1. All lessons are completed (completedLessons >= totalLessons AND totalLessons > 0)
+  // 2. OR there are no lessons at all (totalLessons === 0 AND topics exist)
   const isCourseCompleted =
-    totalLessons > 0 && completedLessons >= totalLessons;
+    (totalLessons > 0 && completedLessons >= totalLessons) ||
+    (totalLessons === 0 && topics.length > 0);
 
   // Debug log
   console.log("Progress Debug:", {
@@ -61,17 +67,54 @@ export default function CourseDetailPage() {
     totalLessons,
     progressPercent,
     isCourseCompleted,
+    topicsCount: topics.length,
   });
 
   // Handle claiming certificate
   const handleClaimCertificate = async () => {
     if (!courseId) return;
+    if (!isCourseCompleted) {
+      alert("Please complete all lessons before claiming your certificate.");
+      return;
+    }
     try {
+      // Check if certificate already exists
+      if (existingCertificate) {
+        // Certificate already exists, just download it
+        await downloadCertificate.mutateAsync(existingCertificate.id);
+        alert("Certificate downloaded successfully!");
+        return;
+      }
+
+      // Claim new certificate
       const newCertificate = await claimCertificate.mutateAsync(courseId);
       // Automatically download the PDF after claiming
       await downloadCertificate.mutateAsync(newCertificate.id);
-    } catch (error) {
+      alert("Certificate claimed and downloaded successfully!");
+    } catch (error: any) {
       console.error("Failed to claim certificate:", error);
+      
+      // If certificate already exists error, try to download existing one
+      if (error?.message?.includes("already exists")) {
+        try {
+          // Fetch the existing certificate and download it
+          const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api'}/certificates/course/${courseId}`, {
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+            },
+          });
+          const result = await response.json();
+          if (result.success && result.data) {
+            await downloadCertificate.mutateAsync(result.data.id);
+            alert("Certificate downloaded successfully!");
+            return;
+          }
+        } catch (downloadError) {
+          console.error("Failed to download existing certificate:", downloadError);
+        }
+      }
+      
+      alert(error?.message || "Failed to claim certificate. Please try again.");
     }
   };
 
@@ -249,22 +292,42 @@ export default function CourseDetailPage() {
                 {/* Certificate Button */}
                 <button
                   style={{
-                    backgroundColor: "#f59e0b",
-                    color: "white",
+                    backgroundColor: isCourseCompleted ? "#f59e0b" : "#d1d5db",
+                    color: isCourseCompleted ? "white" : "#6b7280",
                     padding: "12px 24px",
                     borderRadius: "8px",
                     border: "none",
-                    cursor: "pointer",
+                    cursor: isCourseCompleted ? "pointer" : "not-allowed",
                     display: "flex",
                     alignItems: "center",
                     gap: "8px",
                     fontSize: "16px",
                     fontWeight: "bold",
+                    transition: isCourseCompleted ? "background-color 0.2s" : "none",
                   }}
-                  onClick={handleClaimCertificate}
+                  onMouseEnter={(e) => {
+                    if (isCourseCompleted) {
+                      e.currentTarget.style.backgroundColor = "#d97706";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (isCourseCompleted) {
+                      e.currentTarget.style.backgroundColor = "#f59e0b";
+                    }
+                  }}
+                  onClick={isCourseCompleted ? handleClaimCertificate : undefined}
+                  disabled={!isCourseCompleted}
+                  title={
+                    isCourseCompleted 
+                      ? (existingCertificate ? "Download your certificate" : "Claim your certificate")
+                      : "Complete all lessons to unlock certificate"
+                  }
                 >
                   <Award className="w-5 h-5" />
-                  Claim Certificate
+                  {isCourseCompleted 
+                    ? (existingCertificate ? "Download Certificate" : "Claim Certificate")
+                    : "🔒 Complete Course to Unlock"
+                  }
                 </button>
               </div>
             </div>
@@ -311,11 +374,17 @@ export default function CourseDetailPage() {
                         (topicProgress.completed / topicProgress.total) * 100
                       )
                     : 0;
+                
+                const isTopicCompleted = topicPercent === 100 || topicProgress.total === 0;
 
                 return (
                   <Card
                     key={topic.id}
-                    className="p-6 hover:shadow-lg transition-all cursor-pointer bg-white border-2 hover:border-blue-300"
+                    className={`p-6 hover:shadow-lg transition-all cursor-pointer bg-white border-2 ${
+                      isTopicCompleted
+                        ? "border-green-300 bg-green-50/30 hover:border-green-400"
+                        : "hover:border-blue-300"
+                    }`}
                     onClick={() => navigate(`/topics/${topic.id}/lessons`)}
                   >
                     <div className="flex items-start gap-6">
@@ -329,13 +398,21 @@ export default function CourseDetailPage() {
                       {/* Topic Content */}
                       <div className="flex-1">
                         <div className="flex items-start justify-between mb-2">
-                          <div>
-                            <h3 className="text-xl font-semibold text-gray-900">
-                              {topic.name}
-                            </h3>
-                            <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
-                              {topic.description || "No description available"}
-                            </p>
+                          <div className="flex items-center gap-3">
+                            <div>
+                              <h3 className="text-xl font-semibold text-gray-900">
+                                {topic.name}
+                              </h3>
+                              <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
+                                {topic.description || "No description available"}
+                              </p>
+                            </div>
+                            {topicPercent === 100 && (
+                              <Badge className="bg-green-500 text-white border-green-600 flex items-center gap-1 px-3 py-1">
+                                <CheckCircle2 className="w-4 h-4" />
+                                Completed
+                              </Badge>
+                            )}
                           </div>
                           <Badge
                             variant="outline"

@@ -72,8 +72,11 @@ export function QuizTake({ quiz }: QuizTakeProps) {
 
       console.log("Submit result:", result);
 
-      // Navigate to results page
-      navigate(`/quizzes/${quiz.id}/result/${result.id}`);
+      // Navigate to results page with state to track origin
+      const state = window.history.state?.usr;
+      navigate(`/quizzes/${quiz.id}/result/${result.id}`, {
+        state: state ? { fromTopic: state.fromTopic } : undefined
+      });
     } catch (error: any) {
       alert(error.message || "Failed to submit quiz");
       setIsSubmitting(false);

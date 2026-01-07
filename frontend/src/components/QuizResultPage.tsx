@@ -4,12 +4,15 @@ import { useQuizResult } from "../hooks/useApi";
 
 export default function QuizResultPage() {
   const { id, resultId } = useParams<{ id: string; resultId: string }>();
-  useNavigate();
+  const navigate = useNavigate();
   const {
     data: result,
     isLoading,
     error,
   } = useQuizResult(id || "", resultId || "");
+  
+  // Get navigation state to determine where user came from
+  const locationState = window.history.state?.usr;
 
   if (isLoading) {
     return (
@@ -47,12 +50,21 @@ export default function QuizResultPage() {
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-4xl mx-auto">
         {/* Back button */}
-        <Link
-          to={`/quizzes/${id}`}
-          className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-6"
+        <button
+          onClick={() => {
+            // Check if there's a referrer in the state or navigate back
+            if (locationState?.fromTopic) {
+              navigate(`/topics/${locationState.fromTopic}/lessons`);
+            } else if (window.history.length > 2) {
+              navigate(-1);
+            } else {
+              navigate('/quizzes');
+            }
+          }}
+          className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-6 bg-transparent border-none cursor-pointer"
         >
-          ← Back to quiz
-        </Link>
+          ← Back
+        </button>
 
         {/* Result summary */}
         <div

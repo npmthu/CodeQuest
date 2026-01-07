@@ -139,8 +139,11 @@ export async function checkCourseCompletion(
     .eq("is_published", true);
 
   if (lessonsError) throw lessonsError;
+  
+  // If course has no lessons at all, consider it as complete
+  // (topics with 0 lessons are automatically complete)
   if (!lessons || lessons.length === 0) {
-    return { isCompleted: false, totalLessons: 0, completedLessons: 0 };
+    return { isCompleted: true, totalLessons: 0, completedLessons: 0 };
   }
 
   const lessonIds = lessons.map((l) => l.id);
@@ -159,7 +162,7 @@ export async function checkCourseCompletion(
   const totalLessons = lessons.length;
 
   return {
-    isCompleted: completedLessons === totalLessons && totalLessons > 0,
+    isCompleted: completedLessons === totalLessons,
     totalLessons,
     completedLessons,
   };

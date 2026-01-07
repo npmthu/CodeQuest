@@ -38,14 +38,8 @@ export class QuizSubmissionController {
         return res.status(404).json({ error: "Quiz not found" });
       }
 
-      // Check if user has already taken this quiz
-      const hasTaken = await quizService.hasUserTakenQuiz(user.id, quizId);
-      if (hasTaken) {
-        return res.status(400).json({
-          error: "You have already taken this quiz",
-          message: "Each quiz can only be taken once",
-        });
-      }
+      // Allow retaking quizzes - removed the restriction
+      // Users can now retake quizzes to improve their scores
 
       // Grade the quiz
       console.log("🎯 Starting grading process...");

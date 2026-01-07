@@ -9,9 +9,10 @@ export class QuizController {
   /**
    * GET /api/quiz - Get all quizzes (optionally filter by topic)
    */
-  async getAllQuizzes(req: Request, res: Response) {
+  async getAllQuizzes(req: AuthRequest, res: Response) {
     try {
       const { topicId } = req.query;
+      const user = req.user;
 
       if (topicId && typeof topicId === "string") {
         const quizzes = await quizService.getQuizzesByTopic(topicId);
@@ -34,7 +35,7 @@ export class QuizController {
       if (error) throw error;
 
       // Process count aggregates and map to camelCase
-      const processedQuizzes = quizzes?.map((quiz: any) => ({
+      let processedQuizzes = quizzes?.map((quiz: any) => ({
         ...mapQuizToDTO(quiz),
         topic: quiz.topic ? {
           id: quiz.topic.id,
@@ -43,6 +44,36 @@ export class QuizController {
         questionCount: quiz.questions?.[0]?.count || 0,
         attemptCount: quiz.attempts?.[0]?.count || 0,
       }));
+
+      // For students, check if quiz is locked based on lesson completion
+      if (user && user.role === 'learner' && processedQuizzes) {
+        const quizzesWithLockStatus = await Promise.all(
+          processedQuizzes.map(async (quiz: any) => {
+            if (!quiz.topic?.id) return { ...quiz, isLocked: false };
+
+            // Get all lessons for this topic
+            const { data: lessons } = await supabaseAdmin
+              .from('lessons')
+              .select('id')
+              .eq('topic_id', quiz.topic.id);
+
+            if (!lessons || lessons.length === 0) {
+              return { ...quiz, isLocked: false };
+            }
+
+            // Check how many lessons the user has completed
+            const { data: completions } = await supabaseAdmin
+              .from('lesson_completions')
+              .select('lesson_id')
+              .eq('user_id', user.id)
+              .in('lesson_id', lessons.map(l => l.id));
+
+            const isLocked = (completions?.length || 0) < lessons.length;
+            return { ...quiz, isLocked };
+          })
+        );
+        processedQuizzes = quizzesWithLockStatus;
+      }
 
       res.json({ success: true, data: processedQuizzes });
     } catch (error) {

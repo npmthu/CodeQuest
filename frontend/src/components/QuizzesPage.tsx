@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { useQuizzes } from "../hooks/useApi";
+import React, { useState, useMemo } from "react";
+import { useQuizzes, useLessons } from "../hooks/useApi";
 import { QuizList } from "./quiz/QuizList";
 import { useAuth } from "../contexts/AuthContext";
 import { Link } from "react-router-dom";
@@ -11,6 +11,20 @@ export default function QuizzesPage() {
   const { user } = useAuth();
 
   const isInstructor = user?.role === "instructor" || user?.role === "admin";
+  
+  // Filter unlocked quizzes based on lesson completion
+  const unlockedQuizzes = useMemo(() => {
+    if (isInstructor) {
+      // Instructors see all quizzes
+      return quizzes || [];
+    }
+    
+    if (!quizzes) return [];
+    
+    // Filter out locked quizzes for students
+    // The backend adds 'isLocked' field based on lesson completion
+    return quizzes.filter((quiz: any) => !quiz.isLocked);
+  }, [quizzes, isInstructor]);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -54,10 +68,10 @@ export default function QuizzesPage() {
       </div> */}
 
       <QuizList
-        quizzes={quizzes || []}
+        quizzes={unlockedQuizzes}
         loading={isLoading}
         error={error?.message}
-        emptyMessage="No quizzes available yet. Check back soon!"
+        emptyMessage={isInstructor ? "No quizzes available yet. Check back soon!" : "No unlocked quizzes available. Complete lessons to unlock quizzes!"}
       />
       </div>
     </div>

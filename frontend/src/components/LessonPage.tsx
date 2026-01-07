@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { useLessons, useQuizzes, useGetCurrentLesson, useProblemsByTopic, useTopic } from "../hooks/useApi";
+import { useLessons, useQuizzes, useGetCurrentLesson, useProblemsByTopic, useTopic, useQuizResults } from "../hooks/useApi";
 import type { LessonWithProgress } from "../interfaces";
 
 export default function LessonPage() {
@@ -40,6 +40,9 @@ export default function LessonPage() {
   // Fetch quizzes for this topic
   const { data: quizzesData } = useQuizzes(topicId);
   const topicQuiz = quizzesData?.[0]; // Get the first quiz for this topic
+  
+  // Fetch quiz results to check if user has completed it
+  const { data: quizResults } = useQuizResults(topicQuiz?.id || '', !!topicQuiz);
 
   // Fetch problems for this topic
   const { data: problemsData, isLoading: problemsLoading } = useProblemsByTopic(topicId);
@@ -155,7 +158,7 @@ export default function LessonPage() {
             <h3 className="mb-4">Course Content</h3>
             {lessons.map((lesson) => {
               const isCompleted = lesson.isCompleted;
-              const isCurrent = currentLessonId === lesson.id;
+              const isCurrent = currentLessonId === lesson.id && !allLessonsCompleted;
 
               // Get lesson icon based on difficulty
               const getLessonIconComponent = () => {
@@ -170,7 +173,7 @@ export default function LessonPage() {
                 <Card
                   key={lesson.id}
                   className={`p-6 cursor-pointer hover:shadow-md transition-all ${
-                    isCurrent ? "border-2 border-blue-500" : ""
+                    isCurrent && !allLessonsCompleted ? "border-2 border-blue-500" : ""
                   }`}
                   onClick={() => navigate(`/lessons/${lesson.id}`)}
                 >
@@ -208,7 +211,7 @@ export default function LessonPage() {
                             )}
                           </div>
                         </div>
-                        {isCurrent && (
+                        {isCurrent && !allLessonsCompleted && (
                           <Button
                             size="sm"
                             className="bg-blue-600 hover:bg-blue-700"
@@ -317,7 +320,9 @@ export default function LessonPage() {
                       : "cursor-not-allowed bg-gray-50 border-2 border-gray-200 opacity-75"
                   }`}
                   onClick={() =>
-                    allLessonsCompleted && navigate(`/quizzes/${topicQuiz.id}`)
+                    allLessonsCompleted && navigate(`/quizzes/${topicQuiz.id}`, {
+                      state: { fromTopic: topicId }
+                    })
                   }
                 >
                   <div className="flex items-start gap-4">
@@ -387,19 +392,26 @@ export default function LessonPage() {
                         <Button
                           size="sm"
                           className={
-                            allLessonsCompleted
+                            allLessonsCompleted || (quizResults && quizResults.length > 0)
                               ? "bg-purple-600 hover:bg-purple-700"
                               : "bg-gray-400 cursor-not-allowed"
                           }
-                          disabled={!allLessonsCompleted}
+                          disabled={!allLessonsCompleted && !(quizResults && quizResults.length > 0)}
                           onClick={(e: React.MouseEvent) => {
                             e.stopPropagation();
-                            if (allLessonsCompleted) {
-                              navigate(`/quizzes/${topicQuiz.id}`);
+                            if (allLessonsCompleted || (quizResults && quizResults.length > 0)) {
+                              navigate(`/quizzes/${topicQuiz.id}`, {
+                                state: { fromTopic: topicId }
+                              });
                             }
                           }}
                         >
-                          {allLessonsCompleted ? (
+                          {quizResults && quizResults.length > 0 ? (
+                            <>
+                              <CheckCircle2 className="w-3 h-3 mr-1" />
+                              Retake Quiz
+                            </>
+                          ) : allLessonsCompleted ? (
                             "Take Quiz"
                           ) : (
                             <>

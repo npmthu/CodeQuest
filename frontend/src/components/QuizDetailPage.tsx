@@ -7,9 +7,12 @@ import type { QuizDetail } from "../interfaces/quiz.interface";
 
 export default function QuizDetailPage() {
   const { id } = useParams<{ id: string }>();
-  useNavigate();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [showTake, setShowTake] = useState(false);
+  
+  // Get navigation state to determine where user came from
+  const locationState = window.history.state?.usr;
 
   const isInstructor = user?.role === "instructor" || user?.role === "admin";
 
@@ -59,12 +62,21 @@ export default function QuizDetailPage() {
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-4xl mx-auto">
         {/* Back button */}
-        <Link
-          to="/quizzes"
-          className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-6"
+        <button
+          onClick={() => {
+            // Check if there's a referrer in the state or navigate back
+            if (locationState?.fromTopic) {
+              navigate(`/topics/${locationState.fromTopic}/lessons`);
+            } else if (window.history.length > 2) {
+              navigate(-1);
+            } else {
+              navigate('/quizzes');
+            }
+          }}
+          className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-6 bg-transparent border-none cursor-pointer"
         >
-          ← Back to quizzes
-        </Link>
+          ← Back
+        </button>
 
         {/* Quiz header */}
         <div className="bg-white rounded-lg shadow-md p-8 mb-6">
@@ -120,19 +132,27 @@ export default function QuizDetailPage() {
           {/* Action buttons */}
           <div className="flex gap-4">
             {results && results.length > 0 ? (
-              <div className="flex-grow">
-                <div className="p-4 bg-green-50 border border-green-200 rounded-lg text-center">
-                  <p className="text-green-800 font-semibold">
-                    Completed - You've completed this quiz
-                  </p>
-                  <Link
-                    to={`/quizzes/${quiz.id}/results`}
-                    className="text-blue-600 hover:underline mt-2 inline-block"
-                  >
-                    View your results →
-                  </Link>
+              <>
+                <div className="flex-grow">
+                  <div className="p-4 bg-green-50 border border-green-200 rounded-lg text-center">
+                    <p className="text-green-800 font-semibold">
+                      Completed - You've completed this quiz
+                    </p>
+                    <Link
+                      to={`/quizzes/${quiz.id}/results`}
+                      className="text-blue-600 hover:underline mt-2 inline-block"
+                    >
+                      View your results →
+                    </Link>
+                  </div>
                 </div>
-              </div>
+                <button
+                  onClick={() => setShowTake(true)}
+                  className="px-8 py-4 bg-purple-600 text-white font-bold text-lg rounded-lg hover:bg-purple-700 transition-colors"
+                >
+                  Retake Quiz
+                </button>
+              </>
             ) : (
               <button
                 onClick={() => setShowTake(true)}
@@ -201,7 +221,7 @@ export default function QuizDetailPage() {
             </li>
             <li>• The quiz will auto-submit when time runs out</li>
             <li>• You need {quiz.passingScore}% or higher to pass</li>
-            <li>• Each quiz can only be taken once</li>
+            <li>• You can retake the quiz to improve your score</li>
             <li>• Make sure you have a stable internet connection</li>
           </ul>
         </div>
