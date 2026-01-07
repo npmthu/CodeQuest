@@ -289,10 +289,9 @@ export default function InstructorProblemDetail() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card className="p-6">
               <h3 className="font-semibold mb-4">Problem Description</h3>
-              <div
-                className="prose prose-sm max-w-none"
-                dangerouslySetInnerHTML={{ __html: problem.description || "No description" }}
-              />
+              <div className="prose prose-sm max-w-none whitespace-pre-wrap">
+                {problem.description_markdown || "No description"}
+              </div>
             </Card>
 
             <Card className="p-6">
@@ -323,11 +322,46 @@ export default function InstructorProblemDetail() {
 
             <Card className="p-6">
               <h3 className="font-semibold mb-4">Constraints</h3>
-              {problem.constraints ? (
-                <div
-                  className="prose prose-sm max-w-none"
-                  dangerouslySetInnerHTML={{ __html: problem.constraints }}
-                />
+              {problemIO && problemIO.input && problemIO.input.params ? (
+                <div className="space-y-3">
+                  {problemIO.input.params.map((param: any, index: number) => (
+                    <div key={index} className="text-sm">
+                      <span className="font-medium text-gray-700">{param.name}:</span>
+                      {param.constraints && (
+                        <ul className="list-disc list-inside ml-4 mt-1 text-gray-600">
+                          {param.constraints.min_length !== undefined && (
+                            <li>Min length: {param.constraints.min_length}</li>
+                          )}
+                          {param.constraints.max_length !== undefined && (
+                            <li>Max length: {param.constraints.max_length}</li>
+                          )}
+                          {param.constraints.length !== undefined && (
+                            <li>Length: {param.constraints.length}</li>
+                          )}
+                          {param.constraints.value_range && (
+                            <li>Range: [{param.constraints.value_range[0]}, {param.constraints.value_range[1]}]</li>
+                          )}
+                        </ul>
+                      )}
+                    </div>
+                  ))}
+                  {problemIO.output && problemIO.output.constraints && (
+                    <div className="text-sm mt-3">
+                      <span className="font-medium text-gray-700">Output:</span>
+                      <ul className="list-disc list-inside ml-4 mt-1 text-gray-600">
+                        {problemIO.output.constraints.length !== undefined && (
+                          <li>Length: {problemIO.output.constraints.length}</li>
+                        )}
+                        {problemIO.output.constraints.min_length !== undefined && (
+                          <li>Min length: {problemIO.output.constraints.min_length}</li>
+                        )}
+                        {problemIO.output.constraints.max_length !== undefined && (
+                          <li>Max length: {problemIO.output.constraints.max_length}</li>
+                        )}
+                      </ul>
+                    </div>
+                  )}
+                </div>
               ) : (
                 <p className="text-gray-500">No constraints defined</p>
               )}
@@ -335,7 +369,11 @@ export default function InstructorProblemDetail() {
 
             <Card className="p-6">
               <h3 className="font-semibold mb-4">Hints</h3>
-              {problem.hints && problem.hints.length > 0 ? (
+              {problem.hint ? (
+                <div className="text-sm text-gray-700 whitespace-pre-wrap">
+                  {problem.hint}
+                </div>
+              ) : problem.hints && problem.hints.length > 0 ? (
                 <ul className="space-y-2">
                   {problem.hints.map((hint: string, index: number) => (
                     <li key={index} className="flex items-start gap-2">
