@@ -208,7 +208,6 @@ export default function InstructorProblemDetail() {
             )}
           </div>
           <p className="text-sm text-gray-500">
-            Slug: <code className="bg-gray-100 px-1 rounded">{problem.slug}</code>
             <span className="ml-4">
               Time Limit: {problem.time_limit_ms}ms | Memory: {problem.memory_limit_kb}KB
             </span>
