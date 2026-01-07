@@ -580,12 +580,8 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
                 <option value="java">Java</option>
                 <option value="cpp">C++</option>
               </select>
-              <ChevronDown className="absolute right-2 top-2 w-4 h-4 text-gray-400 pointer-events-none" />
             </div>
 
-            <Button variant="outline" size="sm">
-              <Settings className="w-4 h-4" />
-            </Button>
           </div>
         </div>
       </div>
