@@ -226,7 +226,6 @@ export default function InstructorProblemsPage() {
                   </div>
 
                   <p className="text-sm text-gray-500 mb-3">
-                    Slug: <code className="bg-gray-100 px-1 rounded">{problem.slug}</code>
                     {problem.topicName && (
                       <span className="ml-4">
                         Topic: <span className="font-medium">{problem.topicName}</span>
