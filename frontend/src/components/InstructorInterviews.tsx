@@ -72,7 +72,6 @@ export default function InstructorInterviews() {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [showFilters, setShowFilters] = useState(false);
 
   // Cancel session modal state
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
@@ -348,69 +347,8 @@ export default function InstructorInterviews() {
                 {language === "vi" ? "Đã hủy" : "Cancelled"}
               </option>
             </select>
-            <Button
-              variant="outline"
-              onClick={() => setShowFilters(!showFilters)}
-              className={
-                showFilters ? "bg-blue-50 border-blue-200 text-blue-600 border-2 shadow-xl" : "border-2 shadow-xl"
-              }
-            >
-              <Filter className="w-4 h-4 mr-2" />
-              {language === "vi" ? "Bộ lọc" : "More Filters"}
-            </Button>
           </div>
         </div>
-
-        {/* Expandable Filters */}
-        {showFilters && (
-          <div className="mt-4 pt-4 border-t grid grid-cols-1 md:grid-cols-3 gap-4 animate-in slide-in-from-top-2 duration-200">
-            <div>
-              <label className="text-sm font-medium text-gray-600 mb-1.5 block">
-                {language === "vi" ? "Độ khó" : "Difficulty"}
-              </label>
-              <select className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm">
-                <option value="">
-                  {language === "vi" ? "Tất cả" : "All Levels"}
-                </option>
-                <option value="beginner">
-                  {language === "vi" ? "Cơ bản" : "Beginner"}
-                </option>
-                <option value="intermediate">
-                  {language === "vi" ? "Trung bình" : "Intermediate"}
-                </option>
-                <option value="advanced">
-                  {language === "vi" ? "Nâng cao" : "Advanced"}
-                </option>
-              </select>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-gray-600 mb-1.5 block">
-                {language === "vi" ? "Chủ đề" : "Topic"}
-              </label>
-              <select className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm">
-                <option value="">
-                  {language === "vi" ? "Tất cả chủ đề" : "All Topics"}
-                </option>
-                <option value="system_design">System Design</option>
-                <option value="algorithms">Data Structures & Algorithms</option>
-                <option value="behavioral">Behavioral</option>
-              </select>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-gray-600 mb-1.5 block">
-                {language === "vi" ? "Khoảng giá" : "Price Range"}
-              </label>
-              <select className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm">
-                <option value="">
-                  {language === "vi" ? "Tất cả giá" : "All Prices"}
-                </option>
-                <option value="0-25">$0 - $25</option>
-                <option value="25-50">$25 - $50</option>
-                <option value="50+">$50+</option>
-              </select>
-            </div>
-          </div>
-        )}
       </Card>
 
       {/* Tabs for Quick Filtering */}
