@@ -479,7 +479,7 @@ export default function InstructorProblemDetail() {
                         </th>
                         <th className="text-left p-3 font-medium">Time</th>
                         <th className="text-left p-3 font-medium">Submitted</th>
-                        <th className="text-left p-3 font-medium">Actions</th>
+                        <th className="text-left p-3 font-medium">Content</th>
                       </tr>
                     </thead>
                     <tbody>
