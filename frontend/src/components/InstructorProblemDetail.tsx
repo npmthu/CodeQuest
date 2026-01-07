@@ -28,21 +28,31 @@ import { useState } from "react";
 import type { SuspicionBreakdown, PasteEvent } from "../hooks/usePasteDetection";
 import { formatTestCaseInput, formatTestCaseOutput, formatProblemIOInput, formatProblemIOOutput } from "../services/testCaseFormatter";
 
-// Helper function to get suspicion score badge color
+// Helper function to get suspicion score badge color (icon only, no percentage)
 const getSuspicionBadge = (score: number | null | undefined) => {
   if (score === null || score === undefined) {
-    return <Badge variant="outline" className="text-gray-500">N/A</Badge>;
+    return (
+      <div className="w-4 h-4 rounded-full bg-gray-300" title="No data" />
+    );
   }
   if (score < 0.2) {
-    return <Badge className="bg-green-100 text-green-700">{(score * 100).toFixed(0)}%</Badge>;
+    return (
+      <div className="w-4 h-4 rounded-full bg-green-500" title="Low suspicion" />
+    );
   }
   if (score < 0.5) {
-    return <Badge className="bg-yellow-100 text-yellow-700">{(score * 100).toFixed(0)}%</Badge>;
+    return (
+      <div className="w-4 h-4 rounded-full bg-yellow-500" title="Moderate suspicion" />
+    );
   }
   if (score < 0.75) {
-    return <Badge className="bg-orange-100 text-orange-700">{(score * 100).toFixed(0)}%</Badge>;
+    return (
+      <div className="w-4 h-4 rounded-full bg-orange-500" title="High suspicion" />
+    );
   }
-  return <Badge className="bg-red-100 text-red-700">{(score * 100).toFixed(0)}%</Badge>;
+  return (
+    <div className="w-4 h-4 rounded-full bg-red-500" title="Very high suspicion" />
+  );
 };
 
 // Helper function to format timestamp
@@ -724,30 +734,37 @@ export default function InstructorProblemDetail() {
 
             {/* Modal Body - Scrollable */}
             <div className="p-4 flex-1 overflow-y-auto" style={{ overflowY: 'auto' }}>
-              {/* Overall Score */}
+              {/* Suspicion Significance */}
               <div className="mb-6 p-4 bg-gray-50 rounded-lg">
                 <div className="flex items-center justify-between mb-3">
-                  <span className="font-medium">Overall Suspicion Score</span>
-                  <span className={`text-2xl font-bold ${
-                    suspicionModalData.breakdown.finalScore < 0.2 ? 'text-green-600' :
-                    suspicionModalData.breakdown.finalScore < 0.5 ? 'text-yellow-600' :
-                    suspicionModalData.breakdown.finalScore < 0.75 ? 'text-orange-600' :
-                    'text-red-600'
+                  <span className="font-medium">Suspicion Level</span>
+                  <span className={`text-lg font-bold px-3 py-1 rounded-full ${
+                    suspicionModalData.breakdown.finalScore < 0.2 
+                      ? 'bg-green-100 text-green-700' 
+                      : suspicionModalData.breakdown.finalScore < 0.5 
+                      ? 'bg-yellow-100 text-yellow-700' 
+                      : suspicionModalData.breakdown.finalScore < 0.75 
+                      ? 'bg-orange-100 text-orange-700' 
+                      : 'bg-red-100 text-red-700'
                   }`}>
-                    {(suspicionModalData.breakdown.finalScore * 100).toFixed(0)}%
+                    {suspicionModalData.breakdown.finalScore < 0.2 
+                      ? 'Low' 
+                      : suspicionModalData.breakdown.finalScore < 0.5 
+                      ? 'Moderate' 
+                      : suspicionModalData.breakdown.finalScore < 0.75 
+                      ? 'High' 
+                      : 'Very High'}
                   </span>
                 </div>
-                <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full transition-all ${
-                      suspicionModalData.breakdown.finalScore < 0.2 ? 'bg-green-500' :
-                      suspicionModalData.breakdown.finalScore < 0.5 ? 'bg-yellow-500' :
-                      suspicionModalData.breakdown.finalScore < 0.75 ? 'bg-orange-500' :
-                      'bg-red-500'
-                    }`}
-                    style={{ width: `${suspicionModalData.breakdown.finalScore * 100}%` }}
-                  />
-                </div>
+                <p className="text-sm text-gray-600">
+                  {suspicionModalData.breakdown.finalScore < 0.2 
+                    ? 'This submission appears to be original work with minimal external assistance.' 
+                    : suspicionModalData.breakdown.finalScore < 0.5 
+                    ? 'Some external paste activity detected. Review the paste events below for details.' 
+                    : suspicionModalData.breakdown.finalScore < 0.75 
+                    ? 'Significant external paste activity detected. This may indicate copied code.' 
+                    : 'High levels of external paste activity. This submission should be reviewed carefully.'}
+                </p>
               </div>
 
               {/* Statistics */}
