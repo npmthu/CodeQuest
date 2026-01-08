@@ -1,0 +1,291 @@
+// Quiz controller - list/get quizzes, start attempt, submit answers
+import { Request, Response } from "express";
+import quizService from "../services/quizService";
+import { AuthRequest } from "../middleware/auth";
+import { supabaseAdmin } from "../config/database";
+import { mapQuizToDTO, mapQuizToDetailDTO } from "../mappers/quiz.mapper";
+
+export class QuizController {
+  /**
+   * GET /api/quiz - Get all quizzes (optionally filter by topic)
+   */
+  async getAllQuizzes(req: AuthRequest, res: Response) {
+    try {
+      const { topicId } = req.query;
+      const user = req.user;
+
+      if (topicId && typeof topicId === "string") {
+        const quizzes = await quizService.getQuizzesByTopic(topicId);
+        return res.json({ success: true, data: quizzes });
+      }
+
+      // Get all quizzes if no topic filter
+      const { data: quizzes, error } = await supabaseAdmin
+        .from("quizzes")
+        .select(
+          `
+          *,
+          topic:topics(id, name),
+          questions:quiz_questions(count),
+          attempts:quiz_attempts(count)
+        `
+        )
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+
+      // Process count aggregates and map to camelCase
+      let processedQuizzes = quizzes?.map((quiz: any) => ({
+        ...mapQuizToDTO(quiz),
+        topic: quiz.topic ? {
+          id: quiz.topic.id,
+          name: quiz.topic.name
+        } : undefined,
+        questionCount: quiz.questions?.[0]?.count || 0,
+        attemptCount: quiz.attempts?.[0]?.count || 0,
+      }));
+
+      // For students, check if quiz is locked based on lesson completion
+      if (user && user.role === 'learner' && processedQuizzes) {
+        const quizzesWithLockStatus = await Promise.all(
+          processedQuizzes.map(async (quiz: any) => {
+            if (!quiz.topic?.id) return { ...quiz, isLocked: false };
+
+            // Get all lessons for this topic
+            const { data: lessons } = await supabaseAdmin
+              .from('lessons')
+              .select('id')
+              .eq('topic_id', quiz.topic.id);
+
+            if (!lessons || lessons.length === 0) {
+              return { ...quiz, isLocked: false };
+            }
+
+            // Check how many lessons the user has completed
+            const { data: completions } = await supabaseAdmin
+              .from('lesson_completions')
+              .select('lesson_id')
+              .eq('user_id', user.id)
+              .in('lesson_id', lessons.map(l => l.id));
+
+            const isLocked = (completions?.length || 0) < lessons.length;
+            return { ...quiz, isLocked };
+          })
+        );
+        processedQuizzes = quizzesWithLockStatus;
+      }
+
+      res.json({ success: true, data: processedQuizzes });
+    } catch (error) {
+      console.error("Error fetching quizzes:", error);
+      res.status(500).json({ error: "Failed to fetch quizzes" });
+    }
+  }
+
+  /**
+   * GET /api/quiz/:id - Get quiz by ID
+   */
+  async getQuizById(req: AuthRequest, res: Response) {
+    try {
+      const { id } = req.params;
+      const user = req.user;
+
+      // Always fetch questions, but hide correct answers from learners
+      const includeAnswers =
+        user?.role === "instructor" || user?.role === "admin";
+
+      const quiz = await quizService.getQuizById(id, includeAnswers);
+
+      if (!quiz) {
+        return res.status(404).json({ error: "Quiz not found" });
+      }
+
+      // Always map to DetailDTO (includes questions), service already hides correct answers for learners
+      const quizDTO = quiz.questions 
+        ? mapQuizToDetailDTO(quiz, quiz.questions)
+        : mapQuizToDTO(quiz);
+
+      // Check if user has already taken the quiz
+      if (user) {
+        const hasTaken = await quizService.hasUserTakenQuiz(user.id, id);
+        return res.json({ success: true, data: { ...quizDTO, hasTaken } });
+      }
+
+      res.json({ success: true, data: quizDTO });
+    } catch (error) {
+      console.error("Error fetching quiz:", error);
+      res.status(500).json({ error: "Failed to fetch quiz" });
+    }
+  }
+
+  /**
+   * POST /api/quiz - Create new quiz (Teacher/Admin only)
+   */
+  async createQuiz(req: AuthRequest, res: Response) {
+    try {
+      const user = req.user;
+
+      // Check authorization
+      if (user?.role !== "instructor" && user?.role !== "admin") {
+        return res
+          .status(403)
+          .json({ error: "Only instructors and admins can create quizzes" });
+      }
+
+      const {
+        title,
+        description,
+        timeLimitMin,
+        topicId,
+        difficulty,
+        passingScore,
+        questions,
+      } = req.body;
+
+      // Validate required fields
+      if (
+        !title ||
+        !timeLimitMin ||
+        !topicId ||
+        !questions ||
+        !Array.isArray(questions)
+      ) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      if (questions.length === 0) {
+        return res
+          .status(400)
+          .json({ error: "Quiz must have at least one question" });
+      }
+
+      const quiz = await quizService.createQuiz({
+        title,
+        description,
+        timeLimitMin,
+        topicId,
+        difficulty,
+        passingScore,
+        createdBy: user.id,
+        questions,
+      });
+
+      // Map response to DTO
+      const quizDTO = mapQuizToDTO(quiz);
+
+      res.status(201).json({ success: true, data: quizDTO });
+    } catch (error) {
+      console.error("Error creating quiz:", error);
+      res.status(500).json({ error: "Failed to create quiz" });
+    }
+  }
+
+  /**
+   * PUT /api/quiz/:id - Update quiz (Teacher/Admin only)
+   */
+  async updateQuiz(req: AuthRequest, res: Response) {
+    try {
+      const { id } = req.params;
+      const user = req.user;
+
+      // Check authorization
+      if (user?.role !== "instructor" && user?.role !== "admin") {
+        return res
+          .status(403)
+          .json({ error: "Only instructors and admins can update quizzes" });
+      }
+
+      const { title, description, timeLimitMin, difficulty, passingScore } =
+        req.body;
+
+      const quiz = await quizService.updateQuiz(id, {
+        title,
+        description,
+        timeLimitMin,
+        difficulty,
+        passingScore,
+      });
+
+      res.json({ success: true, data: quiz });
+    } catch (error) {
+      console.error("Error updating quiz:", error);
+      res.status(500).json({ error: "Failed to update quiz" });
+    }
+  }
+
+  /**
+   * DELETE /api/quiz/:id - Delete quiz (Teacher/Admin only)
+   */
+  async deleteQuiz(req: AuthRequest, res: Response) {
+    try {
+      const { id } = req.params;
+      const user = req.user;
+
+      // Check authorization
+      if (user?.role !== "instructor" && user?.role !== "admin") {
+        return res
+          .status(403)
+          .json({ error: "Only instructors and admins can delete quizzes" });
+      }
+
+      await quizService.deleteQuiz(id);
+
+      res.json({ message: "Quiz deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting quiz:", error);
+      res.status(500).json({ error: "Failed to delete quiz" });
+    }
+  }
+
+  /**
+   * GET /api/quiz/:id/results - Get quiz results
+   */
+  async getQuizResults(req: AuthRequest, res: Response) {
+    try {
+      const { id } = req.params;
+      const user = req.user;
+
+      if (!user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      // Students can only see their own results
+      if (user.role === "learner") {
+        const results = await quizService.getUserResults(user.id, id);
+        return res.json({ success: true, data: results });
+      }
+
+      // Instructors and admins can see all results
+      const results = await quizService.getQuizResults(id);
+      res.json({ success: true, data: results });
+    } catch (error) {
+      console.error("Error fetching quiz results:", error);
+      res.status(500).json({ error: "Failed to fetch quiz results" });
+    }
+  }
+
+  /**
+   * GET /api/quiz/:id/statistics - Get quiz statistics (Teacher/Admin only)
+   */
+  async getQuizStatistics(req: AuthRequest, res: Response) {
+    try {
+      const { id } = req.params;
+      const user = req.user;
+
+      // Check authorization
+      if (user?.role !== "instructor" && user?.role !== "admin") {
+        return res
+          .status(403)
+          .json({ error: "Only instructors and admins can view statistics" });
+      }
+
+      const statistics = await quizService.getQuizStatistics(id);
+      res.json({ success: true, data: statistics });
+    } catch (error) {
+      console.error("Error fetching quiz statistics:", error);
+      res.status(500).json({ error: "Failed to fetch quiz statistics" });
+    }
+  }
+}
+
+export default new QuizController();

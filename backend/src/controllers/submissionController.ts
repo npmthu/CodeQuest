@@ -1,0 +1,158 @@
+import { Response } from 'express';
+import * as submissionService from '../services/submissionService';
+import { executeCode } from '../services/codeExecutionService';
+import { supabaseAdmin } from '../config/database';
+import { AuthRequest } from '../middleware/auth';
+
+export const submitCode = async (req: AuthRequest, res: Response) => {
+  try {
+    // Require authentication
+    if (!req.user?.id) {
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication required'
+      });
+    }
+
+    // Accept both problemId and problem_id for compatibility
+    const { problemId, problem_id, code, language, mode, suspicion_score, suspicion_breakdown } = req.body;
+    const userId = req.user.id;
+    
+    const actualProblemId = problemId || problem_id;
+    const executionMode = mode || 'submit'; // 'run' = sample tests only, 'submit' = all tests
+    
+    if (!actualProblemId) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'problem_id or problemId is required' 
+      });
+    }
+
+    if (!code) {
+      return res.status(400).json({
+        success: false,
+        error: 'code is required'
+      });
+    }
+
+    if (!language) {
+      return res.status(400).json({
+        success: false,
+        error: 'language is required'
+      });
+    }
+
+    // Extract language name - handle both string and object
+    let languageName = '';
+    if (typeof language === 'string') {
+      languageName = language;
+    } else if (typeof language === 'object' && language.name) {
+      languageName = language.name;
+    } else {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid language format'
+      });
+    }
+
+    // Look up language_id from language name (case-insensitive)
+    const { data: langData, error: langError } = await supabaseAdmin
+      .from('languages')
+      .select('id')
+      .ilike('name', `%${languageName}%`)
+      .limit(1)
+      .maybeSingle();
+
+    if (langError || !langData?.id) {
+      console.warn(`Language "${languageName}" not found in database. Falling back to null.`);
+      // Log available languages for debugging
+      const { data: allLangs } = await supabaseAdmin.from('languages').select('name');
+      console.log('Available languages:', allLangs?.map((l: any) => l.name) || []);
+    }
+
+    let languageId = langData?.id || null;
+
+    // If mode is 'run', execute immediately without creating submission record
+    if (executionMode === 'run') {
+      const executionResult = await executeCode(code, languageName, actualProblemId, true);
+      
+      return res.json({ 
+        success: true, 
+        data: {
+          mode: 'run',
+          status: 'done',
+          result: executionResult
+        }
+      });
+    }
+
+    // For 'submit' mode, create submission record
+    // Validate suspicion_score is in valid range (0-1)
+    let validatedSuspicionScore = null;
+    if (suspicion_score !== undefined && suspicion_score !== null) {
+      const score = parseFloat(suspicion_score);
+      if (!isNaN(score) && score >= 0 && score <= 1) {
+        validatedSuspicionScore = score;
+      }
+    }
+
+    const payload = {
+      problem_id: actualProblemId,
+      user_id: userId,
+      code,
+      language_id: languageId,
+      status: 'PENDING',
+      suspicion_score: validatedSuspicionScore,
+      suspicion_breakdown: suspicion_breakdown || null,
+    };
+
+    const record = await submissionService.createSubmission(payload);
+
+    // Execute code against all test cases
+    const executionResult = await executeCode(code, languageName, actualProblemId, false);
+
+    // Store individual test case results in code_runs table
+    if (executionResult.test_cases && executionResult.test_cases.length > 0) {
+      const codeRunRecords = executionResult.test_cases.map((tc: any) => ({
+        submission_id: record.id,
+        test_case_id: tc.test_case_id,
+        status: tc.passed ? 'PASSED' : 'FAILED',
+        stdout: tc.actual_output || '',
+        stderr: tc.error || '',
+        exit_code: tc.passed ? 0 : 1,
+        execution_time_ms: tc.execution_time_ms,
+        memory_kb: 0
+      }));
+
+      const { error: runError } = await supabaseAdmin
+        .from('code_runs')
+        .insert(codeRunRecords);
+
+      if (runError) {
+        console.error('Error storing code runs:', runError);
+      }
+    }
+
+    // Update submission with execution results
+    const updated = await submissionService.updateSubmission(record.id, {
+      status: executionResult.status || 'ACCEPTED',
+      passed: executionResult.passed || false,
+      points: executionResult.total_points || 0,
+      execution_summary: executionResult,
+      completed_at: new Date().toISOString(),
+    } as any);
+
+    res.json({ 
+      success: true, 
+      data: {
+        submission_id: record.id,
+        mode: 'submit',
+        status: 'done',
+        result: executionResult
+      }
+    });
+  } catch (err: any) {
+    console.error('submitCode error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
