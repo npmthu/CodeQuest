@@ -85,7 +85,6 @@ export default function ForumPage() {
   const availableTags = [
     "python", 
     "javascript", 
-    "java", 
     "cpp", 
     "csharp",
     "algorithms", 
@@ -107,7 +106,6 @@ export default function ForumPage() {
   const tagDisplayNames: Record<string, string> = {
     "python": "Python",
     "javascript": "JavaScript",
-    "java": "Java",
     "cpp": "C++",
     "csharp": "C#",
     "algorithms": "Algorithms",

@@ -546,22 +546,7 @@ This notebook contains your personal learning notes. You can:
               </Card>
             )}
 
-            {/* Placeholder Notice */}
-            <Card className="p-6 bg-blue-50 border-blue-200 mb-8">
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <FileText className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <h4 className="mb-1">📝 Notebook Content</h4>
-                  <p className="text-sm text-muted-foreground">
-                    This is your notebook: <span className="font-medium text-blue-600">{notebook.title || 'Untitled'}</span>.
-                    In the full implementation, you would be able to edit this content, add rich formatting, 
-                    and insert code blocks. For now, you can use the AI Assistant above to ask questions about your notes.
-                  </p>
-                </div>
-              </div>
-            </Card>
+
 
             {/* Notebook Content */}
             <Card className="p-8">

@@ -92,12 +92,10 @@ const generateFunctionSignature = (problemIO: ProblemIO | undefined, lang: strin
     if (param.type === 'array' && param.element_type) {
       const elementType = mapTypeToLanguage(param.element_type, lang);
       if (lang === 'python') fullType = `List[${elementType}]`;
-      else if (lang === 'java') fullType = `${elementType}[]`;
       else if (lang === 'cpp') fullType = `vector<${elementType}>`;
     }
     
     if (lang === 'python') return `${param.name}: ${fullType}`;
-    else if (lang === 'java') return `${fullType} ${param.name}`;
     else if (lang === 'cpp') return `${fullType} ${param.name}`;
     return `${param.name}`;
   }).join(', ');
@@ -107,7 +105,6 @@ const generateFunctionSignature = (problemIO: ProblemIO | undefined, lang: strin
     if (problemIO.output.type === 'array' && problemIO.output.element_type) {
       const elementType = mapTypeToLanguage(problemIO.output.element_type, lang);
       if (lang === 'python') return `List[${elementType}]`;
-      else if (lang === 'java') return `${elementType}[]`;
       else if (lang === 'cpp') return `vector<${elementType}>`;
     }
     return baseType;
@@ -130,16 +127,6 @@ class Solution:
     def ${sig.name}(self${sig.params ? ', ' + sig.params : ''}) -> ${sig.returnType}:
         # Write your solution here
         pass
-`;
-  } else if (lang === 'java') {
-    return `import java.util.*;
-
-class Solution {
-    public ${sig.returnType} ${sig.name}(${sig.params}) {
-        // Write your solution here
-        return ${sig.returnType === 'int' ? '0' : sig.returnType === 'boolean' ? 'false' : 'null'};
-    }
-}
 `;
   } else if (lang === 'cpp') {
     return `#include <vector>
@@ -570,14 +557,13 @@ export default function CodeEditor({ apiBase }: CodeEditorProps) {
                     name: langName,
                     version: '1.0',
                     isEnabled: true,
-                    file_extension: langName === 'python' ? '.py' : langName === 'java' ? '.java' : '.cpp',
-                    run_command: langName === 'python' ? 'python3' : langName === 'java' ? 'java' : 'g++'
+                    file_extension: langName === 'python' ? '.py' : '.cpp',
+                    run_command: langName === 'python' ? 'python3' : 'g++'
                   });
                 }}
                 className="appearance-none px-3 py-2 border border-gray-200 rounded-md bg-white text-sm pr-8"
               >
                 <option value="python">Python</option>
-                <option value="java">Java</option>
                 <option value="cpp">C++</option>
               </select>
             </div>

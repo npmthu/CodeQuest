@@ -1,6 +1,10 @@
 /**
- * Code Execution Service - Real execution using Piston API with JSONB support
- * Piston: Free code execution engine (https://github.com/engineer-man/piston)
+ * Code Execution Service - Code execution via Piston API ft. JSONB input/output handling
+ * Piston: open source code execution engine (https://github.com/engineer-man/piston)
+ * 
+ * This module doesn't care at all about building/running containers, regardless of language, even C++, as Piston handles all that.
+ * It simply sends code to Piston's API and retrieves the results.
+ * The system currently works on server side. Although client could call Piston API directly and that's what we initially considered, but doing this in the server side making handling submission database much easier.
  */
 
 import { supabaseAdmin } from '../config/database';
@@ -10,10 +14,10 @@ import type { ProblemIO } from '../models/ProblemIO';
 const PISTON_API = 'https://emkc.org/api/v2/piston';
 
 // Language mapping: frontend name -> Piston language name
+// Only 2 languages supported for now: Python and C++, but can be easily extended as long as Piston supports them
 const LANGUAGE_MAP: Record<string, string> = {
   'python': 'python',
   'javascript': 'javascript',
-  'java': 'java',
   'cpp': 'cpp',
   'c++': 'cpp',
   'c': 'c',
@@ -139,11 +143,175 @@ const compareOutputs = (actualStr: string, expectedValue: any): boolean => {
 /**
  * Generate wrapper code that calls the Solution class and outputs JSON
  */
+// We could actually just send a code snippet to Piston that includes the user code
+// but input/output structures we built is in json, so we need to generate code to parse json input and serialize output to json
+const generateCppJsonSerializer = (): string => {
+  return `
+#include <iostream>
+#include <vector>
+#include <string>
+#include <sstream>
+#include <map>
+#include <unordered_map>
+using namespace std;
+
+// JSON serialization helpers
+// int & long long: to_string because of no direct overload for long long in ostringstream, but string works
+string toJson(int val) { return to_string(val); }
+string toJson(long long val) { return to_string(val); }
+// double: return as is
+string toJson(double val) { 
+    ostringstream oss;
+    oss << val;
+    return oss.str();
+}
+string toJson(bool val) { return val ? "true" : "false"; }
+
+// Since JavaScript somehow convert \" to ", and C++ only keeps \" as \", we need to double escape here
+
+string toJson(const string& val) { 
+    string result = "\\"";
+    for (char c : val) {
+        if (c == '"') result += "\\\\\\"";
+        else if (c == '\\\\') result += "\\\\\\\\";
+        else if (c == '\\n') result += "\\\\n";
+        else if (c == '\\t') result += "\\\\t";
+        else result += c;
+    }
+    result += "\\"";
+    return result;
+}
+string toJson(char val) { return toJson(string(1, val)); }
+
+template<typename T>
+string toJson(const vector<T>& vec) {
+    string result = "[";
+    for (size_t i = 0; i < vec.size(); i++) {
+        if (i > 0) result += ",";
+        result += toJson(vec[i]);
+    }
+    result += "]";
+    return result;
+}
+
+template<typename T>
+string toJson(const vector<vector<T>>& vec) {
+    string result = "[";
+    for (size_t i = 0; i < vec.size(); i++) {
+        if (i > 0) result += ",";
+        result += toJson(vec[i]);
+    }
+    result += "]";
+    return result;
+}
+`;
+};
+
+/**
+ * Generate cpp code to parse json input values
+ */
+const generateCppInputParser = (params: any[], testCaseInput: any): string => {
+  const declarations: string[] = [];
+  
+  for (const param of params) {
+    const name = param.name;
+    const type = param.type;
+    const elementType = param.element_type;
+    const value = testCaseInput[name];
+    
+    // Handle array type with element_type field
+    // Without array type handling, the input parser simply make an array look like:
+    // int nums = 2,7,11,15;
+    // => error: cannot convert 'int' to 'std::vector<int>'
+    // Since we default to vector when the input json (from problem_io) is "type": "array"
+    // Could have made it "vector", but that would be inconsistent with premade Python implementation before
+    // We most likely would use "array" for any problem_io anyway so such fallback might be unnecessary
+    if (type === 'array' && elementType) {
+      const arr = Array.isArray(value) ? value : [];
+      
+      if (elementType === 'int' || elementType === 'integer') {
+        declarations.push(`    vector<int> ${name} = {${arr.join(', ')}};`);
+      } else if (elementType === 'long' || elementType === 'long long') {
+        declarations.push(`    vector<long long> ${name} = {${arr.map((v: number) => v + 'LL').join(', ')}};`);
+      } else if (elementType === 'double' || elementType === 'float') {
+        declarations.push(`    vector<double> ${name} = {${arr.join(', ')}};`);
+      } else if (elementType === 'string') {
+        declarations.push(`    vector<string> ${name} = {${arr.map((s: string) => JSON.stringify(s)).join(', ')}};`);
+      } else if (elementType === 'char' || elementType === 'character') {
+        declarations.push(`    vector<char> ${name} = {${arr.map((c: string) => `'${c}'`).join(', ')}};`);
+      } else if (elementType === 'bool' || elementType === 'boolean') {
+        declarations.push(`    vector<bool> ${name} = {${arr.map((b: boolean) => b ? 'true' : 'false').join(', ')}};`);
+      } else if (elementType === 'array' && param.element_type_2) {
+        // 2D array
+        const innerType = param.element_type_2;
+        if (innerType === 'int' || innerType === 'integer') {
+          const inner = arr.map((row: number[]) => `{${row.join(', ')}}`).join(', ');
+          declarations.push(`    vector<vector<int>> ${name} = {${inner}};`);
+        } else if (innerType === 'string') {
+          const inner = arr.map((row: string[]) => `{${row.map((s: string) => JSON.stringify(s)).join(', ')}}`).join(', ');
+          declarations.push(`    vector<vector<string>> ${name} = {${inner}};`);
+        } else {
+          // Default 2D int
+          const inner = arr.map((row: number[]) => `{${row.join(', ')}}`).join(', ');
+          declarations.push(`    vector<vector<int>> ${name} = {${inner}};`);
+        }
+      } else {
+        // Default to int array
+        declarations.push(`    vector<int> ${name} = {${arr.join(', ')}};`);
+      }
+    } else if (type === 'int' || type === 'integer') {
+      declarations.push(`    int ${name} = ${value};`);
+    } else if (type === 'long' || type === 'long long') {
+      declarations.push(`    long long ${name} = ${value}LL;`);
+    } else if (type === 'double' || type === 'float') {
+      declarations.push(`    double ${name} = ${value};`);
+    } else if (type === 'bool' || type === 'boolean') {
+      declarations.push(`    bool ${name} = ${value ? 'true' : 'false'};`);
+    } else if (type === 'string') {
+      declarations.push(`    string ${name} = ${JSON.stringify(value)};`);
+    } else if (type === 'char' || type === 'character') {
+      declarations.push(`    char ${name} = '${value}';`);
+    } else if (type === 'int[]' || type === 'vector<int>' || type === 'array<int>') {
+      const arr = Array.isArray(value) ? value : [];
+      declarations.push(`    vector<int> ${name} = {${arr.join(', ')}};`);
+    } else if (type === 'long[]' || type === 'vector<long long>') {
+      const arr = Array.isArray(value) ? value : [];
+      declarations.push(`    vector<long long> ${name} = {${arr.map((v: number) => v + 'LL').join(', ')}};`);
+    } else if (type === 'double[]' || type === 'vector<double>') {
+      const arr = Array.isArray(value) ? value : [];
+      declarations.push(`    vector<double> ${name} = {${arr.join(', ')}};`);
+    } else if (type === 'string[]' || type === 'vector<string>') {
+      const arr = Array.isArray(value) ? value : [];
+      declarations.push(`    vector<string> ${name} = {${arr.map((s: string) => JSON.stringify(s)).join(', ')}};`);
+    } else if (type === 'int[][]' || type === 'vector<vector<int>>') {
+      const arr = Array.isArray(value) ? value : [];
+      const inner = arr.map((row: number[]) => `{${row.join(', ')}}`).join(', ');
+      declarations.push(`    vector<vector<int>> ${name} = {${inner}};`);
+    } else if (type === 'char[]' || type === 'vector<char>') {
+      const arr = Array.isArray(value) ? value : [];
+      declarations.push(`    vector<char> ${name} = {${arr.map((c: string) => `'${c}'`).join(', ')}};`);
+    } else {
+      // Default: check if value is an array, otherwise treat as int
+      if (Array.isArray(value)) {
+        declarations.push(`    vector<int> ${name} = {${value.join(', ')}};`);
+      } else {
+        declarations.push(`    int ${name} = ${value};`);
+      }
+    }
+  }
+  
+  return declarations.join('\n');
+};
+
+// The wrapper code is used to call the user's Solution class with test case input
+// The initial code is default as:
+// Class: Solution, Method: solve
+// The code is sent to Piston along with the user's code
 const generateWrapperCode = (userCode: string, testCaseInput: any, language: string, problemIO?: ProblemIO): string => {
   if (language === 'python') {
-    // Generate function call with parameters
     const params = problemIO?.input?.params || [];
     const paramNames = params.map((p: any) => p.name);
+    // argStr = input_data["param1"], input_data["param2"], ...
     const argsStr = paramNames.map((name: string) => `input_data["${name}"]`).join(', ');
     
     return `import json
@@ -151,29 +319,33 @@ from typing import List, Dict, Any
 
 ${userCode}
 
-# Test execution wrapper
 solution = Solution()
 input_data = ${JSON.stringify(testCaseInput)}
 result = solution.solve(${argsStr})
+
+// This actually print to stdout captured by Piston, we will retrieve it later and treat as the output of the code execution
 print(json.dumps(result))
 `;
-  } else if (language === 'java') {
-    // For Java, this is more complex - for now, simple approach
-    return userCode + `
-// Test execution wrapper
-public static void main(String[] args) {
-    Solution solution = new Solution();
-    // TODO: Parse input and call solve method
-    System.out.println("[]");
-}
-`;
   } else if (language === 'cpp' || language === 'c++') {
-    // For C++, similar complexity
-    return userCode + `
+    const params = problemIO?.input?.params || [];
+    const paramNames = params.map((p: any) => p.name);
+    const argsStr = paramNames.join(', ');
+    const inputDeclarations = generateCppInputParser(params, testCaseInput);
+    
+    return `${generateCppJsonSerializer()}
+
+${userCode}
+
 int main() {
     Solution solution;
-    // TODO: Parse input and call solve method
-    cout << "[]" << endl;
+${inputDeclarations}
+
+
+    // auto works for any return type that has toJson overloads
+    auto result = solution.solve(${argsStr});
+
+    // Again, this print to stdout captured by Piston
+    cout << toJson(result) << endl;
     return 0;
 }
 `;
@@ -259,6 +431,8 @@ export const executeCode = async (
       // Generate wrapper code with test case input
       const wrappedCode = generateWrapperCode(code, testCase.input, language, problemIO || undefined);
       
+      // result = { stdout, stderr, exitCode, executionTime, compileError }
+      // => output = stdout
       const result = await executeCodeWithInput(
         wrappedCode,
         language,
@@ -303,7 +477,10 @@ export const executeCode = async (
         continue;
       }
 
-      // Store first output for display
+      // Since this is in for loop, result.stdout is output for each test case
+      // firstOutput is only for the very first test case that produces output
+      // We capture it for displaying in case of compile error
+      // We actually don't use firstOutput here, just do it for consistency with firstError
       if (!firstOutput && result.stdout) {
         firstOutput = result.stdout;
       }

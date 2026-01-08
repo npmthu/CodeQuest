@@ -309,7 +309,6 @@ print(two_sum([3, 2, 4], 6))       # [1, 2]`;
                       <SelectContent>
                         <SelectItem value="python">Python</SelectItem>
                         <SelectItem value="javascript">JavaScript</SelectItem>
-                        <SelectItem value="java">Java</SelectItem>
                         <SelectItem value="cpp">C++</SelectItem>
                         <SelectItem value="go">Go</SelectItem>
                       </SelectContent>
