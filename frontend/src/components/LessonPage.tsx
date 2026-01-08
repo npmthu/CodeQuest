@@ -112,7 +112,7 @@ export default function LessonPage() {
         </p>
         <Button
           onClick={() =>
-            navigate(topicData?.course_id ? `/courses/${topicData.course_id}` : "/courses")
+            navigate(topicData?.courseId ? `/courses/${topicData.courseId}` : "/courses")
           }
           className="mt-4"
         >
@@ -129,9 +129,9 @@ export default function LessonPage() {
         <div className="max-w-6xl mx-auto px-8 py-6">
           <button
             onClick={() => {
-              // Use topic's course_id for navigation back to course
-              if (topicData?.course_id) {
-                navigate(`/courses/${topicData.course_id}`);
+              // Use topic's courseId for navigation back to course
+              if (topicData?.courseId) {
+                navigate(`/courses/${topicData.courseId}`);
               } else {
                 navigate('/courses'); // Fallback to courses list
               }
@@ -298,9 +298,9 @@ export default function LessonPage() {
                         <Button
                           size="sm"
                           className="bg-blue-600 hover:bg-blue-700 flex-shrink-0"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/editor/${problem.id}`);
+                          onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                          e.stopPropagation();
+                          navigate(`/editor/${problem.id}`);
                           }}
                         >
                           Solve
