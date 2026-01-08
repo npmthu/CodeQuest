@@ -28,6 +28,7 @@ import {
   type SummaryData,
   type MindmapData
 } from "./AIResultDisplay";
+import { MarkdownRenderer } from "./ui/MarkdownRenderer";
 
 interface NotebookDetailPlaceholderProps {
   notebook: Note;
@@ -564,11 +565,9 @@ This notebook contains your personal learning notes. You can:
 
             {/* Notebook Content */}
             <Card className="p-8">
-              <div className="prose prose-blue max-w-none">
-                <div className="whitespace-pre-wrap font-mono text-sm">
-                  {placeholderContent}
-                </div>
-              </div>
+              <MarkdownRenderer 
+                content={notebook.contentMarkdown || 'No content yet. Start writing your notes here.'}
+              />
             </Card>
 
             {/* Info: AI Assistant available in header */}

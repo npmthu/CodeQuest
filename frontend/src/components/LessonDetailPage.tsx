@@ -2,6 +2,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
 import { Badge } from "./ui/badge";
+import { MarkdownRenderer } from "./ui/MarkdownRenderer";
 import {
   ArrowLeft,
   CheckCircle2,
@@ -198,13 +199,9 @@ export default function LessonDetailPage() {
           ) : (
             // 📝 THEORY/TEXT VIEW
             <div className="p-8">
-              <div className="prose prose-blue max-w-none">
-                {/* Render markdown content */}
-                <div className="whitespace-pre-wrap font-sans text-lg leading-relaxed text-gray-700">
-                  {lesson.contentMarkdown ||
-                    "No content available for this lesson."}
-                </div>
-              </div>
+              <MarkdownRenderer 
+                content={lesson.contentMarkdown || "No content available for this lesson."}
+              />
             </div>
           )}
         </Card>
