@@ -2,10 +2,14 @@
 
 CodeQuest is a comprehensive online learning platform that supports coding courses, interactive lessons, quizzes, and mock interviews with AI-powered feedback.
 
+## Previous Deployment
+
+An older version of this application from PA4 is still available at https://frontend-pa4-two.vercel.app. This deployment uses an earlier codebase but can still connect to the database and demonstrate core functionality. However, this version is extremely outdated in terms of features and UI. For the best experience and to see the more completed functionality, it is  recommended to run the application locally using this repository instead.
+
 ## Prerequisites
 
-- Node.js (v16 or higher)
-- npm or yarn package manager
+- Node.js
+- npm package manager
 
 ## Local Installation
 
