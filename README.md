@@ -30,8 +30,6 @@ npm install
 npm run dev
 ```
 
-The backend will run on http://localhost:5000 by default.
-
 ### Frontend Setup
 
 1. Navigate to the frontend directory:
